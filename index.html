@@ -1,1361 +1,1206 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hyland Point: Crime Tycoon</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #1a1a2e, #16213e);
-      color: #fff;
-      overflow: hidden;
-    }
-
-    .hud {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      z-index: 1000;
-      border-bottom: 2px solid #333;
-    }
-
-    .hud-left,
-    .hud-right {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .money-counter {
-      font-size: 18px;
-      font-weight: bold;
-      color: #4CAF50;
-    }
-
-    .heat-meter {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .heat-bar {
-      width: 100px;
-      height: 10px;
-      background: #333;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-
-    .heat-fill {
-      height: 100%;
-      transition: all 0.3s ease;
-      border-radius: 5px;
-    }
-
-    .button {
-      background: #2196F3;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.3s ease;
-      margin: 5px;
-    }
-
-    .button:hover {
-      background: #1976D2;
-    }
-
-    .button:disabled {
-      background: #666;
-      cursor: not-allowed;
-    }
-
-    .button.danger {
-      background: #f44336;
-    }
-
-    .button.danger:hover {
-      background: #d32f2f;
-    }
-
-    .button.success {
-      background: #4CAF50;
-    }
-
-    .button.success:hover {
-      background: #388E3C;
-    }
-
-    .game-container {
-      display: flex;
-      height: 100vh;
-      padding-top: 60px;
-    }
-
-    .sidebar {
-      width: 300px;
-      background: rgba(0, 0, 0, 0.8);
-      border-right: 2px solid #333;
-      overflow-y: auto;
-    }
-
-    .nav-tabs {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .nav-tab {
-      padding: 15px 20px;
-      cursor: pointer;
-      border-bottom: 1px solid #333;
-      transition: background 0.3s ease;
-      position: relative;
-    }
-
-    .nav-tab:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .nav-tab.active {
-      background: #2196F3;
-    }
-
-    .main-content {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .map-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      background: #0f0f23;
-    }
-
-    #gameCanvas {
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-    }
-
-    .panel {
-      display: none;
-      padding: 20px;
-      height: 100%;
-      overflow-y: auto;
-    }
-
-    .panel.active {
-      display: block;
-    }
-
-    .panel h2 {
-      margin-bottom: 20px;
-      color: #2196F3;
-      border-bottom: 2px solid #333;
-      padding-bottom: 10px;
-    }
-
-    .inventory-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .inventory-item {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid #333;
-      border-radius: 8px;
-      padding: 15px;
-      text-align: center;
-      transition: all 0.3s ease;
-    }
-
-    .inventory-item:hover {
-      border-color: #2196F3;
-      transform: translateY(-2px);
-    }
-
-    .item-icon {
-      font-size: 30px;
-      margin-bottom: 10px;
-    }
-
-    .item-name {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    .item-quantity {
-      color: #4CAF50;
-      font-size: 14px;
-    }
-
-    .item-quality {
-      margin-top: 5px;
-    }
-
-    .quality-stars {
-      color: #FFD700;
-    }
-
-    .tabs {
-      display: flex;
-      margin-bottom: 20px;
-    }
-
-    .tab {
-      padding: 10px 20px;
-      cursor: pointer;
-      border: 1px solid #333;
-      background: rgba(255, 255, 255, 0.1);
-      margin-right: 5px;
-      border-radius: 5px 5px 0 0;
-    }
-
-    .tab.active {
-      background: #2196F3;
-    }
-
-    .employee-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .employee-card {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid #333;
-      border-radius: 8px;
-      padding: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .employee-info {
-      flex: 1;
-    }
-
-    .employee-name {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    .employee-role {
-      color: #2196F3;
-      font-size: 14px;
-    }
-
-    .employee-stats {
-      display: flex;
-      gap: 10px;
-      margin-top: 5px;
-    }
-
-    .stat {
-      font-size: 12px;
-      color: #999;
-    }
-
-    .contract-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .contract-card {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid #333;
-      border-radius: 8px;
-      padding: 20px;
-    }
-
-    .contract-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .contract-payout {
-      font-size: 18px;
-      font-weight: bold;
-      color: #4CAF50;
-    }
-
-    .input-group {
-      margin: 10px 0;
-    }
-
-    .input-group label {
-      display: block;
-      margin-bottom: 5px;
-      color: #ccc;
-    }
-
-    .input-group input,
-    .input-group select {
-      width: 100%;
-      padding: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid #333;
-      border-radius: 4px;
-      color: #fff;
-    }
-
-    .territory-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 2px;
-      margin: 20px 0;
-    }
-
-    .territory-tile {
-      aspect-ratio: 1;
-      border: 1px solid #333;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      position: relative;
-    }
-
-    .territory-tile:hover {
-      transform: scale(1.05);
-      z-index: 10;
-    }
-
-    .territory-tile.player {
-      background: #4CAF50;
-    }
-
-    .territory-tile.rival {
-      background: #f44336;
-    }
-
-    .territory-tile.neutral {
-      background: #666;
-    }
-
-    .territory-tile.available {
-      background: #2196F3;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 2000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: #1a1a2e;
-      border: 2px solid #333;
-      border-radius: 10px;
-      padding: 30px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    .modal-content h3 {
-      margin-bottom: 20px;
-      color: #2196F3;
-    }
-
-    .cook-minigame {
-      text-align: center;
-    }
-
-    .cook-stage {
-      margin: 20px 0;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 20px;
-      background: #333;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 10px 0;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: #4CAF50;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    .tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.8);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      pointer-events: none;
-      z-index: 3000;
-      white-space: nowrap;
-      display: none;
-    }
-
-    /* Guide Modal */
-    #guideModal .modal-content {
-      max-height: 90vh;
-    }
-
-    #guideModal .modal-content h3 {
-      margin-bottom: 10px;
-    }
-
-    #guideModal .modal-content ul {
-      list-style: disc;
-      margin-left: 20px;
-      margin-bottom: 20px;
-      color: #ccc;
-    }
-
-    .alert {
-      background: #f44336;
-      color: white;
-      padding: 15px;
-      border-radius: 5px;
-      margin: 10px 0;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .alert.warning {
-      background: #ff9800;
-    }
-
-    .alert.success {
-      background: #4CAF50;
-    }
-
-    @media (max-width: 768px) {
-      .game-container {
-        flex-direction: column;
-      }
-
-      .sidebar {
-        width: 100%;
-        height: 200px;
-        order: 2;
-      }
-
-      .nav-tabs {
-        flex-direction: row;
-        overflow-x: auto;
-      }
-
-      .nav-tab {
-        white-space: nowrap;
-        min-width: 120px;
-      }
-
-      .main-content {
-        order: 1;
-        height: calc(100vh - 260px);
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Metro Transit Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #2a2a2a;
+            cursor: crosshair;
+        }
+
+        .hud {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .top-bar {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: auto;
+        }
+
+        .bottom-bar {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat {
+            font-weight: bold;
+        }
+
+        .resource-panel {
+            position: absolute;
+            top: 60px;
+            right: -300px;
+            width: 280px;
+            height: calc(100vh - 60px);
+            background: rgba(0, 0, 0, 0.9);
+            transition: right 0.3s ease;
+            padding: 20px;
+            pointer-events: auto;
+        }
+
+        .resource-panel.open {
+            right: 0;
+        }
+
+        .resource-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #4a4a4a;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .resource-button:hover:not(:disabled) {
+            background: #5a5a5a;
+        }
+
+        .resource-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-over-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #ff6b6b;
+        }
+
+        .modal-content p {
+            margin: 10px 0;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #4a90e2;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .modal-button:hover {
+            background: #357abd;
+        }
+
+        .pause-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        .tutorial-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        .tutorial-content {
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .tutorial-step {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .tutorial-step.active {
+            display: block;
+        }
+
+        .clickable {
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .notification {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(74, 144, 226, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 0 10px;
+                font-size: 14px;
+            }
+            
+            .stat-group {
+                gap: 10px;
+            }
+            
+            .resource-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="hud">
-    <div class="hud-left">
-      <div class="money-counter" title="Your current cash balance">💰 $<span id="money">50000</span></div>
-      <div class="heat-meter" title="Your current wanted/heat level (0–100). Higher heat = more police attention.">
-        🚨 Heat: <span id="heatValue">0</span>/100
-        <div class="heat-bar">
-          <div class="heat-fill" id="heatFill" style="width: 0%"></div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- HUD Elements -->
+    <div class="hud top-bar">
+        <div class="stat-group">
+            <span class="stat">Week: <span id="weekDisplay">1</span></span>
+            <span class="stat">Month: <span id="monthDisplay">1</span></span>
         </div>
-      </div>
-    </div>
-    <div class="hud-right">
-      <button class="button" title="Save your game progress" onclick="saveGame()">💾 Save</button>
-      <button class="button" title="Open the game guide" onclick="openGuide()">❓ Guide</button>
-      <button class="button" title="Show info notification" onclick="showNotification('Game auto-saves every minute!')">ℹ️ Info</button>
-    </div>
-  </div>
-
-  <div class="game-container">
-    <div class="sidebar">
-      <div class="nav-tabs">
-        <div class="nav-tab active" onclick="switchTab('map')" title="View and manage city territories">🗺️ Map</div>
-        <div class="nav-tab" onclick="switchTab('inventory')" title="View raw, intermediate, and final products">📦 Inventory</div>
-        <div class="nav-tab" onclick="switchTab('employees')" title="Hire, fire, and manage employees">👥 Employees</div>
-        <div class="nav-tab" onclick="switchTab('properties')" title="View owned properties and upgrades">🏢 Properties</div>
-        <div class="nav-tab" onclick="switchTab('research')" title="Unlock new technologies and bonuses">🔬 Research</div>
-        <div class="nav-tab" onclick="switchTab('contracts')" title="Browse and accept wholesale contracts">📋 Contracts</div>
-        <div class="nav-tab" onclick="switchTab('laundering')" title="Launder dirty money through front businesses">💳 Laundering</div>
-      </div>
-    </div>
-
-    <div class="main-content">
-      <!-- Map Panel -->
-      <div id="mapPanel" class="panel active">
-        <div class="map-container">
-          <canvas id="gameCanvas" width="800" height="600" title="Click a tile to see details"></canvas>
-          <div id="mapTooltip" class="tooltip"></div>
+        <div class="stat-group">
+            <span class="stat">Delivered: <span id="scoreDisplay">0</span></span>
+            <span class="stat clickable" id="tokensDisplay" style="color: #4a90e2;">Tokens: 0</span>
+            <button class="modal-button" id="pauseButton">⏸</button>
         </div>
-      </div>
+    </div>
 
-      <!-- Inventory Panel -->
-      <div id="inventoryPanel" class="panel">
-        <h2>Inventory & Storage</h2>
-        <div class="tabs">
-          <div class="tab active" onclick="switchInventoryTab('raw')" title="View raw materials">Raw Materials</div>
-          <div class="tab" onclick="switchInventoryTab('intermediate')" title="View intermediate products">Intermediate</div>
-          <div class="tab" onclick="switchInventoryTab('final')" title="View final products">Final Products</div>
+    <div class="hud bottom-bar">
+        <span id="tooltipDisplay">Draw lines between stations to connect them. Trains will carry passengers to matching colored stations.</span>
+    </div>
+
+    <!-- Resource Panel -->
+    <div class="resource-panel" id="resourcePanel">
+        <h3>Spend Resources</h3>
+        <button class="resource-button" id="addTrainBtn" data-cost="1">
+            🚂 Add Train (1 Token)
+            <br><small>Add a new train to an existing line</small>
+        </button>
+        <button class="resource-button" id="addCarriageBtn" data-cost="1">
+            🚃 Add Carriage (1 Token)
+            <br><small>Increase train capacity by 4</small>
+        </button>
+        <button class="resource-button" id="addLineBtn" data-cost="1">
+            📏 New Line (1 Token)
+            <br><small>Unlock ability to draw another line</small>
+        </button>
+        <button class="resource-button" id="addTunnelBtn" data-cost="1">
+            🚇 Tunnel (1 Token)
+            <br><small>Cross barriers with next line segment</small>
+        </button>
+        <button class="resource-button" id="closeResourcePanel">Close</button>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="modal-content">
+            <h2>Game Over!</h2>
+            <p id="gameOverReason">Station Overloaded</p>
+            <p>Time Survived: <span id="finalWeek">0</span> weeks</p>
+            <p>Passengers Delivered: <span id="finalScore">0</span></p>
+            <p>Average Wait Time: <span id="avgWaitTime">0.0s</span></p>
+            <button class="modal-button" id="restartButton">Restart Game</button>
         </div>
-        <div id="inventoryContent">
-          <div class="inventory-grid" id="inventoryGrid"></div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div class="pause-modal" id="pauseModal">
+        <div class="modal-content">
+            <h2>Game Paused</h2>
+            <button class="modal-button" id="resumeButton">Resume</button>
+            <button class="modal-button" id="restartFromPauseButton">Restart</button>
+            <button class="modal-button" id="tutorialButton">Tutorial</button>
         </div>
-        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-          <strong>Storage Capacity:</strong> <span id="storageUsed">0</span> / <span id="storageMax">200</span> units
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div class="tutorial-modal" id="tutorialModal" style="display: none;">
+        <div class="tutorial-content">
+            <div class="tutorial-step active">
+                <h3>Welcome to Mini Metro!</h3>
+                <p>Build an efficient transit network by connecting stations with colored lines.</p>
+                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
+            </div>
+            <div class="tutorial-step">
+                <h3>Drawing Lines</h3>
+                <p>Click and drag from one station to another to create your first line. Trains will automatically run on your lines.</p>
+                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
+            </div>
+            <div class="tutorial-step">
+                <h3>Passengers & Colors</h3>
+                <p>Colored passengers appear at stations and want to travel to stations of matching color. Keep queues short!</p>
+                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
+            </div>
+            <div class="tutorial-step">
+                <h3>Resources & Upgrades</h3>
+                <p>Every week you'll receive tokens. Spend them to add trains, carriages, new lines, and tunnels. Click the 'Tokens' counter to spend.</p>
+                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
+            </div>
+            <div class="tutorial-step">
+                <h3>Win Condition</h3>
+                <p>If any station's queue exceeds 20 passengers, you lose! Build smart and keep traffic flowing.</p>
+                <button class="modal-button" onclick="startGame()">Start Playing!</button>
+            </div>
         </div>
-      </div>
-
-      <!-- Employees Panel -->
-      <div id="employeesPanel" class="panel">
-        <h2>Employee Management</h2>
-        <button class="button success" onclick="showHireModal()" title="Open hire menu">👤 Hire New Employee</button>
-        <div id="employeeList" class="employee-list"></div>
-      </div>
-
-      <!-- Properties Panel -->
-      <div id="propertiesPanel" class="panel">
-        <h2>Properties & Upgrades</h2>
-        <div id="propertiesList"></div>
-      </div>
-
-      <!-- Research Panel -->
-      <div id="researchPanel" class="panel">
-        <h2>Research & Technology</h2>
-        <div class="research-tree" id="researchTree"></div>
-      </div>
-
-      <!-- Contracts Panel -->
-      <div id="contractsPanel" class="panel">
-        <h2>Wholesale Contracts</h2>
-        <button class="button" onclick="refreshContracts()" title="Generate new contract offers">🔄 Refresh Contracts</button>
-        <div id="contractsList" class="contract-list"></div>
-      </div>
-
-      <!-- Laundering Panel -->
-      <div id="launderingPanel" class="panel">
-        <h2>Money Laundering</h2>
-        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-          <h3>Basic Laundromat (Clean Rate: 60%)</h3>
-          <div class="input-group">
-            <label>Amount to Launder:</label>
-            <input type="number" id="launderAmount" placeholder="Enter amount" title="Type how much cash you want to launder">
-          </div>
-          <button class="button success" onclick="launderMoney()" title="Process laundering">💸 Launder Money</button>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Modals -->
-  <div id="territoryModal" class="modal">
-    <div class="modal-content">
-      <h3>Territory Information</h3>
-      <div id="territoryInfo"></div>
-      <button class="button" onclick="closeModal('territoryModal')" title="Close this window">Close</button>
-    </div>
-  </div>
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
 
-  <div id="cookModal" class="modal">
-    <div class="modal-content">
-      <h3>Drug Crafting Lab</h3>
-      <div class="cook-minigame" id="cookMinigame"></div>
-      <button class="button" style="margin-top: 15px;" onclick="closeModal('cookModal')" title="Close this window">Close</button>
-    </div>
-  </div>
+    <script>
+        // Game Constants
+        const STATION_COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b'];
+        const LINE_COLORS = ['#666', '#777', '#888', '#999', '#aaa', '#bbb'];
+        const STATION_RADIUS = 15;
+        const TRAIN_SIZE = 8;
+        const MAX_QUEUE_LENGTH = 20;
+        const REAL_SECONDS_PER_WEEK = 20; // Faster for demo
+        const DEFAULT_TRAIN_SPEED = 80;
+        const DEFAULT_TRAIN_CAPACITY = 4;
 
-  <div id="hireModal" class="modal">
-    <div class="modal-content">
-      <h3>Hire Employee</h3>
-      <div id="availableEmployees"></div>
-      <button class="button" onclick="closeModal('hireModal')" title="Close this window">Close</button>
-    </div>
-  </div>
+        // Game State
+        let gameState = {
+            stations: new Map(),
+            lines: new Map(),
+            trains: new Map(),
+            passengers: new Map(),
+            nextStationID: 1,
+            nextLineID: 1,
+            nextTrainID: 1,
+            nextPassengerID: 1,
+            score: 0,
+            totalWaitTime: 0,
+            deliveredCount: 0,
+            week: 1,
+            month: 1,
+            isGameOver: false,
+            isPaused: false,
+            tokens: 1, // Start with 1 token
+            maxLines: 2,
+            usedLines: 0,
+            tunnelsAvailable: 0
+        };
 
-  <div id="saleModal" class="modal">
-    <div class="modal-content">
-      <h3>Street Sales</h3>
-      <div id="saleInterface"></div>
-      <button class="button" style="margin-top: 15px;" onclick="closeModal('saleModal')" title="Close this window">Close</button>
-    </div>
-  </div>
+        // Timing variables
+        let lastTime = 0;
+        let stationSpawnTimer = 0;
+        let passengerSpawnTimer = 0;
+        let weekTimer = 0;
+        let stationSpawnInterval = 8;
+        let passengerSpawnInterval = 1.2;
 
-  <div id="guideModal" class="modal">
-    <div class="modal-content">
-      <h3>Game Guide</h3>
-      <ul>
-        <li><strong>Map:</strong> Click a colored tile to view territory details. Unclaimed (blue), yours (green), rivals (red).</li>
-        <li><strong>Buying:</strong> If unclaimed, click "Buy Territory" to expand your control (cost applies).</li>
-        <li><strong>Harvest:</strong> If territory has a grow zone (🌿), click "Harvest Resources" to collect raw cannabis.</li>
-        <li><strong>Cook:</strong> Click "Cook Products" to convert raw cannabis into cannabis oil via mini-game.</li>
-        <li><strong>Sell:</strong> Click "Sell Products" to open the retail interface and set price/amount. Higher risk in certain territories may lead to busts.</li>
-        <li><strong>Inventory:</strong> View all raw/intermediate/final products. Monitor storage capacity at bottom.</li>
-        <li><strong>Employees:</strong> Hire cooks, botanists, muscle, dealers, and more to automate tasks and boost yields.</li>
-        <li><strong>Properties:</strong> See all owned territories/properties. Later expansions will allow purchasing labs, warehouses, and laundromats.</li>
-        <li><strong>Research:</strong> Spend cash to unlock technologies (e.g., better yields, purity, logistics).</li>
-        <li><strong>Contracts:</strong> Accept wholesale deals that pay large sums for large quantities at minimum purity levels.</li>
-        <li><strong>Laundering:</strong> Convert dirty money into clean funds at a front business (60% clean rate currently).</li>
-        <li><strong>Heat Meter:</strong> Indicates police attention. High heat triggers checkpoints and raids. Launder money or lay low to reduce heat.</li>
-      </ul>
-      <button class="button" onclick="closeModal('guideModal')" title="Close guide">Close</button>
-    </div>
-  </div>
+        // UI state
+        let selectedStation = null;
+        let isDragging = false;
+        let dragEndX = 0;
+        let dragEndY = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let showingResourcePanel = false;
+        let pendingResourceAction = null; // 'addTrain', 'addCarriage'
+        let tutorialStep = 0;
 
-  <div id="notificationContainer"></div>
-
-  <script>
-    // Game State
-    let gameState = {
-      money: 50000,
-      heat: 0,
-      territories: {},
-      inventory: {
-        raw_cannabis: { quantity: 20, avgPurity: 75, category: 'raw' },
-        cannabis_oil: { quantity: 5, avgPurity: 85, category: 'final' }
-      },
-      employees: [],
-      properties: {},
-      research: {},
-      contracts: [],
-      storage: { capacity: 200, used: 25 },
-      gameTime: 0
-    };
-
-    // Initialize territories
-    for (let i = 0; i < 64; i++) {
-      gameState.territories[i] = {
-        id: i,
-        owner: Math.random() < 0.1 ? 'player' : (Math.random() < 0.3 ? 'rival' : null),
-        demandIndex: Math.floor(Math.random() * 100),
-        riskLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-        hasGrowZone: Math.random() < 0.3,
-        hasChemDropOff: Math.random() < 0.2,
-        price: Math.floor(Math.random() * 50000) + 10000
-      };
-    }
-
-    // Canvas and rendering
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let selectedTerritory = null;
-    const tooltip = document.getElementById('mapTooltip');
-
-    function resizeCanvas() {
-      const container = canvas.parentElement;
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-      drawMap();
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    function drawMap() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const gridSize = 8;
-      const tileWidth = canvas.width / gridSize;
-      const tileHeight = canvas.height / gridSize;
-
-      for (let i = 0; i < 64; i++) {
-        const row = Math.floor(i / gridSize);
-        const col = i % gridSize;
-        const x = col * tileWidth;
-        const y = row * tileHeight;
-
-        const territory = gameState.territories[i];
-
-        // Determine color based on ownership
-        let color = '#666';
-        if (territory.owner === 'player') color = '#4CAF50';
-        else if (territory.owner === 'rival') color = '#f44336';
-        else if (!territory.owner) color = '#2196F3';
-
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, tileWidth - 1, tileHeight - 1);
-
-        // Draw grid lines for clarity
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, tileWidth, tileHeight);
-
-        // Highlight selected territory
-        if (selectedTerritory === i) {
-          ctx.strokeStyle = '#FFD700';
-          ctx.lineWidth = 3;
-          ctx.strokeRect(x + 1, y + 1, tileWidth - 2, tileHeight - 2);
-        }
-
-        // Draw territory number with slight shadow
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        ctx.fillText(i, x + tileWidth / 2, y + tileHeight / 2);
-
-        // Draw resource indicators (larger icons)
-        if (territory.hasGrowZone) {
-          ctx.fillStyle = '#4CAF50';
-          ctx.font = '12px Arial';
-          ctx.fillText('🌿', x + 12, y + 12);
-        }
-        if (territory.hasChemDropOff) {
-          ctx.fillStyle = '#9C27B0';
-          ctx.font = '12px Arial';
-          ctx.fillText('🧪', x + tileWidth - 14, y + 12);
-        }
-      }
-    }
-
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const gridSize = 8;
-      const tileWidth = canvas.width / gridSize;
-      const tileHeight = canvas.height / gridSize;
-
-      const col = Math.floor(x / tileWidth);
-      const row = Math.floor(y / tileHeight);
-      const territoryId = row * gridSize + col;
-
-      if (territoryId >= 0 && territoryId < 64) {
-        selectedTerritory = territoryId;
-        showTerritoryInfo(territoryId);
-        drawMap();
-      }
-    });
-
-    // Tooltip on mousemove
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const gridSize = 8;
-      const tileWidth = canvas.width / gridSize;
-      const tileHeight = canvas.height / gridSize;
-
-      const col = Math.floor(x / tileWidth);
-      const row = Math.floor(y / tileHeight);
-      const territoryId = row * gridSize + col;
-
-      if (territoryId >= 0 && territoryId < 64) {
-        const territory = gameState.territories[territoryId];
-        tooltip.style.left = (e.clientX + 10) + 'px';
-        tooltip.style.top = (e.clientY + 10) + 'px';
-        tooltip.innerHTML = `
-          <strong>Territory ${territoryId}</strong><br>
-          Owner: ${territory.owner || 'Unclaimed'}<br>
-          Demand: ${territory.demandIndex}/100<br>
-          Risk: ${territory.riskLevel}<br>
-          ${territory.hasGrowZone ? '🌿 Grow Zone<br>' : ''}
-          ${territory.hasChemDropOff ? '🧪 Chem Drop-off<br>' : ''}
-        `;
-        tooltip.style.display = 'block';
-      } else {
-        tooltip.style.display = 'none';
-      }
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
-    });
-
-    function showTerritoryInfo(territoryId) {
-      const territory = gameState.territories[territoryId];
-      const modal = document.getElementById('territoryModal');
-      const info = document.getElementById('territoryInfo');
-
-      let ownerText = territory.owner || 'Unclaimed';
-      let ownerColor = territory.owner === 'player' ? '#4CAF50' :
-        territory.owner === 'rival' ? '#f44336' : '#999';
-
-      info.innerHTML = `
-        <div style="margin-bottom: 15px;">
-          <strong>Territory ${territoryId}</strong><br>
-          <span style="color: ${ownerColor}">Owner: ${ownerText}</span><br>
-          Demand Index: ${territory.demandIndex}/100<br>
-          Risk Level: ${territory.riskLevel}<br>
-          ${territory.hasGrowZone ? '🌿 Has Grow Zone<br>' : ''}
-          ${territory.hasChemDropOff ? '🧪 Has Chem Drop-off<br>' : ''}
-        </div>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
         
-        ${!territory.owner ? `
-          <div style="margin: 15px 0;">
-            <strong>Purchase Price: $${territory.price.toLocaleString()}</strong><br>
-            <button class="button success" onclick="buyTerritory(${territoryId})" 
-                    ${gameState.money < territory.price ? 'disabled' : ''} title="Spend $${territory.price.toLocaleString()} to claim this tile">
-              Buy Territory
-            </button>
-          </div>
-        ` : ''}
-
-        ${territory.owner === 'player' ? `
-          <div style="margin: 15px 0;">
-            <button class="button" onclick="harvestResources(${territoryId})" 
-                    ${!territory.hasGrowZone ? 'disabled' : ''} title="Harvest raw cannabis if available">
-              🌿 Harvest Resources
-            </button>
-            <button class="button" onclick="showSaleModal(${territoryId})" title="Sell your final products here">
-              💰 Sell Products
-            </button>
-            <button class="button" onclick="showCookModal()" title="Open the cooking lab mini‐game">
-              🧪 Cook Products
-            </button>
-          </div>
-        ` : ''}
-      `;
-
-      modal.classList.add('active');
-    }
-
-    function buyTerritory(territoryId) {
-      const territory = gameState.territories[territoryId];
-      if (gameState.money >= territory.price) {
-        gameState.money -= territory.price;
-        territory.owner = 'player';
-        gameState.heat = Math.min(100, gameState.heat + 5);
-        updateUI();
-        drawMap();
-        showNotification(`Territory ${territoryId} purchased for $${territory.price.toLocaleString()}!`);
-        closeModal('territoryModal');
-      }
-    }
-
-    function harvestResources(territoryId) {
-      const territory = gameState.territories[territoryId];
-      if (territory.hasGrowZone && territory.owner === 'player') {
-        const yieldAmount = Math.floor(Math.random() * 20) + 10;
-        const quality = Math.floor(Math.random() * 30) + 70;
-
-        if (!gameState.inventory.raw_cannabis) {
-          gameState.inventory.raw_cannabis = { quantity: 0, avgPurity: 0, category: 'raw' };
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
         }
 
-        const currentTotal = gameState.inventory.raw_cannabis.quantity;
-        const newTotal = currentTotal + yieldAmount;
-        const newAvgPurity = ((gameState.inventory.raw_cannabis.avgPurity * currentTotal) + (quality * yieldAmount)) / newTotal;
+        // Classes
+        class Station {
+            constructor(x, y, color) {
+                this.id = gameState.nextStationID++;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.queue = [];
+                this.isOverloaded = false;
+            }
 
-        gameState.inventory.raw_cannabis.quantity = newTotal;
-        gameState.inventory.raw_cannabis.avgPurity = Math.round(newAvgPurity);
-        gameState.storage.used += yieldAmount;
+            addPassenger(passenger) {
+                this.queue.push(passenger.id);
+                if (this.queue.length >= MAX_QUEUE_LENGTH && !gameState.isGameOver) {
+                    this.isOverloaded = true;
+                    endGame(`Station overloaded! Queue reached ${this.queue.length} passengers.`);
+                }
+            }
 
-        updateUI();
-        showNotification(`Harvested ${yieldAmount}g of cannabis (${quality}% quality)`);
-        closeModal('territoryModal');
-      }
-    }
+            removePassenger(passengerId) {
+                const index = this.queue.indexOf(passengerId);
+                if (index > -1) {
+                    this.queue.splice(index, 1);
+                }
+            }
 
-    function showCookModal() {
-      const modal = document.getElementById('cookModal');
-      const minigame = document.getElementById('cookMinigame');
+            draw() {
+                const pulseTime = performance.now() * 0.005;
+                const isWarning = this.queue.length >= 15;
+                const radius = STATION_RADIUS + (isWarning ? Math.sin(pulseTime) * 3 : 0);
+                
+                // Station circle
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = isWarning ? '#ff0000' : '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
 
-      minigame.innerHTML = `
-        <h4>Cannabis Oil Extraction</h4>
-        <div class="cook-stage">
-          <p>Available Raw Cannabis: ${gameState.inventory.raw_cannabis?.quantity || 0}g</p>
-          <div class="input-group">
-            <label>Amount to Process:</label>
-            <input type="number" id="cookAmount" max="${gameState.inventory.raw_cannabis?.quantity || 0}" min="1" value="10" title="Choose how many grams to convert">
-          </div>
-          <button class="button success" onclick="startCooking()" title="Begin cooking process">Start Extraction</button>
-        </div>
-        <div id="cookingProgress" style="display: none;">
-          <div class="cook-stage">
-            <p id="currentStage">Grinding...</p>
-            <div class="progress-bar">
-              <div class="progress-fill" id="cookProgress"></div>
-            </div>
-            <button class="button" id="cookAction" onclick="cookingStep()" title="Continue to next step">Click to Continue</button>
-          </div>
-        </div>
-      `;
+                // Queue visualization
+                if (this.queue.length > 0) {
+                    const displayCount = Math.min(4, this.queue.length);
+                    for (let i = 0; i < displayCount; i++) {
+                        const passenger = gameState.passengers.get(this.queue[i]);
+                        if (passenger) {
+                            const angle = (i / displayCount) * Math.PI * 2;
+                            const qx = this.x + Math.cos(angle) * (radius - 6);
+                            const qy = this.y + Math.sin(angle) * (radius - 6);
+                            
+                            ctx.fillStyle = passenger.targetColor;
+                            ctx.beginPath();
+                            ctx.arc(qx, qy, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
 
-      modal.classList.add('active');
-    }
-
-    let cookingState = { stage: 0, amount: 0, quality: 0 };
-    const cookingStages = ['Grinding', 'Adding Solvent', 'Heating', 'Filtering', 'Finalizing'];
-
-    function startCooking() {
-      const amount = parseInt(document.getElementById('cookAmount').value);
-      if (amount > 0 && amount <= (gameState.inventory.raw_cannabis?.quantity || 0)) {
-        cookingState = { stage: 0, amount: amount, quality: gameState.inventory.raw_cannabis.avgPurity };
-        document.getElementById('cookingProgress').style.display = 'block';
-        cookingStep();
-      }
-    }
-
-    function cookingStep() {
-      const progressBar = document.getElementById('cookProgress');
-      const stageText = document.getElementById('currentStage');
-
-      if (cookingState.stage < cookingStages.length) {
-        stageText.textContent = cookingStages[cookingState.stage] + '...';
-        progressBar.style.width = ((cookingState.stage + 1) / cookingStages.length) * 100 + '%';
-
-        // Add some randomness to quality
-        const bonus = Math.random() * 10 - 5; // -5 to +5
-        cookingState.quality = Math.max(0, Math.min(100, cookingState.quality + bonus));
-
-        cookingState.stage++;
-
-        if (cookingState.stage >= cookingStages.length) {
-          finishCooking();
+                    if (this.queue.length > 4) {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`+${this.queue.length - 4}`, this.x, this.y + radius + 15);
+                    }
+                }
+            }
         }
-      }
-    }
 
-    function finishCooking() {
-      const yieldAmount = Math.floor(cookingState.amount * 0.7); // 70% yield
-      const quality = Math.round(cookingState.quality);
+        class Line {
+            constructor() {
+                this.id = gameState.nextLineID++;
+                this.stations = [];
+                this.trains = [];
+                this.color = LINE_COLORS[gameState.usedLines % LINE_COLORS.length];
+                gameState.usedLines++;
+                this.colorStationsMap = {};
+            }
 
-      // Remove raw materials
-      gameState.inventory.raw_cannabis.quantity -= cookingState.amount;
-      gameState.storage.used -= cookingState.amount;
+            addStation(stationId) {
+                if (!this.stations.includes(stationId)) {
+                    this.stations.push(stationId);
+                    this.updateColorMap();
+                }
+            }
 
-      // Add final product
-      if (!gameState.inventory.cannabis_oil) {
-        gameState.inventory.cannabis_oil = { quantity: 0, avgPurity: 0, category: 'final' };
-      }
+            updateColorMap() {
+                this.colorStationsMap = {};
+                this.stations.forEach((stationId, index) => {
+                    const station = gameState.stations.get(stationId);
+                    if (station) {
+                        if (!this.colorStationsMap[station.color]) {
+                            this.colorStationsMap[station.color] = [];
+                        }
+                        this.colorStationsMap[station.color].push(index);
+                    }
+                });
+            }
 
-      const currentTotal = gameState.inventory.cannabis_oil.quantity;
-      const newTotal = currentTotal + yieldAmount;
-      const newAvgPurity = ((gameState.inventory.cannabis_oil.avgPurity * currentTotal) + (quality * yieldAmount)) / newTotal;
+            canReachColor(fromIndex, targetColor, direction) {
+                const colorIndices = this.colorStationsMap[targetColor] || [];
+                return colorIndices.some(index => {
+                    if (direction === 'forward') return index > fromIndex;
+                    if (direction === 'backward') return index < fromIndex;
+                    return false;
+                });
+            }
 
-      gameState.inventory.cannabis_oil.quantity = newTotal;
-      gameState.inventory.cannabis_oil.avgPurity = Math.round(newAvgPurity);
-      gameState.storage.used += yieldAmount;
+            draw() {
+                if (this.stations.length < 2) return;
 
-      updateUI();
-      showNotification(`Cooked ${yieldAmount}g of Cannabis Oil (${quality}% purity)`);
-      closeModal('cookModal');
-    }
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
 
-    // --- UI & Utility Functions ---
-
-    function switchTab(tabName) {
-      const tabs = ['map', 'inventory', 'employees', 'properties', 'research', 'contracts', 'laundering'];
-      tabs.forEach(name => {
-        document.querySelector(`.nav-tab[onclick="switchTab('${name}')"]`).classList.toggle('active', name === tabName);
-        document.getElementById(`${name}Panel`).classList.toggle('active', name === tabName);
-      });
-      if (tabName === 'inventory') populateInventory('raw');
-      if (tabName === 'employees') populateEmployees();
-      if (tabName === 'properties') populateProperties();
-      if (tabName === 'research') populateResearch();
-      if (tabName === 'contracts') populateContracts();
-    }
-
-    function updateUI() {
-      // Money & Heat
-      document.getElementById('money').textContent = gameState.money.toLocaleString();
-      document.getElementById('heatValue').textContent = gameState.heat;
-      document.getElementById('heatFill').style.width = `${gameState.heat}%`;
-      document.getElementById('storageUsed').textContent = gameState.storage.used;
-      document.getElementById('storageMax').textContent = gameState.storage.capacity;
-      // If inventory panel is active, refresh it
-      if (document.getElementById('inventoryPanel').classList.contains('active')) {
-        const activeTab = document.querySelector('.tab.active').textContent.toLowerCase().includes('raw') ? 'raw' :
-                          document.querySelector('.tab.active').textContent.toLowerCase().includes('inter') ? 'intermediate' : 'final';
-        populateInventory(activeTab);
-      }
-    }
-
-    function showNotification(message) {
-      const notif = document.createElement('div');
-      notif.className = 'notification';
-      notif.textContent = message;
-      document.body.appendChild(notif);
-      setTimeout(() => {
-        notif.remove();
-      }, 3000);
-    }
-
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove('active');
-    }
-
-    // --- Inventory ---
-
-    function switchInventoryTab(category) {
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.toggle('active', tab.textContent.toLowerCase().includes(category));
-      });
-      populateInventory(category);
-    }
-
-    function populateInventory(category) {
-      const grid = document.getElementById('inventoryGrid');
-      grid.innerHTML = '';
-      for (let key in gameState.inventory) {
-        const item = gameState.inventory[key];
-        if (item.category === category) {
-          const div = document.createElement('div');
-          div.className = 'inventory-item';
-          div.innerHTML = `
-            <div class="item-icon">${
-              category === 'raw' ? '🌿' :
-              category === 'intermediate' ? '⚗️' : '🛢️'
-            }</div>
-            <div class="item-name">${key.replace(/_/g, ' ')}</div>
-            <div class="item-quantity">Qty: ${item.quantity}</div>
-            <div class="item-quality">Purity: ${item.avgPurity}%</div>
-          `;
-          grid.appendChild(div);
+                ctx.beginPath();
+                for (let i = 0; i < this.stations.length - 1; i++) {
+                    const station1 = gameState.stations.get(this.stations[i]);
+                    const station2 = gameState.stations.get(this.stations[i + 1]);
+                    if (station1 && station2) {
+                        if (i === 0) ctx.moveTo(station1.x, station1.y);
+                        ctx.lineTo(station2.x, station2.y);
+                    }
+                }
+                ctx.stroke();
+            }
         }
-      }
-    }
 
-    // --- Employees ---
+        class Train {
+            constructor(lineId) {
+                this.id = gameState.nextTrainID++;
+                this.lineId = lineId;
+                this.currentStationIndex = 0;
+                this.direction = 'forward';
+                this.speed = DEFAULT_TRAIN_SPEED;
+                this.capacity = DEFAULT_TRAIN_CAPACITY;
+                this.passengers = [];
+                this.x = 0;
+                this.y = 0;
+                this.targetX = 0;
+                this.targetY = 0;
+                
+                const line = gameState.lines.get(lineId);
+                if (line && line.stations.length > 0) {
+                    const firstStation = gameState.stations.get(line.stations[0]);
+                    if (firstStation) {
+                        this.x = firstStation.x;
+                        this.y = firstStation.y;
+                        this.updateTarget();
+                    }
+                }
+            }
 
-    const sampleCandidates = [
-      { id: 1, name: 'Danny "Pipes" Martinez', role: 'cook', skill: 75, wage: 200 },
-      { id: 2, name: 'Lisa "Eyes" Chen', role: 'botanist', skill: 80, wage: 180 },
-      { id: 3, name: 'Rico "Bulldog" Diaz', role: 'muscle', skill: 65, wage: 220 },
-      { id: 4, name: 'Maya Patel', role: 'dealer', skill: 70, wage: 150 }
-    ];
+            updateTarget() {
+                const line = gameState.lines.get(this.lineId);
+                if (!line || line.stations.length < 2) return;
 
-    function showHireModal() {
-      const modal = document.getElementById('hireModal');
-      const container = document.getElementById('availableEmployees');
-      container.innerHTML = '';
-      sampleCandidates.forEach(candidate => {
-        const card = document.createElement('div');
-        card.className = 'employee-card';
-        card.innerHTML = `
-          <div class="employee-info">
-            <div class="employee-name">${candidate.name}</div>
-            <div class="employee-role">${candidate.role.charAt(0).toUpperCase() + candidate.role.slice(1)}</div>
-            <div class="employee-stats">
-              <div class="stat">Skill: ${candidate.skill}</div>
-              <div class="stat">Wage: $${candidate.wage}/day</div>
-            </div>
-          </div>
-          <button class="button success" onclick="hireEmployee(${candidate.id})" title="Hire ${candidate.name}">Hire</button>
-        `;
-        container.appendChild(card);
-      });
-      modal.classList.add('active');
-    }
+                let nextIndex = this.direction === 'forward'
+                    ? this.currentStationIndex + 1
+                    : this.currentStationIndex - 1;
 
-    function hireEmployee(id) {
-      const candidate = sampleCandidates.find(c => c.id === id);
-      if (!candidate) return;
-      gameState.employees.push({
-        id: candidate.id,
-        name: candidate.name,
-        role: candidate.role,
-        skill: candidate.skill,
-        wagePerDay: candidate.wage,
-        morale: 100,
-        assignedTo: null
-      });
-      showNotification(`Hired ${candidate.name} as ${candidate.role}.`);
-      closeModal('hireModal');
-      populateEmployees();
-    }
+                if (nextIndex >= line.stations.length) {
+                    this.direction = 'backward';
+                    this.currentStationIndex = line.stations.length - 1;
+                    nextIndex = this.currentStationIndex - 1;
+                } else if (nextIndex < 0) {
+                    this.direction = 'forward';
+                    this.currentStationIndex = 0;
+                    nextIndex = this.currentStationIndex + 1;
+                }
 
-    function populateEmployees() {
-      const list = document.getElementById('employeeList');
-      list.innerHTML = '';
-      if (gameState.employees.length === 0) {
-        list.innerHTML = '<p>No employees hired.</p>';
-        return;
-      }
-      gameState.employees.forEach(emp => {
-        const card = document.createElement('div');
-        card.className = 'employee-card';
-        card.innerHTML = `
-          <div class="employee-info">
-            <div class="employee-name">${emp.name}</div>
-            <div class="employee-role">${emp.role.charAt(0).toUpperCase() + emp.role.slice(1)}</div>
-            <div class="employee-stats">
-              <div class="stat">Skill: ${emp.skill}</div>
-              <div class="stat">Wage: $${emp.wagePerDay}/day</div>
-              <div class="stat">Morale: ${emp.morale}</div>
-            </div>
-          </div>
-          <button class="button danger" onclick="fireEmployee(${emp.id})" title="Fire ${emp.name}">Fire</button>
-        `;
-        list.appendChild(card);
-      });
-    }
+                const targetStation = gameState.stations.get(line.stations[nextIndex]);
+                if (targetStation) {
+                    this.targetX = targetStation.x;
+                    this.targetY = targetStation.y;
+                }
+            }
 
-    function fireEmployee(id) {
-      gameState.employees = gameState.employees.filter(e => e.id !== id);
-      showNotification(`Employee ID ${id} has been fired.`);
-      populateEmployees();
-    }
+            update(deltaTime) {
+                if (gameState.isPaused || gameState.isGameOver) return;
 
-    // --- Properties ---
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
 
-    function populateProperties() {
-      const list = document.getElementById('propertiesList');
-      list.innerHTML = '';
-      const ownedTerritories = Object.values(gameState.territories).filter(t => t.owner === 'player');
-      if (ownedTerritories.length === 0) {
-        list.innerHTML = '<p>No properties owned.</p>';
-        return;
-      }
-      ownedTerritories.forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'employee-card';
-        div.innerHTML = `
-          <div class="employee-info">
-            <div class="employee-name">Territory ${t.id}</div>
-            <div class="stat">Demand: ${t.demandIndex}</div>
-            <div class="stat">Risk: ${t.riskLevel}</div>
-          </div>
-        `;
-        list.appendChild(div);
-      });
-    }
+                if (distance < 2) {
+                    this.arriveAtStation();
+                } else {
+                    const moveDistance = this.speed * deltaTime;
+                    this.x += (dx / distance) * moveDistance;
+                    this.y += (dy / distance) * moveDistance;
+                }
+            }
 
-    // --- Research ---
+            arriveAtStation() {
+                const line = gameState.lines.get(this.lineId);
+                if (!line) return;
 
-    const researchNodes = [
-      { id: 'botany_1', name: 'Basic Botany', cost: 5000, prereq: null, completed: false },
-      { id: 'chem_1', name: 'Basic Chemistry', cost: 7000, prereq: null, completed: false },
-      { id: 'logistics_1', name: 'Logistics 101', cost: 6000, prereq: null, completed: false }
-    ];
+                let nextIndex = this.direction === 'forward'
+                    ? this.currentStationIndex + 1
+                    : this.currentStationIndex - 1;
 
-    function populateResearch() {
-      const tree = document.getElementById('researchTree');
-      tree.innerHTML = '';
-      researchNodes.forEach(node => {
-        const div = document.createElement('div');
-        div.className = 'research-node';
-        div.classList.toggle('completed', node.completed);
-        div.innerHTML = `
-          <div><strong>${node.name}</strong></div>
-          <div>Cost: $${node.cost}</div>
-          <button class="button" onclick="startResearch('${node.id}')" ${node.completed || gameState.money < node.cost ? 'disabled' : ''} title="${node.completed ? 'Already researched' : 'Spend $' + node.cost + ' to research'}">
-            ${node.completed ? 'Completed' : 'Research'}
-          </button>
-        `;
-        tree.appendChild(div);
-      });
-    }
+                this.currentStationIndex = nextIndex;
+                const currentStation = gameState.stations.get(line.stations[nextIndex]);
+                
+                if (currentStation) {
+                    this.x = currentStation.x;
+                    this.y = currentStation.y;
+                    
+                    // Deboard passengers
+                    this.passengers = this.passengers.filter(passengerId => {
+                        const passenger = gameState.passengers.get(passengerId);
+                        if (passenger && passenger.targetColor === currentStation.color) {
+                            gameState.score++;
+                            gameState.deliveredCount++;
+                            gameState.totalWaitTime += passenger.waitDuration;
+                            gameState.passengers.delete(passengerId);
+                            updateUI();
+                            return false; // Remove from train
+                        }
+                        return true; // Keep on train
+                    });
 
-    function startResearch(nodeId) {
-      const node = researchNodes.find(n => n.id === nodeId);
-      if (!node || node.completed || gameState.money < node.cost) return;
-      gameState.money -= node.cost;
-      node.completed = true;
-      showNotification(`${node.name} research completed.`);
-      updateUI();
-      populateResearch();
-    }
+                    // Board new passengers
+                    const availableCapacity = this.capacity - this.passengers.length;
+                    let boarded = 0;
+                    
+                    for (let i = 0; i < currentStation.queue.length && boarded < availableCapacity; i++) {
+                        const passengerId = currentStation.queue[i];
+                        const passenger = gameState.passengers.get(passengerId);
+                        
+                        if (passenger && this.canReachColor(passenger.targetColor)) {
+                            this.passengers.push(passengerId);
+                            currentStation.removePassenger(passengerId);
+                            boarded++;
+                            i--; // Adjust index since we removed an element
+                        }
+                    }
+                }
 
-    // --- Contracts ---
+                this.updateTarget();
+            }
 
-    function refreshContracts() {
-      // For demo, generate random contracts
-      gameState.contracts = [];
-      for (let i = 0; i < 3; i++) {
-        const product = ['cannabis_oil', 'meth_crystal'][Math.floor(Math.random() * 2)];
-        const purityReq = Math.floor(Math.random() * 20) + 80;
-        const qty = Math.floor(Math.random() * 200) + 50;
-        const payout = qty * (product === 'cannabis_oil' ? 100 : 150);
-        gameState.contracts.push({ id: i, product, purityReq, qty, payout, deadline: '12h' });
-      }
-      populateContracts();
-    }
+            canReachColor(targetColor) {
+                const line = gameState.lines.get(this.lineId);
+                if (!line) return false;
+                
+                return line.canReachColor(this.currentStationIndex, targetColor, this.direction) ||
+                       line.canReachColor(this.currentStationIndex, targetColor, 
+                           this.direction === 'forward' ? 'backward' : 'forward');
+            }
 
-    function populateContracts() {
-      const list = document.getElementById('contractsList');
-      list.innerHTML = '';
-      if (gameState.contracts.length === 0) {
-        list.innerHTML = '<p>No contracts available.</p>';
-        return;
-      }
-      gameState.contracts.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'contract-card';
-        card.innerHTML = `
-          <div class="contract-header">
-            <div>${c.product.replace(/_/g, ' ').toUpperCase()}</div>
-            <div class="contract-payout">$${c.payout.toLocaleString()}</div>
-          </div>
-          <div>Purity ≥ ${c.purityReq}%</div>
-          <div>Quantity: ${c.qty}g</div>
-          <div>Deadline: ${c.deadline}</div>
-          <button class="button success" onclick="acceptContract(${c.id})" ${!gameState.inventory[c.product] || gameState.inventory[c.product].quantity < c.qty ? 'disabled' : ''} title="Fulfill this contract">
-            Accept
-          </button>
-        `;
-        list.appendChild(card);
-      });
-    }
+            draw() {
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, TRAIN_SIZE, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
 
-    function acceptContract(id) {
-      const c = gameState.contracts.find(ct => ct.id === id);
-      if (!c) return;
-      // Remove product from inventory
-      gameState.inventory[c.product].quantity -= c.qty;
-      gameState.storage.used -= c.qty;
-      gameState.money += c.payout;
-      showNotification(`Contract ${id} fulfilled. Earned $${c.payout.toLocaleString()}.`);
-      // Remove contract
-      gameState.contracts = gameState.contracts.filter(ct => ct.id !== id);
-      populateContracts();
-      updateUI();
-    }
-
-    // --- Laundering ---
-
-    function launderMoney() {
-      const amount = parseInt(document.getElementById('launderAmount').value);
-      if (!amount || amount <= 0) return;
-      if (amount > gameState.money) {
-        showNotification('Not enough money to launder.');
-        return;
-      }
-      const clean = Math.floor(amount * 0.6);
-      gameState.money -= amount;
-      gameState.money += clean;
-      gameState.heat = Math.max(0, gameState.heat - 20);
-      showNotification(`Laundered $${amount.toLocaleString()}. Cleaned $${clean.toLocaleString()}.`);
-      updateUI();
-    }
-
-    // --- Sales (Retail) ---
-
-    function showSaleModal(territoryId) {
-      const modal = document.getElementById('saleModal');
-      const container = document.getElementById('saleInterface');
-      container.innerHTML = '';
-      // Offer selling all final products at base price
-      for (let key in gameState.inventory) {
-        const item = gameState.inventory[key];
-        if (item.category === 'final' && item.quantity > 0) {
-          const basePrice = key === 'cannabis_oil' ? 80 : 120; // example base
-          const div = document.createElement('div');
-          div.style.marginBottom = '10px';
-          div.innerHTML = `
-            <div><strong>${key.replace(/_/g, ' ')}</strong> - Qty: ${item.quantity}, Purity: ${item.avgPurity}%</div>
-            <div class="input-group">
-              <label>Amount to Sell:</label>
-              <input type="number" id="sellAmt_${key}" min="1" max="${item.quantity}" value="1" title="How many units to sell">
-            </div>
-            <div class="input-group">
-              <label>Price per Unit ($${basePrice} base):</label>
-              <input type="number" id="sellPrice_${key}" min="${basePrice * 0.5}" max="${basePrice * 1.5}" value="${basePrice}" title="Set your selling price per unit">
-            </div>
-            <button class="button success" onclick="sellProduct('${key}', ${territoryId}, ${basePrice})" title="Execute sale">Sell</button>
-          `;
-          container.appendChild(div);
+                // Capacity indicator
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${this.passengers.length}/${this.capacity}`, this.x, this.y - TRAIN_SIZE - 5);
+            }
         }
-      }
-      if (!container.hasChildNodes()) {
-        container.innerHTML = '<p>No final products available to sell.</p>';
-      }
-      modal.classList.add('active');
-    }
 
-    function sellProduct(key, territoryId, basePrice) {
-      const amtInput = document.getElementById(`sellAmt_${key}`);
-      const priceInput = document.getElementById(`sellPrice_${key}`);
-      const amt = parseInt(amtInput.value);
-      const price = parseInt(priceInput.value);
-      if (!amt || amt <= 0 || amt > gameState.inventory[key].quantity) return;
-      // Simulate risk
-      const riskLevel = gameState.territories[territoryId].riskLevel;
-      const roll = Math.random() * 100;
-      let outcome = 'success';
-      const bustChance = riskLevel === 'high' ? 30 : (riskLevel === 'medium' ? 15 : 5);
-      if (roll < bustChance) outcome = 'bust';
-      if (outcome === 'success') {
-        const revenue = amt * price;
-        gameState.money += revenue;
-        gameState.inventory[key].quantity -= amt;
-        gameState.storage.used -= amt;
-        showNotification(`Sale successful: Earned $${(revenue).toLocaleString()}.`);
-      } else {
-        const lost = Math.floor(amt * 0.5);
-        const fine = 5000;
-        gameState.inventory[key].quantity -= lost;
-        gameState.storage.used -= lost;
-        gameState.money = Math.max(0, gameState.money - fine);
-        gameState.heat = Math.min(100, gameState.heat + 10);
-        showNotification(`Got busted! Lost ${lost} units and paid $${fine} fine.`);
-      }
-      closeModal('saleModal');
-      updateUI();
-    }
+        class Passenger {
+            constructor(originStationId, targetColor) {
+                this.id = gameState.nextPassengerID++;
+                this.originStationId = originStationId;
+                this.targetColor = targetColor;
+                this.spawnTime = performance.now();
+                this.waitDuration = 0;
+            }
 
-    // --- Save Game (stub) ---
+            update(deltaTime) {
+                this.waitDuration += deltaTime;
+            }
+        }
 
-    function saveGame() {
-      // Stub: In a real implementation, send gameState to backend
-      showNotification('Game saved (stub).');
-    }
+        // Game Functions
+        function initGame() {
+            // Reset game state
+            gameState = {
+                stations: new Map(),
+                lines: new Map(),
+                trains: new Map(),
+                passengers: new Map(),
+                nextStationID: 1,
+                nextLineID: 1,
+                nextTrainID: 1,
+                nextPassengerID: 1,
+                score: 0,
+                totalWaitTime: 0,
+                deliveredCount: 0,
+                week: 1,
+                month: 1,
+                isGameOver: false,
+                isPaused: true, // start paused until tutorial closes
+                tokens: 1,
+                maxLines: 2,
+                usedLines: 0,
+                tunnelsAvailable: 0
+            };
 
-    // --- Guide ---
+            // Reset timers
+            stationSpawnTimer = 0;
+            passengerSpawnTimer = 0;
+            weekTimer = 0;
+            stationSpawnInterval = 8;
+            passengerSpawnInterval = 1.2;
 
-    function openGuide() {
-      document.getElementById('guideModal').classList.add('active');
-    }
+            // Spawn initial stations
+            spawnStation();
+            spawnStation();
+            setTimeout(spawnStation, 2000);
 
-    // --- Initial Setup ---
+            updateUI();
+        }
 
-    updateUI();
-    drawMap();
-    refreshContracts();
+        function spawnStation() {
+            if (gameState.isGameOver) return;
 
-    // Auto-save every 60 seconds
-    setInterval(saveGame, 60000);
-  </script>
+            let attempts = 0;
+            let x, y;
+            const minDistance = 80;
+            const maxAttempts = 20;
+            
+            do {
+                x = Math.random() * (window.innerWidth - 100) + 50;
+                y = Math.random() * (window.innerHeight - 160) + 80;
+                attempts++;
+            } while (
+                attempts < maxAttempts &&
+                Array.from(gameState.stations.values()).some(station => {
+                    const dx = station.x - x;
+                    const dy = station.y - y;
+                    return Math.sqrt(dx * dx + dy * dy) < minDistance;
+                })
+            );
+
+            const color = STATION_COLORS[Math.floor(Math.random() * STATION_COLORS.length)];
+            const station = new Station(x, y, color);
+            gameState.stations.set(station.id, station);
+        }
+
+        function spawnPassenger() {
+            if (gameState.isGameOver || gameState.stations.size === 0) return;
+
+            const stations = Array.from(gameState.stations.values());
+            const randomStation = stations[Math.floor(Math.random() * stations.length)];
+            
+            // Get available colors (excluding the station's own color)
+            const availableColors = STATION_COLORS.filter(color => color !== randomStation.color);
+            if (availableColors.length === 0) return;
+
+            const targetColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+            const passenger = new Passenger(randomStation.id, targetColor);
+            
+            gameState.passengers.set(passenger.id, passenger);
+            randomStation.addPassenger(passenger);
+        }
+
+        function updateGameLogic(deltaTime) {
+            if (gameState.isPaused || gameState.isGameOver) return;
+
+            // Update timers
+            stationSpawnTimer += deltaTime;
+            passengerSpawnTimer += deltaTime;
+            weekTimer += deltaTime;
+
+            // Spawn stations
+            if (stationSpawnTimer >= stationSpawnInterval) {
+                spawnStation();
+                stationSpawnTimer = 0;
+            }
+
+            // Spawn passengers
+            if (passengerSpawnTimer >= passengerSpawnInterval) {
+                spawnPassenger();
+                passengerSpawnTimer = 0;
+            }
+
+            // Week progression
+            if (weekTimer >= REAL_SECONDS_PER_WEEK) {
+                gameState.week++;
+                if (gameState.week > 4) {
+                    gameState.week = 1;
+                    gameState.month++;
+                    // Increase difficulty
+                    stationSpawnInterval = Math.max(3, stationSpawnInterval - 0.5);
+                    passengerSpawnInterval = Math.max(0.5, passengerSpawnInterval - 0.1);
+                }
+                gameState.tokens++;
+                showNotification(`Week ${gameState.week}: +1 Token`);
+                weekTimer = 0;
+                updateUI();
+            }
+
+            // Update trains
+            gameState.trains.forEach(train => train.update(deltaTime));
+            
+            // Update passengers
+            gameState.passengers.forEach(passenger => passenger.update(deltaTime));
+        }
+
+        function render() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background grid (subtle)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            for (let x = 0; x < window.innerWidth; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, window.innerHeight);
+                ctx.stroke();
+            }
+            for (let y = 0; y < window.innerHeight; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(window.innerWidth, y);
+                ctx.stroke();
+            }
+
+            // Draw lines
+            gameState.lines.forEach(line => line.draw());
+
+            // Draw drag preview
+            if (isDragging && selectedStation) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(selectedStation.x, selectedStation.y);
+                ctx.lineTo(dragEndX, dragEndY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw stations
+            gameState.stations.forEach(station => station.draw());
+
+            // Draw trains
+            gameState.trains.forEach(train => train.draw());
+        }
+
+        function gameLoop(timestamp) {
+            const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.05);
+            lastTime = timestamp;
+
+            updateGameLogic(deltaTime);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            document.getElementById('weekDisplay').textContent = gameState.week;
+            document.getElementById('monthDisplay').textContent = gameState.month;
+            document.getElementById('scoreDisplay').textContent = gameState.score;
+            document.getElementById('tokensDisplay').textContent = `Tokens: ${gameState.tokens}`;
+
+            // Update resource buttons
+            const hasTokens = gameState.tokens > 0;
+            document.getElementById('addTrainBtn').disabled = !hasTokens || gameState.lines.size === 0;
+            document.getElementById('addCarriageBtn').disabled = !hasTokens || gameState.trains.size === 0;
+            document.getElementById('addLineBtn').disabled = !hasTokens || gameState.usedLines >= 6;
+            document.getElementById('addTunnelBtn').disabled = !hasTokens;
+        }
+
+        function endGame(reason) {
+            gameState.isGameOver = true;
+            document.getElementById('gameOverReason').textContent = reason;
+            const totalWeeks = (gameState.month - 1) * 4 + gameState.week;
+            document.getElementById('finalWeek').textContent = totalWeeks;
+            document.getElementById('finalScore').textContent = gameState.score;
+            const avgWait = gameState.deliveredCount > 0
+                ? (gameState.totalWaitTime / gameState.deliveredCount).toFixed(1)
+                : '0.0';
+            document.getElementById('avgWaitTime').textContent = `${avgWait}s`;
+            document.getElementById('gameOverModal').style.display = 'flex';
+        }
+
+        // Resource & UI Handlers
+        function toggleResourcePanel() {
+            showingResourcePanel = !showingResourcePanel;
+            document.getElementById('resourcePanel').classList.toggle('open', showingResourcePanel);
+        }
+
+        function closeResourcePanel() {
+            showingResourcePanel = false;
+            document.getElementById('resourcePanel').classList.remove('open');
+            pendingResourceAction = null;
+            document.getElementById('tooltipDisplay').textContent =
+                'Draw lines between stations to connect them. Trains carry passengers to matching colors.';
+        }
+
+        function showNotification(text) {
+            const notif = document.getElementById('notification');
+            notif.textContent = text;
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 2000);
+        }
+
+        function handleResourceAction(action) {
+            if (gameState.tokens <= 0) return;
+            gameState.tokens--;
+            updateUI();
+
+            if (action === 'addTrain') {
+                pendingResourceAction = 'addTrain';
+                document.getElementById('tooltipDisplay').textContent = 'Click a station on a line to add a new train.';
+            }
+            if (action === 'addCarriage') {
+                pendingResourceAction = 'addCarriage';
+                document.getElementById('tooltipDisplay').textContent = 'Click a train to add +4 capacity.';
+            }
+            if (action === 'addLine') {
+                gameState.maxLines++;
+                showNotification('New line unlocked!');
+            }
+            if (action === 'addTunnel') {
+                gameState.tunnelsAvailable++;
+                showNotification('Tunnel token acquired! (No barriers implemented)');
+            }
+
+            // Auto-close panel if not pending line or tunnel
+            if (action !== 'addTrain' && action !== 'addCarriage') {
+                setTimeout(closeResourcePanel, 200);
+            }
+        }
+
+        function tryPlaceTrainAtStation(stationId) {
+            // Find a line containing this station
+            for (let [lineId, line] of gameState.lines) {
+                if (line.stations.includes(stationId)) {
+                    const train = new Train(lineId);
+                    gameState.trains.set(train.id, train);
+                    line.trains.push(train.id);
+                    showNotification('Train added to line.');
+                    pendingResourceAction = null;
+                    updateUI();
+                    closeResourcePanel();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function tryAddCarriageToTrainAt(x, y) {
+            for (let [trainId, train] of gameState.trains) {
+                const dx = train.x - x;
+                const dy = train.y - y;
+                if (Math.sqrt(dx * dx + dy * dy) <= TRAIN_SIZE + 2) {
+                    train.capacity += 4;
+                    showNotification('Train capacity increased by 4.');
+                    pendingResourceAction = null;
+                    updateUI();
+                    closeResourcePanel();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function handleNewConnection(stationA, stationB) {
+            if (stationA.id === stationB.id) return;
+
+            // Check if already connected directly in some line
+            for (let [lineId, line] of gameState.lines) {
+                const idxA = line.stations.indexOf(stationA.id);
+                const idxB = line.stations.indexOf(stationB.id);
+                if (idxA !== -1 && idxB !== -1 && Math.abs(idxA - idxB) === 1) {
+                    return; // Already adjacent in this line
+                }
+            }
+
+            // Find a line that contains either station
+            for (let [lineId, line] of gameState.lines) {
+                if (line.stations.includes(stationA.id) || line.stations.includes(stationB.id)) {
+                    // Insert the other station next to the existing one
+                    if (line.stations.includes(stationA.id) && !line.stations.includes(stationB.id)) {
+                        const pos = line.stations.indexOf(stationA.id);
+                        line.stations.splice(pos + 1, 0, stationB.id);
+                        line.updateColorMap();
+                    } else if (line.stations.includes(stationB.id) && !line.stations.includes(stationA.id)) {
+                        const pos = line.stations.indexOf(stationB.id);
+                        line.stations.splice(pos + 1, 0, stationA.id);
+                        line.updateColorMap();
+                    }
+                    return;
+                }
+            }
+
+            // Neither station is in an existing line
+            if (gameState.usedLines < gameState.maxLines) {
+                const newLine = new Line();
+                newLine.addStation(stationA.id);
+                newLine.addStation(stationB.id);
+                gameState.lines.set(newLine.id, newLine);
+                // Spawn an initial train on this new line
+                const train = new Train(newLine.id);
+                gameState.trains.set(train.id, train);
+                newLine.trains.push(train.id);
+            }
+        }
+
+        // Input & Interaction
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameState.isPaused || gameState.isGameOver) return;
+
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            // If pending resource action, handle that first
+            if (pendingResourceAction === 'addTrain') {
+                // Check if clicked station belongs to a line
+                for (let [stationId, station] of gameState.stations) {
+                    const dx = station.x - mouseX;
+                    const dy = station.y - mouseY;
+                    if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
+                        if (tryPlaceTrainAtStation(stationId)) return;
+                    }
+                }
+                return;
+            }
+
+            if (pendingResourceAction === 'addCarriage') {
+                if (tryAddCarriageToTrainAt(mouseX, mouseY)) return;
+                return;
+            }
+
+            // Normal line drawing: check if clicked on station
+            for (let [stationId, station] of gameState.stations) {
+                const dx = station.x - mouseX;
+                const dy = station.y - mouseY;
+                if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
+                    selectedStation = station;
+                    isDragging = true;
+                    dragEndX = mouseX;
+                    dragEndY = mouseY;
+                    return;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            dragEndX = mouseX;
+            dragEndY = mouseY;
+
+            // Update tooltip
+            if (gameState.isPaused || gameState.isGameOver) return;
+
+            let foundTooltip = false;
+            // Check station hover
+            for (let [_, station] of gameState.stations) {
+                const dx = station.x - mouseX;
+                const dy = station.y - mouseY;
+                if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
+                    const counts = {};
+                    station.queue.forEach(pid => {
+                        const p = gameState.passengers.get(pid);
+                        if (p) {
+                            counts[p.targetColor] = (counts[p.targetColor] || 0) + 1;
+                        }
+                    });
+                    const breakdown = Object.entries(counts)
+                        .map(([color, num]) => `${num}`)
+                        .join(', ');
+                    document.getElementById('tooltipDisplay').textContent =
+                        `Station ${station.id} • Queue: ${station.queue.length} • Destinations: ${breakdown}`;
+                    foundTooltip = true;
+                    break;
+                }
+            }
+            if (!foundTooltip) {
+                // Check train hover
+                for (let [_, train] of gameState.trains) {
+                    const dx = train.x - mouseX;
+                    const dy = train.y - mouseY;
+                    if (Math.sqrt(dx * dx + dy * dy) <= TRAIN_SIZE) {
+                        const line = gameState.lines.get(train.lineId);
+                        document.getElementById('tooltipDisplay').textContent =
+                            `Train on Line ${line.id} • Speed: ${train.speed}px/s • ` +
+                            `Capacity: ${train.passengers.length}/${train.capacity} • ` +
+                            `Next Station: ${line.stations[train.currentStationIndex]}`;
+                        foundTooltip = true;
+                        break;
+                    }
+                }
+            }
+            if (!foundTooltip && !pendingResourceAction) {
+                document.getElementById('tooltipDisplay').textContent =
+                    'Draw lines between stations to connect them. Trains carry passengers to matching colors.';
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (gameState.isPaused || gameState.isGameOver) {
+                isDragging = false;
+                selectedStation = null;
+                return;
+            }
+
+            if (!isDragging || !selectedStation) return;
+
+            const endX = e.clientX;
+            const endY = e.clientY;
+            let targetStation = null;
+
+            for (let [_, station] of gameState.stations) {
+                const dx = station.x - endX;
+                const dy = station.y - endY;
+                if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
+                    targetStation = station;
+                    break;
+                }
+            }
+
+            if (targetStation) {
+                handleNewConnection(selectedStation, targetStation);
+            }
+
+            isDragging = false;
+            selectedStation = null;
+        });
+
+        // Resource panel & buttons
+        document.getElementById('tokensDisplay').addEventListener('click', () => {
+            toggleResourcePanel();
+        });
+        document.getElementById('closeResourcePanel').addEventListener('click', closeResourcePanel);
+
+        document.getElementById('addTrainBtn').addEventListener('click', () => {
+            handleResourceAction('addTrain');
+        });
+        document.getElementById('addCarriageBtn').addEventListener('click', () => {
+            handleResourceAction('addCarriage');
+        });
+        document.getElementById('addLineBtn').addEventListener('click', () => {
+            handleResourceAction('addLine');
+        });
+        document.getElementById('addTunnelBtn').addEventListener('click', () => {
+            handleResourceAction('addTunnel');
+        });
+
+        // Pause & tutorial buttons
+        document.getElementById('pauseButton').addEventListener('click', () => {
+            gameState.isPaused = true;
+            document.getElementById('pauseModal').style.display = 'flex';
+        });
+        document.getElementById('resumeButton').addEventListener('click', () => {
+            gameState.isPaused = false;
+            document.getElementById('pauseModal').style.display = 'none';
+        });
+        document.getElementById('restartFromPauseButton').addEventListener('click', () => {
+            document.getElementById('pauseModal').style.display = 'none';
+            document.getElementById('gameOverModal').style.display = 'none';
+            initGame();
+        });
+        document.getElementById('tutorialButton').addEventListener('click', () => {
+            document.getElementById('tutorialModal').style.display = 'flex';
+        });
+
+        // Restart game
+        document.getElementById('restartButton').addEventListener('click', () => {
+            document.getElementById('gameOverModal').style.display = 'none';
+            initGame();
+        });
+
+        // Tutorial flow
+        function nextTutorialStep() {
+            const steps = document.querySelectorAll('.tutorial-step');
+            steps[tutorialStep].classList.remove('active');
+            tutorialStep++;
+            if (tutorialStep < steps.length) {
+                steps[tutorialStep].classList.add('active');
+            }
+        }
+        function startGame() {
+            document.getElementById('tutorialModal').style.display = 'none';
+            gameState.isPaused = false;
+        }
+
+        // Setup
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            initGame();
+            document.getElementById('tutorialModal').style.display = 'flex';
+            requestAnimationFrame(gameLoop);
+        });
+    </script>
 </body>
 </html>
+```
