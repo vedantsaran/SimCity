@@ -1,1252 +1,1564 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Aetherbound: Echoes of the Endless Abyss – Turn of Echoes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    /* ============================================
-       GLOBAL STYLES
-    ============================================ */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Segoe UI', sans-serif;
-      background: #0a0f1c;
-      color: #ffffff;
-    }
-    #game-container {
-      display: flex;
-      flex-direction: row;
-      width: 100%;
-      height: 100%;
-    }
-    #canvas-container {
-      position: relative;
-      flex: 1;
-      background: #1a1f3a;
-    }
-    #game-canvas {
-      display: block;
-      background: #2d1b69;
-    }
-    #ui-panel {
-      width: 300px;
-      background: #0f172a;
-      border-left: 2px solid #334155;
-      padding: 10px;
-      overflow-y: auto;
-    }
-    .section {
-      margin-bottom: 20px;
-      padding: 10px;
-      background: #1e293b;
-      border-radius: 5px;
-      border: 1px solid #334155;
-    }
-    .section h2 {
-      font-size: 1.2rem;
-      margin-bottom: 8px;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 4px;
-    }
-    .btn {
-      display: inline-block;
-      margin: 5px 0;
-      padding: 8px 12px;
-      background: #334155;
-      color: #ffffff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .btn:hover {
-      background: #475569;
-    }
-    .stat-line {
-      display: flex;
-      justify-content: space-between;
-      margin: 4px 0;
-    }
-    .inventory-slot {
-      width: 50px;
-      height: 50px;
-      background: #15212b;
-      border: 1px solid #334155;
-      border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin: 4px;
-      position: relative;
-    }
-    .inventory-slot img {
-      max-width: 90%;
-      max-height: 90%;
-    }
-    .tooltip {
-      position: absolute;
-      bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #334155;
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      display: none;
-      pointer-events: none;
-      white-space: nowrap;
-      z-index: 10;
-    }
-    .inventory-slot:hover .tooltip {
-      display: block;
-    }
-    /* Scrollbar styling */
-    #ui-panel::-webkit-scrollbar {
-      width: 8px;
-    }
-    #ui-panel::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-    #ui-panel::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    #ui-panel::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aetherbound: Turn of Echoes</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES
+        ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* ============================================
-       MODAL STYLES
-    ============================================ */
-    #modal-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(10, 15, 28, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-    }
-    #modal {
-      background: #1a1f3a;
-      border: 2px solid #334155;
-      border-radius: 8px;
-      width: 400px;
-      max-width: 90%;
-      padding: 20px;
-      text-align: center;
-    }
-    #modal h1 {
-      font-size: 1.5rem;
-      margin-bottom: 12px;
-    }
-    #modal p {
-      margin-bottom: 16px;
-      font-size: 1rem;
-    }
-    .modal-btn {
-      padding: 8px 16px;
-      background: #334155;
-      color: #ffffff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    .modal-btn:hover {
-      background: #475569;
-    }
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+            color: #e0e6ed;
+            overflow: hidden;
+        }
 
-    /* ============================================
-       HIDDEN ELEMENTS
-    ============================================ */
-    .hidden {
-      display: none;
-    }
-  </style>
+        .game-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-bottom: 2px solid #4a90e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 18px;
+            color: #4a90e2;
+            text-shadow: 0 0 10px #4a90e2;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .hp { color: #e74c3c; }
+        .ae { color: #3498db; }
+        .ap { color: #f39c12; }
+
+        .game-board {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 1px;
+            background: #2c3e50;
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+        }
+
+        .tile {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #34495e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tile:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .floor {
+            background: #34495e;
+        }
+
+        .wall {
+            background: #2c3e50;
+            color: #7f8c8d;
+        }
+
+        .player {
+            background: radial-gradient(circle, #4a90e2, #2980b9);
+            color: white;
+            text-shadow: 0 0 5px #4a90e2;
+            box-shadow: 0 0 10px #4a90e2;
+        }
+
+        .enemy {
+            background: radial-gradient(circle, #e74c3c, #c0392b);
+            color: white;
+            text-shadow: 0 0 5px #e74c3c;
+            box-shadow: 0 0 10px #e74c3c;
+        }
+
+        .trap {
+            background: #8e44ad;
+            color: #ecf0f1;
+        }
+
+        .hazard-fire {
+            background: rgba(255, 100, 0, 0.6) !important;
+        }
+
+        .hazard-slow {
+            background: rgba(0, 100, 255, 0.6) !important;
+        }
+
+        .highlight {
+            background: rgba(241, 196, 15, 0.5) !important;
+            border: 2px solid #f1c40f;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.9);
+            border-left: 2px solid #4a90e2;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            background: rgba(52, 73, 94, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #4a90e2;
+        }
+
+        .section h3 {
+            color: #4a90e2;
+            margin-bottom: 10px;
+            text-align: center;
+            border-bottom: 1px solid #4a90e2;
+            padding-bottom: 5px;
+        }
+
+        .abilities {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ability {
+            background: rgba(74, 144, 226, 0.2);
+            border: 1px solid #4a90e2;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .ability:hover {
+            background: rgba(74, 144, 226, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .ability.disabled {
+            background: rgba(127, 140, 141, 0.3);
+            color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .ability.disabled:hover {
+            transform: none;
+        }
+
+        .turn-order {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .turn-item {
+            padding: 5px;
+            margin: 2px 0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .turn-player {
+            background: rgba(74, 144, 226, 0.3);
+            border-left: 3px solid #4a90e2;
+        }
+
+        .turn-enemy {
+            background: rgba(231, 76, 60, 0.3);
+            border-left: 3px solid #e74c3c;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log {
+            background: rgba(0, 0, 0, 0.8);
+            height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 12px;
+            border: 1px solid #4a90e2;
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+        }
+
+        .log-player { color: #4a90e2; }
+        .log-enemy { color: #e74c3c; }
+        .log-system { color: #f39c12; }
+
+        .class-selection {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .class-modal {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #4a90e2;
+            box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .class-card {
+            background: rgba(74, 144, 226, 0.1);
+            border: 2px solid #4a90e2;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .class-card:hover {
+            background: rgba(74, 144, 226, 0.3);
+            transform: scale(1.05);
+        }
+
+        .class-name {
+            font-size: 18px;
+            color: #4a90e2;
+            margin-bottom: 10px;
+        }
+
+        .class-desc {
+            font-size: 12px;
+            color: #bdc3c7;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                order: -1;
+            }
+            
+            .grid {
+                grid-template-columns: repeat(15, 20px);
+                grid-template-rows: repeat(15, 20px);
+            }
+            
+            .tile {
+                width: 20px;
+                height: 20px;
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="game-container">
-    <!-- Canvas -->
-    <div id="canvas-container">
-      <canvas id="game-canvas" width="800" height="800"></canvas>
-      <!-- Modal Overlay (for class selection, game over, etc.) -->
-      <div id="modal-overlay">
-        <div id="modal">
-          <h1>Choose Your Shard Class</h1>
-          <p>Select one of four Shard Classes to begin your journey:</p>
-          <div>
-            <button class="modal-btn" data-class="Celestial Vanguard">Celestial Vanguard</button>
-            <button class="modal-btn" data-class="Umbral Reaver">Umbral Reaver</button>
-            <button class="modal-btn" data-class="Aether Mage">Aether Mage</button>
-            <button class="modal-btn" data-class="Chrono Tinkerer">Chrono Tinkerer</button>
-          </div>
+    <!-- Class Selection Modal -->
+    <div id="classSelection" class="class-selection">
+        <div class="class-modal">
+            <h2 style="color: #4a90e2; margin-bottom: 20px;">Choose Your Shard Class</h2>
+            <div class="class-grid">
+                <div class="class-card" onclick="selectClass('vanguard')">
+                    <div class="class-name">Celestial Vanguard</div>
+                    <div class="class-desc">Tank/Support – Solar shields and radiant attacks</div>
+                </div>
+                <div class="class-card" onclick="selectClass('reaver')">
+                    <div class="class-name">Umbral Reaver</div>
+                    <div class="class-desc">Assassin/Control – Shadow teleports and stealth</div>
+                </div>
+                <div class="class-card" onclick="selectClass('mage')">
+                    <div class="class-name">Aether Mage</div>
+                    <div class="class-desc">Mage/Control – Elemental storms and shields</div>
+                </div>
+                <div class="class-card" onclick="selectClass('tinkerer')">
+                    <div class="class-name">Chrono Tinkerer</div>
+                    <div class="class-desc">Controller/Utility – Time manipulation and gadgets</div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-    <!-- UI Panel -->
-    <div id="ui-panel">
-      <!-- HUD Section -->
-      <div class="section" id="hud-section">
-        <h2>Warden Status</h2>
-        <div class="stat-line"><span>Name:</span><span id="stat-name">–</span></div>
-        <div class="stat-line"><span>HP:</span><span id="stat-hp">– / –</span></div>
-        <div class="stat-line"><span>AP:</span><span id="stat-ap">– / –</span></div>
-        <div class="stat-line"><span>AE:</span><span id="stat-ae">– / –</span></div>
-        <div class="stat-line"><span>Initiative:</span><span id="stat-init">–</span></div>
-        <div class="stat-line"><span>Turn:</span><span id="stat-turn">–</span></div>
-      </div>
-      <!-- Skills Section -->
-      <div class="section" id="skills-section">
-        <h2>Shard Skills</h2>
-        <div id="skills-list"></div>
-      </div>
-      <!-- Inventory Section -->
-      <div class="section" id="inventory-section">
-        <h2>Inventory</h2>
-        <div id="inventory-grid"></div>
-      </div>
-      <!-- Codex Section -->
-      <div class="section" id="codex-section">
-        <h2>Abyssal Codex</h2>
-        <div id="codex-entries"></div>
-      </div>
-      <!-- Controls Section -->
-      <div class="section" id="controls-section">
-        <h2>Controls</h2>
-        <p>Arrow Keys: Move</p>
-        <p>Space: Basic Attack</p>
-        <p>Number Keys (1–4): Shard Skills</p>
-        <p>E: End Turn</p>
-      </div>
+
+    <!-- Main Game Container -->
+    <div class="game-container">
+        <!-- Main Area: Header + Board -->
+        <div class="main-area">
+            <!-- Header: Title & Stats -->
+            <div class="header">
+                <div class="title">Aetherbound: Turn of Echoes</div>
+                <div class="stats">
+                    <div class="stat hp">❤️ HP: <span id="playerHp">0</span>/<span id="playerMaxHp">0</span></div>
+                    <div class="stat ae">⚡ AE: <span id="playerAe">0</span>/<span id="playerMaxAe">0</span></div>
+                    <div class="stat ap">🔥 AP: <span id="playerAp">0</span></div>
+                </div>
+            </div>
+            
+            <!-- Game Board: 15×15 Grid -->
+            <div class="game-board">
+                <div id="gameGrid" class="grid"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Abilities, Turn Order, Controls, Log -->
+        <div class="sidebar">
+            <!-- Abilities Section -->
+            <div class="section">
+                <h3>Abilities</h3>
+                <div id="abilities" class="abilities"></div>
+            </div>
+
+            <!-- Turn Order Section -->
+            <div class="section">
+                <h3>Turn Order</h3>
+                <div id="turnOrder" class="turn-order"></div>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="section">
+                <h3>Controls</h3>
+                <div class="controls">
+                    <button class="btn" onclick="endTurn()" id="endTurnBtn">End Turn</button>
+                    <button class="btn" onclick="meditate()" id="meditateBtn">Meditate</button>
+                </div>
+            </div>
+
+            <!-- Action Log Section -->
+            <div class="section">
+                <h3>Action Log</h3>
+                <div id="actionLog" class="log"></div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    /* ============================================
-       CONSTANTS & CONFIGURATION
-    ============================================ */
-    const TILE_SIZE = 40; // pixels
-    const GRID_WIDTH = 20;
-    const GRID_HEIGHT = 20;
-    const CANVAS_WIDTH = TILE_SIZE * GRID_WIDTH;   // 800
-    const CANVAS_HEIGHT = TILE_SIZE * GRID_HEIGHT; // 800
-
-    const CLASSES = {
-      "Celestial Vanguard": {
-        maxHP: 100,
-        maxAE: 10,
-        baseAP: 4,
-        baseInit: 5,
-        skills: [
-          {
-            name: "Solar Aegis",
-            description: "2 AP, 3 AE: Raise a shield for 2 turns, absorbing 15 damage. Attacking enemies take 10 radiant damage next turn.",
-            apCost: 2,
-            aeCost: 3,
-            cooldownMax: 3,
-            effect: function (player, game) {
-              player.statuses.shielded = 2; // lasts 2 turns
-              game.log(`Solar Aegis active for 2 turns.`);
-            }
-          },
-          {
-            name: "Radiant Flare",
-            description: "3 AP, 5 AE: 3×3 AoE around you, deals 20 damage and blinds enemies for 1 turn.",
-            apCost: 3,
-            aeCost: 5,
-            cooldownMax: 4,
-            effect: function (player, game) {
-              const enemies = game.getEnemiesInArea(player.x, player.y, 1);
-              enemies.forEach(e => {
-                e.takeDamage(20);
-                e.statuses.blind = 1; // 1 turn
-              });
-              game.log(`Radiant Flare struck ${enemies.length} enemies.`);
-            }
-          }
-        ]
-      },
-      "Umbral Reaver": {
-        maxHP: 80,
-        maxAE: 12,
-        baseAP: 5,
-        baseInit: 7,
-        skills: [
-          {
-            name: "Void Slash",
-            description: "1 AP, 4 AE: Melee attack. If target's adjacent tile is empty, teleport there.",
-            apCost: 1,
-            aeCost: 4,
-            cooldownMax: 2,
-            effect: function (player, game) {
-              const enemy = game.getEnemyAt(player.facingX, player.facingY);
-              if (!enemy) {
-                game.log("Void Slash failed: no target.");
-                return;
-              }
-              enemy.takeDamage(25);
-              const dx = player.facingX - player.x;
-              const dy = player.facingY - player.y;
-              const nx = player.facingX + dx;
-              const ny = player.facingY + dy;
-              if (game.isTileWalkable(nx, ny)) {
-                player.moveTo(nx, ny);
-                game.log(`Void Slash teleported you to (${nx}, ${ny}).`);
-              }
-            }
-          },
-          {
-            name: "Shadowmeld",
-            description: "2 AP, 6 AE: Become invisible for 2 turns. First attack from invisibility deals +100% crit.",
-            apCost: 2,
-            aeCost: 6,
-            cooldownMax: 4,
-            effect: function (player, game) {
-              player.statuses.invisible = 2; // 2 turns
-              game.log("You have become Invisible for 2 turns.");
-            }
-          }
-        ]
-      },
-      "Aether Mage": {
-        maxHP: 70,
-        maxAE: 15,
-        baseAP: 4,
-        baseInit: 6,
-        skills: [
-          {
-            name: "Blazing Tempest",
-            description: "3 AP, 7 AE: Summon a fire tornado in a 3×3 area centered on you for 2 turns: deals 15 damage at start of enemy turn.",
-            apCost: 3,
-            aeCost: 7,
-            cooldownMax: 5,
-            effect: function (player, game) {
-              const coords = game.getAreaCoords(player.x, player.y, 1);
-              coords.forEach(([x, y]) => {
-                game.spawnHazard(x, y, {
-                  type: "fire_tornado",
-                  turns: 2,
-                  damage: 15
-                });
-              });
-              game.log("Blazing Tempest created in a 3×3 area.");
-            }
-          },
-          {
-            name: "Chain Lightning",
-            description: "3 AP, 8 AE: Chain lightning hits up to 3 enemies: 20 → 16 → 12 damage.",
-            apCost: 3,
-            aeCost: 8,
-            cooldownMax: 4,
-            effect: function (player, game) {
-              const hits = game.chainSpell(player.x, player.y, 3, "lightning");
-              game.log(`Chain Lightning struck ${hits.length} enemies.`);
-            }
-          }
-        ]
-      },
-      "Chrono Tinkerer": {
-        maxHP: 75,
-        maxAE: 12,
-        baseAP: 5,
-        baseInit: 4,
-        skills: [
-          {
-            name: "Temporal Loop",
-            description: "3 AP, 8 AE: Place a decoy that repeats your last two turns’ actions next enemy phase (decoy has 50% stats).",
-            apCost: 3,
-            aeCost: 8,
-            cooldownMax: 6,
-            effect: function (player, game) {
-              const lastActions = player.history.slice(-2);
-              player.spawnDecoy(lastActions);
-              game.log("Temporal Loop decoy spawned.");
-            }
-          },
-          {
-            name: "Flux Grenade",
-            description: "1 AP, 4 AE: Thrown to target tile: on explosion next enemy turn, slows enemies in 2‐tile radius for 2 turns.",
-            apCost: 1,
-            aeCost: 4,
-            cooldownMax: 3,
-            effect: function (player, game) {
-              const tx = player.facingX;
-              const ty = player.facingY;
-              game.spawnHazard(tx, ty, {
-                type: "flux_grenade",
-                turns: 1, // detonates next enemy turn
-                radius: 2,
-                slow: 50,
-                duration: 2
-              });
-              game.log(`Flux Grenade placed at (${tx}, ${ty}).`);
-            }
-          }
-        ]
-      }
-    };
-
-    const TILE_TYPES = {
-      FLOOR: 0,
-      WALL: 1
-    };
-
-    const COLORS = {
-      FLOOR: "#1f2a3a",
-      WALL: "#334155",
-      PLAYER: "#e0aaff",
-      ENEMY: "#ff6b6b",
-      HAZARD_FIRE: "rgba(255, 100, 0, 0.6)",
-      HAZARD_SLOW: "rgba(0, 100, 255, 0.6)",
-      DECAY: "#aaaaaa"
-    };
-
-    /* ============================================
-       GLOBAL GAME STATE
-    ============================================ */
-    let canvas, ctx;
-    let game; // will hold the main Game instance
-
-    /* ============================================
-       UTILITY FUNCTIONS
-    ============================================ */
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-    function shuffleArray(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = getRandomInt(0, i);
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-    function deepCopy(obj) {
-      return JSON.parse(JSON.stringify(obj));
-    }
-
-    /* ============================================
-       CORE CLASSES
-    ============================================ */
-
-    // ===============================
-    //  Tile / Room / Dungeon
-    // ===============================
-    class Room {
-      constructor(width, height) {
-        this.width = width;
-        this.height = height;
-        this.tiles = this.generateTiles();
-      }
-
-      generateTiles() {
-        const tiles = [];
-        for (let y = 0; y < this.height; y++) {
-          tiles[y] = [];
-          for (let x = 0; x < this.width; x++) {
-            // Create perimeter walls
-            if (x === 0 || y === 0 || x === this.width - 1 || y === this.height - 1) {
-              tiles[y][x] = TILE_TYPES.WALL;
-            } else {
-              tiles[y][x] = Math.random() < 0.15 ? TILE_TYPES.WALL : TILE_TYPES.FLOOR;
-            }
-          }
-        }
-        // Ensure start and exit are floor
-        tiles[1][1] = TILE_TYPES.FLOOR;
-        tiles[this.height - 2][this.width - 2] = TILE_TYPES.FLOOR;
-        return tiles;
-      }
-
-      isWalkable(x, y) {
-        if (x < 0 || y < 0 || x >= this.width || y >= this.height) return false;
-        return this.tiles[y][x] === TILE_TYPES.FLOOR;
-      }
-
-      draw(ctx) {
-        for (let y = 0; y < this.height; y++) {
-          for (let x = 0; x < this.width; x++) {
-            ctx.fillStyle = this.tiles[y][x] === TILE_TYPES.FLOOR ? COLORS.FLOOR : COLORS.WALL;
-            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          }
-        }
-      }
-    }
-
-    class Dungeon {
-      constructor() {
-        this.rooms = [];
-        this.currentRoomIndex = 0;
-        this.generateDungeon(5);
-      }
-
-      generateDungeon(numRooms) {
-        for (let i = 0; i < numRooms; i++) {
-          const room = new Room(GRID_WIDTH, GRID_HEIGHT);
-          this.rooms.push(room);
-        }
-      }
-
-      getCurrentRoom() {
-        return this.rooms[this.currentRoomIndex];
-      }
-
-      advanceRoom() {
-        if (this.currentRoomIndex < this.rooms.length - 1) {
-          this.currentRoomIndex++;
-          return true;
-        }
-        return false; // no more rooms
-      }
-    }
-
-    // ===============================
-    //  Entity: Player, Enemy, Decoy
-    // ===============================
-    class Entity {
-      constructor(x, y, hp, maxHP, ap, maxAP, ae, maxAE, initiative, game) {
-        this.x = x;
-        this.y = y;
-        this.hp = hp;
-        this.maxHP = maxHP;
-        this.ap = ap;
-        this.maxAP = maxAP;
-        this.ae = ae;
-        this.maxAE = maxAE;
-        this.initiative = initiative;
-        this.game = game;
-        this.statuses = {
-          shielded: 0,
-          blind: 0,
-          invisible: 0,
-          slowed: 0,
-          stunned: 0
+    <script>
+        /******************************************
+         *           GAME STATE & DATA
+        *******************************************/
+        const gameState = {
+            player: null,
+            enemies: [],
+            grid: [],
+            turnQueue: [],
+            currentTurnIndex: 0,
+            selectedAbilityIndex: null,
+            highlightedTiles: [],
+            chamber: 1,
+            gamePhase: 'init', // 'init', 'player', 'enemy'
+            logMaxEntries: 100
         };
-        this.isDecoy = false;
-      }
 
-      isAlive() {
-        return this.hp > 0;
-      }
-
-      moveTo(x, y) {
-        if (this.game.currentRoom.isWalkable(x, y) && !this.game.getEnemyAt(x, y) && !this.game.playerAt(x, y)) {
-          this.x = x;
-          this.y = y;
-        }
-      }
-
-      distanceTo(other) {
-        return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
-      }
-
-      takeDamage(amount) {
-        // Shield absorbs flat amount if active
-        if (this.statuses.shielded > 0) {
-          const absorbed = Math.min(this.statuses.shielded * 15, amount);
-          amount -= absorbed;
-          this.statuses.shielded = Math.max(0, this.statuses.shielded - 1);
-        }
-        this.hp -= amount;
-        if (this.hp <= 0) {
-          this.hp = 0;
-          this.onDeath();
-        }
-      }
-
-      onDeath() {
-        // Placeholder: override in subclass
-      }
-
-      applyStatusesOnTurnStart() {
-        if (this.statuses.blind > 0) this.statuses.blind--;
-        if (this.statuses.slowed > 0) this.statuses.slowed--;
-        if (this.statuses.stunned > 0) this.statuses.stunned--;
-        if (this.statuses.invisible > 0) this.statuses.invisible--;
-      }
-
-      regenerateAE() {
-        // Regenerate 1 AE if no skill used last turn
-        if (!this.usedSkillLastTurn) {
-          this.ae = Math.min(this.maxAE, this.ae + 1);
-        }
-        this.usedSkillLastTurn = false;
-      }
-
-      startTurn() {
-        this.applyStatusesOnTurnStart();
-        this.regenerateAE();
-        this.ap = this.maxAP;
-      }
-    }
-
-    class Player extends Entity {
-      constructor(cls, game) {
-        super(1, 1, CLASSES[cls].maxHP, CLASSES[cls].maxHP, CLASSES[cls].baseAP, CLASSES[cls].baseAP, CLASSES[cls].maxAE, CLASSES[cls].maxAE, CLASSES[cls].baseInit, game);
-        this.cls = cls;
-        this.skills = CLASSES[cls].skills.map(s => {
-          return {
-            name: s.name,
-            description: s.description,
-            apCost: s.apCost,
-            aeCost: s.aeCost,
-            cooldown: 0,
-            cooldownMax: s.cooldownMax,
-            effect: s.effect.bind(s)
-          };
-        });
-        this.facingX = this.x + 1;
-        this.facingY = this.y;
-        this.history = []; // record of last actions for decoy
-        this.inventory = [];
-        this.codex = JSON.parse(localStorage.getItem("aetherbound_codex") || "[]"); // array of strings
-      }
-
-      onDeath() {
-        this.game.log("Warden has fallen. Game Over.");
-        this.game.gameOver();
-      }
-
-      basicAttack() {
-        if (this.ap < 1) {
-          this.game.log("Not enough AP to attack.");
-          return false;
-        }
-        const enemy = this.game.getEnemyAt(this.facingX, this.facingY);
-        if (!enemy) {
-          this.game.log("No enemy to attack.");
-          return false;
-        }
-        let dmg = 15;
-        // If invisible, first attack deals double damage
-        if (this.statuses.invisible > 0) {
-          dmg *= 2;
-          this.statuses.invisible = 0;
-          this.game.log("Critical strike from invisibility!");
-        }
-        enemy.takeDamage(dmg);
-        this.ap -= 1;
-        this.history.push({ type: "attack", x: this.x, y: this.y, facingX: this.facingX, facingY: this.facingY });
-        this.usedSkillLastTurn = false;
-        this.game.log(`Dealt ${dmg} damage to enemy.`);
-        if (!enemy.isAlive()) {
-          this.game.onEnemyDefeated(enemy);
-        }
-        return true;
-      }
-
-      useSkill(index) {
-        const skill = this.skills[index];
-        if (!skill) return;
-        if (skill.cooldown > 0) {
-          this.game.log(`${skill.name} is on cooldown (${skill.cooldown} turns left).`);
-          return false;
-        }
-        if (this.ap < skill.apCost) {
-          this.game.log("Not enough AP to use skill.");
-          return false;
-        }
-        if (this.ae < skill.aeCost) {
-          this.game.log("Not enough AE to use skill.");
-          return false;
-        }
-        skill.effect(this, this.game);
-        this.ap -= skill.apCost;
-        this.ae -= skill.aeCost;
-        skill.cooldown = skill.cooldownMax;
-        this.usedSkillLastTurn = true;
-        this.history.push({ type: "skill", skillIndex: index, x: this.x, y: this.y, facingX: this.facingX, facingY: this.facingY });
-        return true;
-      }
-
-      endTurn() {
-        // Decrement cooldowns
-        this.skills.forEach(s => {
-          if (s.cooldown > 0) s.cooldown--;
-        });
-        this.game.nextTurn();
-      }
-
-      move(dx, dy) {
-        if (this.ap < 1) return false;
-        const nx = this.x + dx;
-        const ny = this.y + dy;
-        if (!this.game.currentRoom.isWalkable(nx, ny)) return false;
-        if (this.game.getEnemyAt(nx, ny)) return false;
-        this.x = nx;
-        this.y = ny;
-        this.facingX = nx + dx;
-        this.facingY = ny + dy;
-        this.ap -= 1;
-        this.history.push({ type: "move", x: this.x, y: this.y, facingX: this.facingX, facingY: this.facingY });
-        this.usedSkillLastTurn = false;
-        return true;
-      }
-
-      spawnDecoy(lastActions) {
-        const decoy = new Decoy(this.x, this.y, this.maxHP * 0.5, this.maxHP * 0.5, this.maxAP, this.maxAP, this.maxAE * 0.5, this.maxAE * 0.5, this.initiative, this.game, lastActions);
-        this.game.decoys.push(decoy);
-      }
-
-      addToCodex(entry) {
-        if (!this.codex.includes(entry)) {
-          this.codex.push(entry);
-          localStorage.setItem("aetherbound_codex", JSON.stringify(this.codex));
-          this.game.log(`Codex entry unlocked: ${entry}`);
-        }
-      }
-    }
-
-    class Decoy extends Entity {
-      constructor(x, y, hp, maxHP, ap, maxAP, ae, maxAE, initiative, game, lastActions) {
-        super(x, y, hp, maxHP, ap, maxAP, ae, maxAE, initiative, game);
-        this.isDecoy = true;
-        this.actionsToReplay = [...lastActions];
-      }
-
-      takeTurn() {
-        // Replay stored actions if any
-        if (this.actionsToReplay.length > 0) {
-          const action = this.actionsToReplay.shift();
-          if (action.type === "move") {
-            this.moveTo(action.x, action.y);
-          } else if (action.type === "attack") {
-            const enemy = this.game.getEnemyAt(action.facingX, action.facingY);
-            if (enemy) {
-              enemy.takeDamage(10); // decoy deals reduced damage
-              if (!enemy.isAlive()) this.game.onEnemyDefeated(enemy);
+        // Class & Ability Definitions
+        const classes = {
+            vanguard: {
+                name: "Celestial Vanguard",
+                baseHp: 120,
+                baseAe: 10,
+                baseAp: 4,
+                initiative: 5,
+                symbol: "V",
+                abilities: [
+                    {
+                        name: "Solar Aegis",
+                        cost: { ap: 2, ae: 3 },
+                        cooldownMax: 3,
+                        currentCooldown: 0,
+                        description: "Shield self for 2 turns (absorb 15 dmg).",
+                        type: "self"
+                    },
+                    {
+                        name: "Radiant Flare",
+                        cost: { ap: 2, ae: 4 },
+                        cooldownMax: 4,
+                        currentCooldown: 0,
+                        description: "3×3 AoE: 20 damage + blinds 1 turn.",
+                        type: "aoe"
+                    },
+                    {
+                        name: "Basic Attack",
+                        cost: { ap: 1, ae: 0 },
+                        cooldownMax: 0,
+                        currentCooldown: 0,
+                        description: "Strike adjacent enemy.",
+                        type: "attack"
+                    }
+                ]
+            },
+            reaver: {
+                name: "Umbral Reaver",
+                baseHp: 80,
+                baseAe: 12,
+                baseAp: 5,
+                initiative: 7,
+                symbol: "R",
+                abilities: [
+                    {
+                        name: "Void Slash",
+                        cost: { ap: 1, ae: 3 },
+                        cooldownMax: 2,
+                        currentCooldown: 0,
+                        description: "Melee + teleport behind if possible.",
+                        type: "attack"
+                    },
+                    {
+                        name: "Shadowmeld",
+                        cost: { ap: 2, ae: 5 },
+                        cooldownMax: 4,
+                        currentCooldown: 0,
+                        description: "Invisible 2 turns, next attack crit.",
+                        type: "self"
+                    },
+                    {
+                        name: "Basic Attack",
+                        cost: { ap: 1, ae: 0 },
+                        cooldownMax: 0,
+                        currentCooldown: 0,
+                        description: "Strike adjacent enemy.",
+                        type: "attack"
+                    }
+                ]
+            },
+            mage: {
+                name: "Aether Mage",
+                baseHp: 70,
+                baseAe: 15,
+                baseAp: 3,
+                initiative: 6,
+                symbol: "M",
+                abilities: [
+                    {
+                        name: "Blazing Tempest",
+                        cost: { ap: 3, ae: 6 },
+                        cooldownMax: 4,
+                        currentCooldown: 0,
+                        description: "Fire tornado in 3×3 for 2 turns (15 dmg).",
+                        type: "aoe"
+                    },
+                    {
+                        name: "Mana Bolt",
+                        cost: { ap: 1, ae: 2 },
+                        cooldownMax: 0,
+                        currentCooldown: 0,
+                        description: "Ranged 3-tile magic attack (15 dmg).",
+                        type: "ranged"
+                    },
+                    {
+                        name: "Basic Attack",
+                        cost: { ap: 1, ae: 0 },
+                        cooldownMax: 0,
+                        currentCooldown: 0,
+                        description: "Staff melee strike.",
+                        type: "attack"
+                    }
+                ]
+            },
+            tinkerer: {
+                name: "Chrono Tinkerer",
+                baseHp: 90,
+                baseAe: 12,
+                baseAp: 4,
+                initiative: 4,
+                symbol: "T",
+                abilities: [
+                    {
+                        name: "Flux Grenade",
+                        cost: { ap: 1, ae: 3 },
+                        cooldownMax: 3,
+                        currentCooldown: 0,
+                        description: "Place slow grenade (2-tile radius, 2 turns).",
+                        type: "ranged"
+                    },
+                    {
+                        name: "Temporal Loop",
+                        cost: { ap: 3, ae: 8 },
+                        cooldownMax: 5,
+                        currentCooldown: 0,
+                        description: "Echo last 2 actions next enemy phase.",
+                        type: "utility"
+                    },
+                    {
+                        name: "Basic Attack",
+                        cost: { ap: 1, ae: 0 },
+                        cooldownMax: 0,
+                        currentCooldown: 0,
+                        description: "Gadget punch.",
+                        type: "attack"
+                    }
+                ]
             }
-          } else if (action.type === "skill") {
-            // Simplify: decoy only replays attacks, no skills
-          }
+        };
+
+        // Enemy Type Definitions
+        const enemyTypes = {
+            guardian: {
+                name: "Temple Guardian",
+                hp: 50,
+                initiative: 5,
+                symbol: "G",
+                ai: "defensive"
+            },
+            walker: {
+                name: "Spore Walker",
+                hp: 30,
+                initiative: 7,
+                symbol: "W",
+                ai: "aggressive"
+            },
+            sentinel: {
+                name: "Molten Sentinel",
+                hp: 60,
+                initiative: 4,
+                symbol: "S",
+                ai: "patrol"
+            }
+        };
+
+        // Hazard Definitions
+        class Hazard {
+            constructor(x, y, config) {
+                this.x = x;
+                this.y = y;
+                this.type = config.type;         // 'fire' or 'slow'
+                this.duration = config.duration; // number of turns
+                this.timer = config.timer || 0;  // for delayed detonations
+                this.value = config.value || 0;  // damage or slow %
+                this.radius = config.radius || 0; // for area effects
+            }
         }
-      }
 
-      onDeath() {
-        // Decoy simply disappears
-      }
-    }
-
-    class Enemy extends Entity {
-      constructor(x, y, game) {
-        super(x, y, 50, 50, 3, 3, 0, 0, 6, game); // Example stats
-        this.turnCounter = 0;
-      }
-
-      takeTurn() {
-        if (this.statuses.stunned > 0) {
-          this.game.log("Enemy is stunned and skips turn.");
-          return;
+        // Add basic utility functions
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         }
-        // If adjacent to player, attack
-        const player = this.game.player;
-        const dist = this.distanceTo(player);
-        if (dist === 1) {
-          this.attackPlayer();
-        } else {
-          // Move towards player if possible
-          this.moveTowardPlayer();
+
+        function distance(ax, ay, bx, by) {
+            return Math.abs(ax - bx) + Math.abs(ay - by);
         }
-      }
 
-      attackPlayer() {
-        if (this.ap < 1) return;
-        let dmg = 10;
-        if (Math.random() < 0.1) {
-          this.game.log("Enemy lands a critical hit!");
-          dmg *= 1.5;
+        /******************************************
+         *        CLASS SELECTION & INIT
+        *******************************************/
+        function selectClass(classKey) {
+            const cls = classes[classKey];
+            gameState.player = {
+                x: 7,
+                y: 7,
+                classKey: classKey,
+                name: cls.name,
+                hp: cls.baseHp,
+                maxHp: cls.baseHp,
+                ae: cls.baseAe,
+                maxAe: cls.baseAe,
+                ap: cls.baseAp,
+                maxAp: cls.baseAp,
+                initiative: cls.initiative,
+                symbol: cls.symbol,
+                abilities: cls.abilities.map(a => ({ ...a, currentCooldown: 0 })),
+                effects: [],    // { type: 'shield'|'invisible'|'blind'|'slow'|'stun', duration: n, value: x }
+                history: []     // record last 2 actions for Temporal Loop
+            };
+
+            document.getElementById('classSelection').style.display = 'none';
+            startNewGame();
         }
-        this.game.player.takeDamage(dmg);
-        this.ap -= 1;
-        this.game.log(`Enemy hits you for ${dmg} damage.`);
-      }
 
-      moveTowardPlayer() {
-        if (this.ap < 1) return;
-        const player = this.game.player;
-        let dx = 0, dy = 0;
-        if (player.x > this.x) dx = 1;
-        else if (player.x < this.x) dx = -1;
-        else if (player.y > this.y) dy = 1;
-        else if (player.y < this.y) dy = -1;
-        const nx = this.x + dx;
-        const ny = this.y + dy;
-        if (this.game.currentRoom.isWalkable(nx, ny) && !this.game.getEnemyAt(nx, ny) && !this.game.playerAt(nx, ny)) {
-          this.x = nx;
-          this.y = ny;
-          this.ap -= 1;
+        /******************************************
+         *          GAME INITIALIZATION
+        *******************************************/
+        function startNewGame() {
+            generateGrid();
+            placePlayer();
+            spawnEnemies();
+            gameState.hazards = [];
+            gameState.chamber = 1;
+            calculateTurnOrder();
+            gameState.gamePhase = 'player';
+            updateUI();
+            renderGrid();
+            addLogEntry("system", `${gameState.player.name} enters Chamber ${gameState.chamber}.`);
         }
-      }
 
-      onDeath() {
-        this.game.log("Enemy defeated.");
-      }
-    }
+        function generateGrid() {
+            gameState.grid = [];
+            for (let y = 0; y < 15; y++) {
+                gameState.grid[y] = [];
+                for (let x = 0; x < 15; x++) {
+                    let type = 'floor';
+                    if (Math.random() < 0.1) type = 'wall';
+                    else if (Math.random() < 0.05) type = 'trap';
+                    gameState.grid[y][x] = {
+                        type: type,
+                        entity: null,
+                        hazards: [] // array of Hazard objects
+                    };
+                }
+            }
+            // Ensure starting position is floor
+            gameState.grid[7][7].type = 'floor';
+        }
 
-    /* ============================================
-       HAZARDS & EFFECTS
-    ============================================ */
-    class Hazard {
-      constructor(x, y, config) {
-        this.x = x;
-        this.y = y;
-        this.type = config.type;
-        this.turns = config.turns;
-        this.damage = config.damage || 0;
-        this.radius = config.radius || 0;
-        this.slow = config.slow || 0;
-        this.duration = config.duration || 0;
-        this.timer = 0;
-        this.active = false;
-      }
+        function placePlayer() {
+            gameState.grid[gameState.player.y][gameState.player.x].entity = 'player';
+        }
 
-      processTurn(phase, game) {
-        if (this.type === "fire_tornado") {
-          if (phase === "enemy_start") {
-            // Deal damage to any entity on this tile
-            const entities = game.getEntitiesAt(this.x, this.y);
-            entities.forEach(ent => {
-              if (ent.isAlive()) ent.takeDamage(this.damage);
+        function spawnEnemies() {
+            gameState.enemies = [];
+            const count = 3 + gameState.chamber; // increase by chamber
+            for (let i = 0; i < count; i++) {
+                let x, y;
+                do {
+                    x = getRandomInt(0, 14);
+                    y = getRandomInt(0, 14);
+                } while (
+                    gameState.grid[y][x].type !== 'floor' ||
+                    gameState.grid[y][x].entity !== null ||
+                    (Math.abs(x - gameState.player.x) <= 2 && Math.abs(y - gameState.player.y) <= 2)
+                );
+                const typeKeys = Object.keys(enemyTypes);
+                const et = enemyTypes[typeKeys[getRandomInt(0, typeKeys.length - 1)]];
+                const enemy = {
+                    id: i,
+                    x: x,
+                    y: y,
+                    name: et.name,
+                    hp: et.hp,
+                    maxHp: et.hp,
+                    initiative: et.initiative,
+                    symbol: et.symbol,
+                    ai: et.ai,
+                    ap: 2,
+                    maxAp: 2,
+                    effects: [] // same structure as player.effects
+                };
+                gameState.enemies.push(enemy);
+                gameState.grid[y][x].entity = enemy;
+            }
+        }
+
+        /******************************************
+         *          TURN ORDER CALCULATION
+        *******************************************/
+        function calculateTurnOrder() {
+            gameState.turnQueue = [];
+
+            // Add player
+            gameState.turnQueue.push({
+                type: 'player',
+                initiative: gameState.player.initiative + Math.random(),
+                entity: gameState.player
             });
-            this.turns--;
-          }
-        } else if (this.type === "flux_grenade") {
-          if (this.timer > 0) {
-            this.timer--;
-          } else {
-            // Detonate now
-            const coords = game.getAreaCoords(this.x, this.y, this.radius);
-            coords.forEach(([x, y]) => {
-              const entities = game.getEntitiesAt(x, y);
-              entities.forEach(ent => {
-                ent.statuses.slowed = this.duration;
-              });
+
+            // Add enemies
+            gameState.enemies.forEach(en => {
+                gameState.turnQueue.push({
+                    type: 'enemy',
+                    initiative: en.initiative + Math.random(),
+                    entity: en
+                });
             });
-            this.turns = 0;
-            game.log("Flux Grenade detonated, enemies slowed.");
-          }
-          if (this.timer === 0 && this.turns > 0) {
-            this.turns--;
-          }
+
+            // Sort ascending (lower acts first)
+            gameState.turnQueue.sort((a, b) => a.initiative - b.initiative);
+            gameState.currentTurnIndex = 0;
         }
-      }
-    }
 
-    /* ============================================
-       GAME CLASS (MANAGES EVERYTHING)
-    ============================================ */
-    class Game {
-      constructor() {
-        // Canvas setup
-        canvas = document.getElementById("game-canvas");
-        ctx = canvas.getContext("2d");
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
+        /******************************************
+         *         GRID RENDERING LOGIC
+        *******************************************/
+        function renderGrid() {
+            const gridEl = document.getElementById('gameGrid');
+            gridEl.innerHTML = '';
 
-        // UI Elements
-        this.statName = document.getElementById("stat-name");
-        this.statHP = document.getElementById("stat-hp");
-        this.statAP = document.getElementById("stat-ap");
-        this.statAE = document.getElementById("stat-ae");
-        this.statInit = document.getElementById("stat-init");
-        this.statTurn = document.getElementById("stat-turn");
-        this.skillsList = document.getElementById("skills-list");
-        this.inventoryGrid = document.getElementById("inventory-grid");
-        this.codexEntries = document.getElementById("codex-entries");
-        this.logBuffer = [];
+            for (let y = 0; y < 15; y++) {
+                for (let x = 0; x < 15; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('tile');
+                    cell.classList.add(gameState.grid[y][x].type);
 
-        // Game state
-        this.currentRoom = null;
-        this.dungeon = new Dungeon();
-        this.currentRoom = this.dungeon.getCurrentRoom();
-        this.player = null;
-        this.enemies = [];
-        this.decoys = [];
-        this.hazards = [];
-        this.turnOrder = []; // array of Entities
-        this.currentTurnIndex = 0;
-        this.turnPhase = "player"; // "player" or "enemy"
-        this.isRunning = false;
-        this.isGameOver = false;
-        this.turnCount = 1;
+                    // Highlight if needed
+                    if (gameState.highlightedTiles.some(t => t.x === x && t.y === y)) {
+                        cell.classList.add('highlight');
+                    }
 
-        // Modal & input handling
-        this.modalOverlay = document.getElementById("modal-overlay");
-        this.bindClassSelection();
-        this.bindInput();
+                    // Draw hazards (fire or slow)
+                    gameState.grid[y][x].hazards.forEach(h => {
+                        if (h.type === 'fire') {
+                            cell.classList.add('hazard-fire');
+                        } else if (h.type === 'slow') {
+                            cell.classList.add('hazard-slow');
+                        }
+                    });
 
-        this.draw(); // initial draw
-      }
+                    // Draw entity
+                    const ent = gameState.grid[y][x].entity;
+                    if (ent === 'player') {
+                        cell.classList.add('player');
+                        cell.textContent = gameState.player.symbol;
+                    } else if (ent && typeof ent === 'object') {
+                        cell.classList.add('enemy');
+                        cell.textContent = ent.symbol;
+                    } else if (gameState.grid[y][x].type === 'wall') {
+                        cell.textContent = '#';
+                    } else if (gameState.grid[y][x].type === 'trap') {
+                        cell.textContent = '^';
+                    }
 
-      bindClassSelection() {
-        const buttons = document.querySelectorAll(".modal-btn");
-        buttons.forEach(btn => {
-          btn.addEventListener("click", () => {
-            const cls = btn.getAttribute("data-class");
-            this.startNewGame(cls);
-            this.modalOverlay.classList.add("hidden");
-          });
-        });
-      }
-
-      startNewGame(cls) {
-        this.player = new Player(cls, this);
-        this.spawnEnemies(5); // spawn 5 enemies in room
-        this.calculateTurnOrder();
-        this.isRunning = true;
-        this.gameLoop();
-      }
-
-      spawnEnemies(num) {
-        this.enemies = [];
-        for (let i = 0; i < num; i++) {
-          let ex, ey;
-          do {
-            ex = getRandomInt(1, GRID_WIDTH - 2);
-            ey = getRandomInt(1, GRID_HEIGHT - 2);
-          } while (
-            (ex === this.player.x && ey === this.player.y) ||
-            !this.currentRoom.isWalkable(ex, ey) ||
-            this.getEnemyAt(ex, ey)
-          );
-          const enemy = new Enemy(ex, ey, this);
-          this.enemies.push(enemy);
-        }
-      }
-
-      calculateTurnOrder() {
-        this.turnOrder = [this.player, ...this.enemies, ...this.decoys];
-        // Sort by (initiative, random tiebreak)
-        this.turnOrder.sort((a, b) => {
-          const ai = a.initiative + (Math.random() * 0.1 - 0.05);
-          const bi = b.initiative + (Math.random() * 0.1 - 0.05);
-          return bi - ai; // higher initiative acts first
-        });
-        this.currentTurnIndex = 0;
-      }
-
-      nextTurn() {
-        if (this.isGameOver) return;
-        this.currentTurnIndex++;
-        if (this.currentTurnIndex >= this.turnOrder.length) {
-          // New round
-          this.turnCount++;
-          this.enemies.forEach(e => {
-            e.startTurn();
-          });
-          this.player.startTurn();
-          this.decoys.forEach(d => {
-            d.startTurn();
-          });
-          this.hazards.forEach(h => {
-            h.processTurn("enemy_start", this);
-          });
-          this.calculateTurnOrder();
-        }
-        this.performTurn();
-      }
-
-      performTurn() {
-        if (this.isGameOver) return;
-        const actor = this.turnOrder[this.currentTurnIndex];
-        if (!actor.isAlive()) return this.nextTurn();
-        if (actor.isDecoy) {
-          actor.takeTurn();
-          return this.nextTurn();
-        }
-        if (actor === this.player) {
-          this.turnPhase = "player";
-          this.updateUI();
-        } else {
-          this.turnPhase = "enemy";
-          actor.takeTurn();
-          this.updateUI();
-          setTimeout(() => {
-            this.nextTurn();
-          }, 200); // small delay for enemy action
-        }
-      }
-
-      getEnemyAt(x, y) {
-        return this.enemies.find(e => e.x === x && e.y === y && e.isAlive());
-      }
-
-      playerAt(x, y) {
-        return this.player.x === x && this.player.y === y;
-      }
-
-      getEntitiesAt(x, y) {
-        const ents = [];
-        if (this.player.x === x && this.player.y === y && this.player.isAlive()) ents.push(this.player);
-        this.enemies.forEach(e => {
-          if (e.x === x && e.y === y && e.isAlive()) ents.push(e);
-        });
-        this.decoys.forEach(d => {
-          if (d.x === x && d.y === y && d.isAlive()) ents.push(d);
-        });
-        return ents;
-      }
-
-      getEnemiesInArea(cx, cy, radius) {
-        return this.enemies.filter(e => e.isAlive() && Math.abs(e.x - cx) <= radius && Math.abs(e.y - cy) <= radius);
-      }
-
-      getAreaCoords(cx, cy, radius) {
-        const coords = [];
-        for (let dy = -radius; dy <= radius; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            const x = cx + dx;
-            const y = cy + dy;
-            if (x >= 0 && y >= 0 && x < GRID_WIDTH && y < GRID_HEIGHT) {
-              coords.push([x, y]);
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.addEventListener('click', () => handleTileClick(x, y));
+                    gridEl.appendChild(cell);
+                }
             }
-          }
+            updateTurnOrderUI();
         }
-        return coords;
-      }
 
-      chainSpell(sx, sy, maxHits, type) {
-        const hits = [];
-        let targets = [...this.enemies.filter(e => e.isAlive())];
-        targets.sort((a, b) => this.distance(sx, sy, a.x, a.y) - this.distance(sx, sy, b.x, b.y));
-        for (let i = 0; i < Math.min(maxHits, targets.length); i++) {
-          const e = targets[i];
-          const dmg = type === "lightning" ? 20 - i * 4 : 0;
-          e.takeDamage(dmg);
-          hits.push(e);
-          if (!e.isAlive()) this.onEnemyDefeated(e);
-        }
-        return hits;
-      }
-
-      spawnHazard(x, y, config) {
-        const hazard = new Hazard(x, y, config);
-        if (config.type === "flux_grenade") hazard.timer = 1; // detonates next enemy turn
-        this.hazards.push(hazard);
-      }
-
-      onEnemyDefeated(enemy) {
-        // Remove from array
-        this.enemies = this.enemies.filter(e => e !== enemy);
-        // Award Echo Score, codex entry, etc.
-        this.player.addToCodex(`Enemy defeated at (${enemy.x},${enemy.y})`);
-        if (this.enemies.length === 0) {
-          this.log("All enemies defeated. Proceed to next Chamber.");
-          if (this.dungeon.advanceRoom()) {
-            this.currentRoom = this.dungeon.getCurrentRoom();
-            this.player.x = 1; this.player.y = 1;
-            this.player.facingX = 2; this.player.facingY = 1;
-            this.spawnEnemies(5 + this.dungeon.currentRoomIndex * 2);
-            this.calculateTurnOrder();
-            this.turnCount = 1;
-          } else {
-            this.log("You have cleared all Chambers! Victory!");
-            this.gameOver(true);
-          }
-        }
-      }
-
-      distance(x1, y1, x2, y2) {
-        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
-      }
-
-      gameOver(victory = false) {
-        this.isGameOver = true;
-        const overlay = document.getElementById("modal-overlay");
-        const modal = document.getElementById("modal");
-        modal.innerHTML = `
-          <h1>${victory ? "Victory!" : "Game Over"}</h1>
-          <p>${victory ? "You have conquered the Endless Abyss." : "Your Wardenship ends here."}</p>
-          <button class="modal-btn" id="restart-btn">Restart</button>
-        `;
-        overlay.classList.remove("hidden");
-        document.getElementById("restart-btn").addEventListener("click", () => {
-          location.reload();
-        });
-      }
-
-      log(text) {
-        console.log(text);
-        this.logBuffer.push(text);
-        if (this.logBuffer.length > 5) this.logBuffer.shift();
-      }
-
-      bindInput() {
-        window.addEventListener("keydown", e => {
-          if (!this.isRunning || this.turnPhase !== "player" || this.isGameOver) return;
-          let acted = false;
-          switch (e.key) {
-            case "ArrowUp":
-              acted = this.player.move(0, -1);
-              break;
-            case "ArrowDown":
-              acted = this.player.move(0, 1);
-              break;
-            case "ArrowLeft":
-              acted = this.player.move(-1, 0);
-              break;
-            case "ArrowRight":
-              acted = this.player.move(1, 0);
-              break;
-            case " ":
-              acted = this.player.basicAttack();
-              break;
-            case "1":
-            case "2":
-            case "3":
-            case "4":
-              const idx = parseInt(e.key) - 1;
-              acted = this.player.useSkill(idx);
-              break;
-            case "e":
-            case "E":
-              this.player.endTurn();
-              return; // already triggered next turn
-          }
-          if (acted) {
-            this.updateUI();
-            this.draw();
-          }
-        });
-      }
-
-      updateUI() {
-        // HUD
-        this.statName.textContent = `${this.player.cls}`;
-        this.statHP.textContent = `${this.player.hp} / ${this.player.maxHP}`;
-        this.statAP.textContent = `${this.player.ap} / ${this.player.maxAP}`;
-        this.statAE.textContent = `${this.player.ae} / ${this.player.maxAE}`;
-        this.statInit.textContent = `${this.player.initiative}`;
-        this.statTurn.textContent = `${this.turnPhase.charAt(0).toUpperCase() + this.turnPhase.slice(1)} (Room ${this.dungeon.currentRoomIndex + 1}, Turn ${this.turnCount})`;
-
-        // Skills
-        this.skillsList.innerHTML = "";
-        this.player.skills.forEach((s, i) => {
-          const btn = document.createElement("button");
-          btn.className = "btn";
-          btn.textContent = `${i + 1}: ${s.name} [AP:${s.apCost} AE:${s.aeCost} CD:${s.cooldown}/${s.cooldownMax}]`;
-          btn.title = s.description;
-          btn.addEventListener("click", () => {
-            if (this.turnPhase === "player" && !this.isGameOver) {
-              const used = this.player.useSkill(i);
-              if (used) {
-                this.updateUI();
-                this.draw();
-              }
+        /******************************************
+         *      PLAYER CLICK / MOVE / ATTACK
+        *******************************************/
+        function handleTileClick(x, y) {
+            if (gameState.gamePhase !== 'player') return;
+            // If selecting ability
+            if (gameState.selectedAbilityIndex !== null) {
+                attemptUseAbility(gameState.selectedAbilityIndex, x, y);
+                return;
             }
-          });
-          this.skillsList.appendChild(btn);
-        });
+            // Otherwise attempt move or basic attack if adjacent
+            const px = gameState.player.x;
+            const py = gameState.player.y;
+            const dist = distance(px, py, x, y);
 
-        // Inventory
-        this.inventoryGrid.innerHTML = "";
-        this.player.inventory.forEach(item => {
-          const slot = document.createElement("div");
-          slot.className = "inventory-slot";
-          const img = document.createElement("img");
-          img.src = item.icon;
-          slot.appendChild(img);
-          const tip = document.createElement("div");
-          tip.className = "tooltip";
-          tip.textContent = `${item.name}: ${item.description}`;
-          slot.appendChild(tip);
-          this.inventoryGrid.appendChild(slot);
-        });
-
-        // Codex
-        this.codexEntries.innerHTML = "";
-        if (this.player.codex.length === 0) {
-          this.codexEntries.textContent = "No entries unlocked.";
-        } else {
-          this.player.codex.forEach(entry => {
-            const div = document.createElement("div");
-            div.textContent = "• " + entry;
-            this.codexEntries.appendChild(div);
-          });
-        }
-      }
-
-      draw() {
-        // Clear
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        // Draw room
-        this.currentRoom.draw(ctx);
-
-        // Draw hazards
-        this.hazards.forEach(h => {
-          if (h.type === "fire_tornado") {
-            ctx.fillStyle = COLORS.HAZARD_FIRE;
-            ctx.fillRect(h.x * TILE_SIZE, h.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          } else if (h.type === "flux_grenade") {
-            ctx.fillStyle = COLORS.HAZARD_SLOW;
-            ctx.beginPath();
-            ctx.arc(h.x * TILE_SIZE + TILE_SIZE / 2, h.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-        });
-
-        // Draw player
-        if (this.player.isAlive()) {
-          ctx.fillStyle = COLORS.PLAYER;
-          ctx.fillRect(this.player.x * TILE_SIZE + 5, this.player.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
-          if (this.player.statuses.invisible > 0) {
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(this.player.x * TILE_SIZE + 5, this.player.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
-          }
-        }
-
-        // Draw enemies
-        this.enemies.forEach(e => {
-          if (e.isAlive()) {
-            ctx.fillStyle = COLORS.ENEMY;
-            ctx.fillRect(e.x * TILE_SIZE + 5, e.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
-            if (e.statuses.blind > 0) {
-              ctx.fillStyle = "#ffffff";
-              ctx.font = "12px sans-serif";
-              ctx.fillText("?", e.x * TILE_SIZE + TILE_SIZE / 2 - 4, e.y * TILE_SIZE + TILE_SIZE / 2 + 4);
+            if (dist === 1 && gameState.grid[y][x].entity && gameState.grid[y][x].entity !== 'player') {
+                // Adjacent enemy: basic attack
+                if (gameState.player.ap >= 1) {
+                    basicAttack(x, y);
+                } else {
+                    addLogEntry("system", "Not enough AP to attack!");
+                }
+            } else {
+                // Attempt move
+                if (dist <= gameState.player.ap && canStand(x, y)) {
+                    movePlayer(x, y);
+                } else {
+                    addLogEntry("system", "Cannot move there!");
+                }
             }
-          }
+        }
+
+        function canStand(x, y) {
+            if (x < 0 || x > 14 || y < 0 || y > 14) return false;
+            if (gameState.grid[y][x].type === 'wall') return false;
+            if (gameState.grid[y][x].entity && gameState.grid[y][x].entity !== 'player') return false;
+            return true;
+        }
+
+        function movePlayer(x, y) {
+            const px = gameState.player.x;
+            const py = gameState.player.y;
+            const dist = distance(px, py, x, y);
+
+            gameState.grid[py][px].entity = null;
+            gameState.player.x = x;
+            gameState.player.y = y;
+            gameState.grid[y][x].entity = 'player';
+            gameState.player.ap -= dist;
+
+            // Check trap
+            if (gameState.grid[y][x].type === 'trap') {
+                gameState.player.hp -= 10;
+                addLogEntry("player", "Stepped on a trap. -10 HP!");
+            }
+
+            // Record move in history
+            recordPlayerAction({ type: 'move', x: x, y: y });
+
+            addLogEntry("player", `Moved to (${x}, ${y}). AP: ${gameState.player.ap}.`);
+            updateUI();
+            renderGrid();
+        }
+
+        function basicAttack(x, y) {
+            const target = gameState.grid[y][x].entity;
+            if (!target || typeof target !== 'object') {
+                addLogEntry("system", "No enemy to attack!");
+                return;
+            }
+            const dmg = 15 + getRandomInt(0, 5);
+            target.hp -= dmg;
+            addLogEntry("player", `Basic Attack: Hit ${target.name} for ${dmg} HP.`);
+
+            if (target.hp <= 0) {
+                killEnemy(target);
+            }
+            gameState.player.ap -= 1;
+
+            recordPlayerAction({ type: 'attack', x: x, y: y });
+
+            updateUI();
+            renderGrid();
+        }
+
+        /******************************************
+         *           ABILITY SELECTION UI
+        *******************************************/
+        function updateUI() {
+            // Update stats
+            document.getElementById('playerHp').textContent = gameState.player.hp;
+            document.getElementById('playerMaxHp').textContent = gameState.player.maxHp;
+            document.getElementById('playerAe').textContent = gameState.player.ae;
+            document.getElementById('playerMaxAe').textContent = gameState.player.maxAe;
+            document.getElementById('playerAp').textContent = gameState.player.ap;
+
+            // Update abilities
+            const abilitiesEl = document.getElementById('abilities');
+            abilitiesEl.innerHTML = '';
+            gameState.player.abilities.forEach((ab, idx) => {
+                const btn = document.createElement('div');
+                btn.classList.add('ability');
+                if (
+                    gameState.player.ap < ab.cost.ap ||
+                    gameState.player.ae < ab.cost.ae ||
+                    ab.currentCooldown > 0 ||
+                    gameState.gamePhase !== 'player'
+                ) {
+                    btn.classList.add('disabled');
+                }
+                btn.textContent = `${ab.name} [AP:${ab.cost.ap} AE:${ab.cost.ae}] CD:${ab.currentCooldown}/${ab.cooldownMax}`;
+                btn.title = ab.description;
+                btn.addEventListener('click', () => {
+                    if (gameState.gamePhase !== 'player') return;
+                    if (gameState.player.ap < ab.cost.ap || gameState.player.ae < ab.cost.ae || ab.currentCooldown > 0) return;
+                    selectAbility(idx);
+                });
+                abilitiesEl.appendChild(btn);
+            });
+        }
+
+        function selectAbility(abilityIndex) {
+            gameState.selectedAbilityIndex = abilityIndex;
+            const ab = gameState.player.abilities[abilityIndex];
+            gameState.highlightedTiles = [];
+
+            const px = gameState.player.x;
+            const py = gameState.player.y;
+
+            if (ab.type === 'attack') {
+                // Highlight adjacent tiles
+                const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+                dirs.forEach(([dx,dy]) => {
+                    const nx = px + dx, ny = py + dy;
+                    if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15) {
+                        gameState.highlightedTiles.push({ x: nx, y: ny });
+                    }
+                });
+            } else if (ab.type === 'ranged') {
+                // Range 3
+                for (let dx = -3; dx <= 3; dx++) {
+                    for (let dy = -3; dy <= 3; dy++) {
+                        const nx = px + dx, ny = py + dy;
+                        if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15 && !(dx === 0 && dy === 0)) {
+                            if (distance(px, py, nx, ny) <= 3) {
+                                gameState.highlightedTiles.push({ x: nx, y: ny });
+                            }
+                        }
+                    }
+                }
+            } else if (ab.type === 'aoe') {
+                // 3×3 centered on player
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const nx = px + dx, ny = py + dy;
+                        if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15) {
+                            gameState.highlightedTiles.push({ x: nx, y: ny });
+                        }
+                    }
+                }
+            } else if (ab.type === 'utility') {
+                // Self-target: no highlight needed
+                gameState.highlightedTiles = [];
+                attemptUseAbility(abilityIndex, px, py);
+                return;
+            }
+
+            renderGrid();
+            addLogEntry("system", `Selected ability: ${ab.name}. Click a highlighted tile.`);
+        }
+
+        function attemptUseAbility(idx, tx, ty) {
+            const ab = gameState.player.abilities[idx];
+            const px = gameState.player.x;
+            const py = gameState.player.y;
+
+            // Check if target is in highlightedTiles
+            const valid = gameState.highlightedTiles.some(t => t.x === tx && t.y === ty) || ab.type === 'utility';
+            if (!valid) {
+                addLogEntry("system", `Invalid target for ${ab.name}.`);
+                gameState.highlightedTiles = [];
+                gameState.selectedAbilityIndex = null;
+                renderGrid();
+                return;
+            }
+
+            // Pay costs
+            gameState.player.ap -= ab.cost.ap;
+            gameState.player.ae -= ab.cost.ae;
+            ab.currentCooldown = ab.cooldownMax;
+
+            // Execute based on ability name
+            switch (ab.name) {
+                case "Solar Aegis":
+                    solarAegis();
+                    break;
+                case "Radiant Flare":
+                    radiantFlare(tx, ty);
+                    break;
+                case "Void Slash":
+                    voidSlash(tx, ty);
+                    break;
+                case "Shadowmeld":
+                    shadowmeld();
+                    break;
+                case "Blazing Tempest":
+                    blazingTempest(px, py);
+                    break;
+                case "Mana Bolt":
+                    manaBolt(tx, ty);
+                    break;
+                case "Flux Grenade":
+                    fluxGrenade(tx, ty);
+                    break;
+                case "Temporal Loop":
+                    temporalLoop();
+                    break;
+            }
+
+            // Record history (move or attack)
+            recordPlayerAction({ type: ab.type, x: tx, y: ty, name: ab.name });
+
+            gameState.highlightedTiles = [];
+            gameState.selectedAbilityIndex = null;
+            updateUI();
+            renderGrid();
+        }
+
+        /******************************************
+         *         ABILITY IMPLEMENTATIONS
+        *******************************************/
+        function solarAegis() {
+            gameState.player.effects.push({
+                type: 'shield',
+                duration: 2,
+                value: 15
+            });
+            addLogEntry("player", "Solar Aegis: Shield for 2 turns (absorb 15 dmg each).");
+        }
+
+        function radiantFlare(cx, cy) {
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const x = cx + dx, y = cy + dy;
+                    if (x < 0 || x > 14 || y < 0 || y > 14) continue;
+                    const ent = gameState.grid[y][x].entity;
+                    if (ent && typeof ent === 'object') {
+                        const dmg = 20 + getRandomInt(0, 10);
+                        ent.hp -= dmg;
+                        addLogEntry("player", `Radiant Flare hit ${ent.name} for ${dmg} HP.`);
+                        ent.effects.push({ type: 'blind', duration: 1, value: null });
+                        if (ent.hp <= 0) killEnemy(ent);
+                    }
+                }
+            }
+        }
+
+        function voidSlash(tx, ty) {
+            const target = gameState.grid[ty][tx].entity;
+            if (!target || typeof target !== 'object') {
+                addLogEntry("system", "No target for Void Slash!");
+                return;
+            }
+            const dmg = 25 + getRandomInt(0, 5);
+            target.hp -= dmg;
+            addLogEntry("player", `Void Slash: Hit ${target.name} for ${dmg} HP.`);
+            if (target.hp <= 0) {
+                killEnemy(target);
+            }
+            // Attempt teleport behind
+            const px = gameState.player.x;
+            const py = gameState.player.y;
+            const dx = tx - px;
+            const dy = ty - py;
+            const nx = tx + dx;
+            const ny = ty + dy;
+            if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15 && canStand(nx, ny)) {
+                gameState.grid[py][px].entity = null;
+                gameState.player.x = nx;
+                gameState.player.y = ny;
+                gameState.grid[ny][nx].entity = 'player';
+                addLogEntry("player", `Teleported to (${nx}, ${ny}).`);
+            }
+        }
+
+        function shadowmeld() {
+            gameState.player.effects.push({
+                type: 'invisible',
+                duration: 2,
+                value: null
+            });
+            addLogEntry("player", "Shadowmeld: Invisible for 2 turns. Next attack is a crit.");
+        }
+
+        function blazingTempest(cx, cy) {
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const x = cx + dx, y = cy + dy;
+                    if (x < 0 || x > 14 || y < 0 || y > 14) continue;
+                    const hz = new Hazard(x, y, { type: 'fire', duration: 2, value: 15 });
+                    gameState.grid[y][x].hazards.push(hz);
+                }
+            }
+            addLogEntry("player", "Blazing Tempest: Centered fiery zone for 2 turns.");
+        }
+
+        function manaBolt(tx, ty) {
+            const target = gameState.grid[ty][tx].entity;
+            if (!target || typeof target !== 'object') {
+                addLogEntry("system", "No target for Mana Bolt!");
+                return;
+            }
+            const dmg = 15 + getRandomInt(0, 5);
+            target.hp -= dmg;
+            addLogEntry("player", `Mana Bolt: Hit ${target.name} for ${dmg} HP.`);
+            if (target.hp <= 0) killEnemy(target);
+        }
+
+        function fluxGrenade(tx, ty) {
+            const hz = new Hazard(tx, ty, { type: 'slow', timer: 1, duration: 2, radius: 2 });
+            gameState.grid[ty][tx].hazards.push(hz);
+            addLogEntry("player", `Flux Grenade placed at (${tx}, ${ty}), will detonate next enemy phase.`);
+        }
+
+        function temporalLoop() {
+            // Simple implementation: heal 20 HP and reduce all ability cooldowns by 1
+            gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + 20);
+            gameState.player.abilities.forEach(ab => {
+                if (ab.currentCooldown > 0) ab.currentCooldown = Math.max(0, ab.currentCooldown - 1);
+            });
+            addLogEntry("player", "Temporal Loop: Healed 20 HP and reduced cooldowns by 1.");
+        }
+
+        function recordPlayerAction(action) {
+            gameState.player.history.push(action);
+            if (gameState.player.history.length > 2) {
+                gameState.player.history.shift();
+            }
+        }
+
+        /******************************************
+         *         ENEMY TURN & AI LOGIC
+        *******************************************/
+        function processEnemyTurn() {
+            gameState.enemies.forEach(en => {
+                if (en.hp <= 0) return;
+                // Decrement enemy AP and reset to maxAp
+                en.ap = en.maxAp;
+
+                // Decrement statuses
+                en.effects = en.effects.filter(e => {
+                    e.duration--;
+                    return e.duration > 0;
+                });
+
+                // Skip if stunned
+                if (en.effects.some(e => e.type === 'stun')) {
+                    addLogEntry("enemy", `${en.name} is stunned and skips its turn.`);
+                    return;
+                }
+
+                // If adjacent to player, attack
+                const dist = distance(en.x, en.y, gameState.player.x, gameState.player.y);
+                if (dist === 1) {
+                    // Attack
+                    if (en.ap >= 1) {
+                        let dmg = 10 + getRandomInt(0, 5);
+                        if (Math.random() < 0.1) dmg = Math.floor(dmg * 1.5);
+                        applyDamageToPlayer(dmg);
+                        addLogEntry("enemy", `${en.name} hits you for ${dmg} HP.`);
+                        en.ap -= 1;
+                    }
+                } else {
+                    // Move toward player
+                    if (en.ap >= 1) {
+                        const dx = gameState.player.x > en.x ? 1 : (gameState.player.x < en.x ? -1 : 0);
+                        const dy = gameState.player.y > en.y ? 1 : (gameState.player.y < en.y ? -1 : 0);
+                        const nx = en.x + dx;
+                        const ny = en.y + dy;
+                        if (canStand(nx, ny) && !isPlayerAt(nx, ny)) {
+                            gameState.grid[en.y][en.x].entity = null;
+                            en.x = nx;
+                            en.y = ny;
+                            gameState.grid[ny][nx].entity = en;
+                            en.ap -= 1;
+                            addLogEntry("enemy", `${en.name} moves to (${nx}, ${ny}).`);
+                        }
+                    }
+                }
+
+                // Trigger hazards on its tile
+                triggerHazards(en.x, en.y, en, 'enemy');
+            });
+        }
+
+        function applyDamageToPlayer(dmg) {
+            // Check shield
+            const shield = gameState.player.effects.find(e => e.type === 'shield');
+            if (shield) {
+                const absorbed = Math.min(shield.value, dmg);
+                dmg -= absorbed;
+                shield.value -= absorbed;
+                if (shield.value <= 0) {
+                    gameState.player.effects = gameState.player.effects.filter(e => e !== shield);
+                }
+                addLogEntry("system", `Shield absorbed ${absorbed} damage.`);
+            }
+            if (dmg > 0) {
+                gameState.player.hp -= dmg;
+            }
+            updateUI();
+            if (gameState.player.hp <= 0) {
+                gameOver(false);
+            }
+        }
+
+        function isPlayerAt(x, y) {
+            return gameState.player.x === x && gameState.player.y === y;
+        }
+
+        /******************************************
+         *        HAZARD & STATUS PROCESSING
+        *******************************************/
+        function processHazards() {
+            // For each cell, process each hazard
+            for (let y = 0; y < 15; y++) {
+                for (let x = 0; x < 15; x++) {
+                    const cell = gameState.grid[y][x];
+                    for (let i = cell.hazards.length - 1; i >= 0; i--) {
+                        const hz = cell.hazards[i];
+                        if (hz.type === 'fire') {
+                            // At start of each enemy phase and player turn, deal damage
+                            if ( (gameState.gamePhase === 'enemy') || (gameState.gamePhase === 'player') ) {
+                                // Damage any entity on this tile
+                                if (isPlayerAt(x, y)) {
+                                    applyDamageToPlayer(hz.value);
+                                    addLogEntry("system", `Fire hazard burns you for ${hz.value} HP.`);
+                                } else {
+                                    const ent = cell.entity;
+                                    if (ent && typeof ent === 'object') {
+                                        ent.hp -= hz.value;
+                                        addLogEntry("system", `${ent.name} is burned for ${hz.value} HP.`);
+                                        if (ent.hp <= 0) killEnemy(ent);
+                                    }
+                                }
+                            }
+                            hz.duration--;
+                            if (hz.duration <= 0) {
+                                cell.hazards.splice(i, 1);
+                            }
+                        } else if (hz.type === 'slow') {
+                            // Timer counts down first
+                            if (hz.timer > 0) {
+                                hz.timer--;
+                            } else {
+                                // Detonate: apply slow to enemies in radius
+                                for (let dy = -hz.radius; dy <= hz.radius; dy++) {
+                                    for (let dx = -hz.radius; dx <= hz.radius; dx++) {
+                                        const tx = x + dx;
+                                        const ty = y + dy;
+                                        if (tx < 0 || tx > 14 || ty < 0 || ty > 14) continue;
+                                        const ent = gameState.grid[ty][tx].entity;
+                                        if (ent && typeof ent === 'object' && ent !== 'player') {
+                                            ent.effects.push({ type: 'slow', duration: hz.duration, value: null });
+                                            addLogEntry("system", `${ent.name} is slowed for ${hz.duration} turns.`);
+                                        }
+                                    }
+                                }
+                                cell.hazards.splice(i, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function triggerHazards(x, y, entity, phase) {
+            const cell = gameState.grid[y][x];
+            cell.hazards.forEach(hz => {
+                if (hz.type === 'fire' && (phase === 'player' || phase === 'enemy')) {
+                    const dmg = hz.value;
+                    if (entity === gameState.player) {
+                        applyDamageToPlayer(dmg);
+                        addLogEntry("system", `Fire hazard burns you for ${dmg} HP.`);
+                    } else {
+                        entity.hp -= dmg;
+                        addLogEntry("system", `${entity.name} is burned for ${dmg} HP.`);
+                        if (entity.hp <= 0) killEnemy(entity);
+                    }
+                }
+            });
+        }
+
+        /******************************************
+         *          END OF TURN PROCESSING
+        *******************************************/
+        function endTurn() {
+            if (gameState.gamePhase !== 'player') return;
+            gameState.gamePhase = 'enemy';
+
+            // Decrement player abilities' cooldowns
+            gameState.player.abilities.forEach(ab => {
+                if (ab.currentCooldown > 0) ab.currentCooldown--;
+            });
+
+            // Process hazards at enemy phase start
+            processHazards();
+
+            // Process enemy turns
+            processEnemyTurn();
+
+            // Process hazards again (in case enemies walked into fire)
+            processHazards();
+
+            // After enemies, new round begins
+            newRound();
+        }
+
+        function meditate() {
+            if (gameState.gamePhase !== 'player') return;
+            if (gameState.player.ap > 0) {
+                addLogEntry("system", "Must spend all AP before meditating to regenerate AE.");
+                return;
+            }
+            gameState.player.ae = Math.min(gameState.player.maxAe, gameState.player.ae + 2);
+            addLogEntry("player", "Meditate: Regained 2 AE.");
+            updateUI();
+        }
+
+        function newRound() {
+            // Reset player AP
+            gameState.player.ap = gameState.player.maxAp;
+
+            // Regenerate 1 AE if no ability used last turn
+            // Simple heuristic: if any ability cooldown was reduced, assume no skill cast
+            gameState.player.ae = Math.min(gameState.player.maxAe, gameState.player.ae + 1);
+
+            // Decrement player statuses
+            gameState.player.effects = gameState.player.effects.filter(e => {
+                e.duration--;
+                return e.duration > 0;
+            });
+
+            // Reset enemies' AP
+            gameState.enemies.forEach(en => {
+                en.ap = en.maxAp;
+                en.effects = en.effects.filter(e => {
+                    e.duration--;
+                    return e.duration > 0;
+                });
+            });
+
+            // Check if all enemies are dead
+            if (gameState.enemies.length === 0) {
+                addLogEntry("system", `Chamber ${gameState.chamber} cleared! Advancing.`);
+                advanceChamber();
+                return;
+            }
+
+            gameState.gamePhase = 'player';
+            calculateTurnOrder();
+            updateUI();
+            renderGrid();
+        }
+
+        function advanceChamber() {
+            gameState.chamber++;
+            if (gameState.chamber > 5) {
+                gameOver(true);
+                return;
+            }
+            // Clear grid, hazards, reposition player
+            generateGrid();
+            gameState.player.x = 7;
+            gameState.player.y = 7;
+            placePlayer();
+            spawnEnemies();
+            gameState.hazards = [];
+            calculateTurnOrder();
+            gameState.gamePhase = 'player';
+            updateUI();
+            renderGrid();
+            addLogEntry("system", `Entering Chamber ${gameState.chamber}.`);
+        }
+
+        /******************************************
+         *          ENEMY DEFEAT & GAME OVER
+        *******************************************/
+        function killEnemy(enemy) {
+            gameState.grid[enemy.y][enemy.x].entity = null;
+            gameState.enemies = gameState.enemies.filter(e => e !== enemy);
+            addLogEntry("system", `${enemy.name} defeated.`);
+        }
+
+        function gameOver(victory) {
+            gameState.gamePhase = 'ended';
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.background = 'rgba(0,0,0,0.9)';
+            overlay.style.display = 'flex';
+            overlay.style.justifyContent = 'center';
+            overlay.style.alignItems = 'center';
+            overlay.style.zIndex = '2000';
+
+            const modal = document.createElement('div');
+            modal.style.background = '#1a1f3a';
+            modal.style.padding = '30px';
+            modal.style.borderRadius = '10px';
+            modal.style.border = '2px solid #4a90e2';
+            modal.style.textAlign = 'center';
+            modal.style.color = '#e0e6ed';
+            modal.style.boxShadow = '0 0 30px rgba(74,144,226,0.5)';
+
+            const title = document.createElement('h1');
+            title.textContent = victory ? "Victory!" : "Game Over";
+            title.style.color = victory ? "#2ecc71" : "#e74c3c";
+            title.style.marginBottom = '20px';
+
+            const msg = document.createElement('p');
+            msg.textContent = victory ?
+                "You have conquered the Endless Abyss!" :
+                "Your Wardenship ends here.";
+            msg.style.marginBottom = '20px';
+
+            const btn = document.createElement('button');
+            btn.textContent = "Restart";
+            btn.classList.add('btn');
+            btn.addEventListener('click', () => {
+                location.reload();
+            });
+
+            modal.appendChild(title);
+            modal.appendChild(msg);
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        /******************************************
+         *           TURN ORDER UI UPDATE
+        *******************************************/
+        function updateTurnOrderUI() {
+            const el = document.getElementById('turnOrder');
+            el.innerHTML = '';
+
+            gameState.turnQueue.forEach((turn, idx) => {
+                const item = document.createElement('div');
+                item.classList.add('turn-item');
+                if (idx === gameState.currentTurnIndex) {
+                    if (turn.type === 'player') item.classList.add('turn-player');
+                    else item.classList.add('turn-enemy');
+                }
+                if (turn.type === 'player') {
+                    item.textContent = `You (HP:${gameState.player.hp})`;
+                } else {
+                    const en = turn.entity;
+                    item.textContent = `${en.name} (HP:${en.hp})`;
+                }
+                el.appendChild(item);
+            });
+        }
+
+        /******************************************
+         *             ACTION LOGGING
+        *******************************************/
+        function addLogEntry(who, text) {
+            const logEl = document.getElementById('actionLog');
+            const entry = document.createElement('div');
+            entry.classList.add('log-entry');
+
+            if (who === 'player') entry.classList.add('log-player');
+            else if (who === 'enemy') entry.classList.add('log-enemy');
+            else entry.classList.add('log-system');
+
+            entry.textContent = text;
+            logEl.appendChild(entry);
+
+            // Trim overflow
+            while (logEl.children.length > gameState.logMaxEntries) {
+                logEl.removeChild(logEl.firstChild);
+            }
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        /******************************************
+         *         INITIAL GAME SETUP CALL
+        *******************************************/
+        window.onload = () => {
+            // Nothing to do until class is selected
+        };
+
+        /******************************************
+         *        KEYBOARD SHORTCUTS (Optional)
+        *******************************************/
+        window.addEventListener('keydown', e => {
+            if (gameState.gamePhase !== 'player') return;
+            const key = e.key;
+            const px = gameState.player.x;
+            const py = gameState.player.y;
+
+            if (key === 'ArrowUp' || key === 'w') {
+                const nx = px, ny = py - 1;
+                if (distance(px, py, nx, ny) === 1 && canStand(nx, ny) && gameState.player.ap >= 1) {
+                    movePlayer(nx, ny);
+                }
+            } else if (key === 'ArrowDown' || key === 's') {
+                const nx = px, ny = py + 1;
+                if (distance(px, py, nx, ny) === 1 && canStand(nx, ny) && gameState.player.ap >= 1) {
+                    movePlayer(nx, ny);
+                }
+            } else if (key === 'ArrowLeft' || key === 'a') {
+                const nx = px - 1, ny = py;
+                if (distance(px, py, nx, ny) === 1 && canStand(nx, ny) && gameState.player.ap >= 1) {
+                    movePlayer(nx, ny);
+                }
+            } else if (key === 'ArrowRight' || key === 'd') {
+                const nx = px + 1, ny = py;
+                if (distance(px, py, nx, ny) === 1 && canStand(nx, ny) && gameState.player.ap >= 1) {
+                    movePlayer(nx, ny);
+                }
+            } else if (key === ' ') {
+                // Basic attack in one of four directions if enemy present
+                // Prioritize up, right, down, left in that order
+                const dirs = [
+                    [0, -1],
+                    [1, 0],
+                    [0, 1],
+                    [-1, 0]
+                ];
+                for (let [dx, dy] of dirs) {
+                    const tx = px + dx, ty = py + dy;
+                    if (tx >= 0 && tx < 15 && ty >= 0 && ty < 15) {
+                        if (gameState.grid[ty][tx].entity && typeof gameState.grid[ty][tx].entity === 'object' && gameState.player.ap >= 1) {
+                            basicAttack(tx, ty);
+                            break;
+                        }
+                    }
+                }
+            } else if (['1','2','3','4'].includes(key)) {
+                const idx = parseInt(key) - 1;
+                if (idx < gameState.player.abilities.length) {
+                    const ab = gameState.player.abilities[idx];
+                    if (gameState.player.ap >= ab.cost.ap && gameState.player.ae >= ab.cost.ae && ab.currentCooldown === 0) {
+                        selectAbility(idx);
+                    }
+                }
+            } else if (key.toLowerCase() === 'e') {
+                endTurn();
+            } else if (key.toLowerCase() === 'm') {
+                meditate();
+            }
         });
-
-        // Draw decoys
-        this.decoys.forEach(d => {
-          if (d.isAlive()) {
-            ctx.fillStyle = COLORS.DECAY;
-            ctx.fillRect(d.x * TILE_SIZE + 5, d.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
-          }
-        });
-
-        // Draw turn queue indicator on UI
-        // (omitted for brevity)
-      }
-
-      gameLoop() {
-        this.performTurn();
-        this.draw();
-        this.updateUI();
-      }
-    }
-
-    /* ============================================
-       INITIALIZE GAME
-    ============================================ */
-    window.onload = () => {
-      game = new Game();
-    };
-  </script>
+    </script>
 </body>
 </html>
-```
