@@ -1,553 +1,1252 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Defend the Base</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            color: white;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        
-        #gameContainer {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        #gameArea {
-            flex: 1;
-            position: relative;
-            background: linear-gradient(180deg, #0f3460, #16213e);
-            overflow: hidden;
-        }
-        
-        #ui {
-            height: 120px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-        }
-        
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .btn {
-            padding: 12px 20px;
-            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
-            border: none;
-            border-radius: 25px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 12px;
-            min-width: 80px;
-            touch-action: manipulation;
-        }
-        
-        .btn:hover, .btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-        
-        .btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .btn.turret { background: linear-gradient(45deg, #4ecdc4, #45b7aa); }
-        .btn.upgrade { background: linear-gradient(45deg, #ffe66d, #ffcc02); }
-        .btn.repair { background: linear-gradient(45deg, #95e1d3, #74c69d); }
-        
-        .entity {
-            position: absolute;
-            border-radius: 50%;
-            transition: all 0.1s ease;
-        }
-        
-        .base {
-            width: 40px;
-            height: 40px;
-            background: radial-gradient(circle, #4ecdc4, #45b7aa);
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
-            animation: pulse 2s infinite;
-        }
-        
-        .turret {
-            width: 20px;
-            height: 20px;
-            background: radial-gradient(circle, #ff6b6b, #ff4757);
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
-        }
-        
-        .enemy {
-            width: 15px;
-            height: 15px;
-            background: radial-gradient(circle, #ff9ff3, #f368e0);
-            box-shadow: 0 0 8px rgba(255, 159, 243, 0.5);
-        }
-        
-        .projectile {
-            width: 4px;
-            height: 4px;
-            background: #ffff00;
-            box-shadow: 0 0 5px #ffff00;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-        }
-        
-        .wave-indicator {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            text-align: center;
-            backdrop-filter: blur(5px);
-        }
-        
-        .game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            display: none;
-        }
-        
-        @media (max-width: 600px) {
-            .controls {
-                flex-wrap: wrap;
-                gap: 5px;
-            }
-            
-            .btn {
-                padding: 10px 15px;
-                font-size: 11px;
-                min-width: 70px;
-            }
-            
-            #ui {
-                height: 100px;
-                padding: 8px;
-            }
-            
-            .stats {
-                font-size: 12px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Aetherbound: Echoes of the Endless Abyss – Turn of Echoes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* ============================================
+       GLOBAL STYLES
+    ============================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0f1c;
+      color: #ffffff;
+    }
+    #game-container {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+    }
+    #canvas-container {
+      position: relative;
+      flex: 1;
+      background: #1a1f3a;
+    }
+    #game-canvas {
+      display: block;
+      background: #2d1b69;
+    }
+    #ui-panel {
+      width: 300px;
+      background: #0f172a;
+      border-left: 2px solid #334155;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #1e293b;
+      border-radius: 5px;
+      border: 1px solid #334155;
+    }
+    .section h2 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 4px;
+    }
+    .btn {
+      display: inline-block;
+      margin: 5px 0;
+      padding: 8px 12px;
+      background: #334155;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn:hover {
+      background: #475569;
+    }
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+    }
+    .inventory-slot {
+      width: 50px;
+      height: 50px;
+      background: #15212b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px;
+      position: relative;
+    }
+    .inventory-slot img {
+      max-width: 90%;
+      max-height: 90%;
+    }
+    .tooltip {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #334155;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      display: none;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .inventory-slot:hover .tooltip {
+      display: block;
+    }
+    /* Scrollbar styling */
+    #ui-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+    #ui-panel::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    #ui-panel::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    #ui-panel::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* ============================================
+       MODAL STYLES
+    ============================================ */
+    #modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 15, 28, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #modal {
+      background: #1a1f3a;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      width: 400px;
+      max-width: 90%;
+      padding: 20px;
+      text-align: center;
+    }
+    #modal h1 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+    }
+    #modal p {
+      margin-bottom: 16px;
+      font-size: 1rem;
+    }
+    .modal-btn {
+      padding: 8px 16px;
+      background: #334155;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .modal-btn:hover {
+      background: #475569;
+    }
+
+    /* ============================================
+       HIDDEN ELEMENTS
+    ============================================ */
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <div id="gameArea">
-            <div class="wave-indicator" id="waveIndicator">Wave 1</div>
-            <div class="entity base" id="base"></div>
-            <div class="game-over" id="gameOver">
-                <h2>Base Destroyed!</h2>
-                <p>You survived <span id="finalWave"></span> waves</p>
-                <button class="btn" onclick="restartGame()">Play Again</button>
-            </div>
+  <div id="game-container">
+    <!-- Canvas -->
+    <div id="canvas-container">
+      <canvas id="game-canvas" width="800" height="800"></canvas>
+      <!-- Modal Overlay (for class selection, game over, etc.) -->
+      <div id="modal-overlay">
+        <div id="modal">
+          <h1>Choose Your Shard Class</h1>
+          <p>Select one of four Shard Classes to begin your journey:</p>
+          <div>
+            <button class="modal-btn" data-class="Celestial Vanguard">Celestial Vanguard</button>
+            <button class="modal-btn" data-class="Umbral Reaver">Umbral Reaver</button>
+            <button class="modal-btn" data-class="Aether Mage">Aether Mage</button>
+            <button class="modal-btn" data-class="Chrono Tinkerer">Chrono Tinkerer</button>
+          </div>
         </div>
-        
-        <div id="ui">
-            <div class="stats">
-                <div class="stat-item">
-                    <span>💰</span>
-                    <span id="credits">100</span>
-                </div>
-                <div class="stat-item">
-                    <span>❤️</span>
-                    <span id="baseHealth">100</span>
-                </div>
-                <div class="stat-item">
-                    <span>🏰</span>
-                    <span id="turretCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>⚡</span>
-                    <span id="damage">10</span>
-                </div>
-            </div>
-            
-            <div class="controls">
-                <button class="btn turret" onclick="buyTurret()" id="turretBtn">
-                    Turret (50💰)
-                </button>
-                <button class="btn upgrade" onclick="upgradeDamage()" id="upgradeBtn">
-                    Upgrade (75💰)
-                </button>
-                <button class="btn repair" onclick="repairBase()" id="repairBtn">
-                    Repair (30💰)
-                </button>
-            </div>
-        </div>
+      </div>
     </div>
+    <!-- UI Panel -->
+    <div id="ui-panel">
+      <!-- HUD Section -->
+      <div class="section" id="hud-section">
+        <h2>Warden Status</h2>
+        <div class="stat-line"><span>Name:</span><span id="stat-name">–</span></div>
+        <div class="stat-line"><span>HP:</span><span id="stat-hp">– / –</span></div>
+        <div class="stat-line"><span>AP:</span><span id="stat-ap">– / –</span></div>
+        <div class="stat-line"><span>AE:</span><span id="stat-ae">– / –</span></div>
+        <div class="stat-line"><span>Initiative:</span><span id="stat-init">–</span></div>
+        <div class="stat-line"><span>Turn:</span><span id="stat-turn">–</span></div>
+      </div>
+      <!-- Skills Section -->
+      <div class="section" id="skills-section">
+        <h2>Shard Skills</h2>
+        <div id="skills-list"></div>
+      </div>
+      <!-- Inventory Section -->
+      <div class="section" id="inventory-section">
+        <h2>Inventory</h2>
+        <div id="inventory-grid"></div>
+      </div>
+      <!-- Codex Section -->
+      <div class="section" id="codex-section">
+        <h2>Abyssal Codex</h2>
+        <div id="codex-entries"></div>
+      </div>
+      <!-- Controls Section -->
+      <div class="section" id="controls-section">
+        <h2>Controls</h2>
+        <p>Arrow Keys: Move</p>
+        <p>Space: Basic Attack</p>
+        <p>Number Keys (1–4): Shard Skills</p>
+        <p>E: End Turn</p>
+      </div>
+    </div>
+  </div>
 
-    <script>
-        let gameState = {
-            credits: 100,
-            baseHealth: 100,
-            maxBaseHealth: 100,
-            wave: 1,
-            turrets: [],
-            enemies: [],
-            projectiles: [],
-            damage: 10,
-            gameRunning: true,
-            enemiesSpawned: 0,
-            enemiesPerWave: 5,
-            waveActive: false
-        };
+  <script>
+    /* ============================================
+       CONSTANTS & CONFIGURATION
+    ============================================ */
+    const TILE_SIZE = 40; // pixels
+    const GRID_WIDTH = 20;
+    const GRID_HEIGHT = 20;
+    const CANVAS_WIDTH = TILE_SIZE * GRID_WIDTH;   // 800
+    const CANVAS_HEIGHT = TILE_SIZE * GRID_HEIGHT; // 800
 
-        let gameArea = document.getElementById('gameArea');
-        let baseElement = document.getElementById('base');
-        let gameRect = gameArea.getBoundingClientRect();
-
-        function updateUI() {
-            document.getElementById('credits').textContent = gameState.credits;
-            document.getElementById('baseHealth').textContent = gameState.baseHealth;
-            document.getElementById('turretCount').textContent = gameState.turrets.length;
-            document.getElementById('damage').textContent = gameState.damage;
-            document.getElementById('waveIndicator').textContent = `Wave ${gameState.wave}`;
-            
-            // Update button states
-            document.getElementById('turretBtn').disabled = gameState.credits < 50;
-            document.getElementById('upgradeBtn').disabled = gameState.credits < 75;
-            document.getElementById('repairBtn').disabled = gameState.credits < 30 || gameState.baseHealth >= gameState.maxBaseHealth;
-        }
-
-        function getBasePosition() {
-            return {
-                x: window.innerWidth / 2,
-                y: (window.innerHeight - 120) / 2
-            };
-        }
-
-        function buyTurret() {
-            if (gameState.credits >= 50) {
-                gameState.credits -= 50;
-                
-                // Random position around the base
-                let basePos = getBasePosition();
-                let angle = Math.random() * Math.PI * 2;
-                let distance = 60 + Math.random() * 40;
-                
-                let turret = {
-                    x: basePos.x + Math.cos(angle) * distance,
-                    y: basePos.y + Math.sin(angle) * distance,
-                    cooldown: 0,
-                    element: document.createElement('div')
-                };
-                
-                turret.element.className = 'entity turret';
-                turret.element.style.left = turret.x + 'px';
-                turret.element.style.top = turret.y + 'px';
-                gameArea.appendChild(turret.element);
-                
-                gameState.turrets.push(turret);
-                updateUI();
+    const CLASSES = {
+      "Celestial Vanguard": {
+        maxHP: 100,
+        maxAE: 10,
+        baseAP: 4,
+        baseInit: 5,
+        skills: [
+          {
+            name: "Solar Aegis",
+            description: "2 AP, 3 AE: Raise a shield for 2 turns, absorbing 15 damage. Attacking enemies take 10 radiant damage next turn.",
+            apCost: 2,
+            aeCost: 3,
+            cooldownMax: 3,
+            effect: function (player, game) {
+              player.statuses.shielded = 2; // lasts 2 turns
+              game.log(`Solar Aegis active for 2 turns.`);
             }
-        }
-
-        function upgradeDamage() {
-            if (gameState.credits >= 75) {
-                gameState.credits -= 75;
-                gameState.damage += 5;
-                updateUI();
+          },
+          {
+            name: "Radiant Flare",
+            description: "3 AP, 5 AE: 3×3 AoE around you, deals 20 damage and blinds enemies for 1 turn.",
+            apCost: 3,
+            aeCost: 5,
+            cooldownMax: 4,
+            effect: function (player, game) {
+              const enemies = game.getEnemiesInArea(player.x, player.y, 1);
+              enemies.forEach(e => {
+                e.takeDamage(20);
+                e.statuses.blind = 1; // 1 turn
+              });
+              game.log(`Radiant Flare struck ${enemies.length} enemies.`);
             }
-        }
-
-        function repairBase() {
-            if (gameState.credits >= 30 && gameState.baseHealth < gameState.maxBaseHealth) {
-                gameState.credits -= 30;
-                gameState.baseHealth = Math.min(gameState.maxBaseHealth, gameState.baseHealth + 25);
-                updateUI();
+          }
+        ]
+      },
+      "Umbral Reaver": {
+        maxHP: 80,
+        maxAE: 12,
+        baseAP: 5,
+        baseInit: 7,
+        skills: [
+          {
+            name: "Void Slash",
+            description: "1 AP, 4 AE: Melee attack. If target's adjacent tile is empty, teleport there.",
+            apCost: 1,
+            aeCost: 4,
+            cooldownMax: 2,
+            effect: function (player, game) {
+              const enemy = game.getEnemyAt(player.facingX, player.facingY);
+              if (!enemy) {
+                game.log("Void Slash failed: no target.");
+                return;
+              }
+              enemy.takeDamage(25);
+              const dx = player.facingX - player.x;
+              const dy = player.facingY - player.y;
+              const nx = player.facingX + dx;
+              const ny = player.facingY + dy;
+              if (game.isTileWalkable(nx, ny)) {
+                player.moveTo(nx, ny);
+                game.log(`Void Slash teleported you to (${nx}, ${ny}).`);
+              }
             }
-        }
-
-        function spawnEnemy() {
-            if (!gameState.gameRunning) return;
-            
-            let side = Math.floor(Math.random() * 4);
-            let enemy = {
-                health: 20 + gameState.wave * 5,
-                maxHealth: 20 + gameState.wave * 5,
-                speed: 0.5 + gameState.wave * 0.1,
-                element: document.createElement('div')
-            };
-            
-            // Spawn from edges
-            switch(side) {
-                case 0: // top
-                    enemy.x = Math.random() * window.innerWidth;
-                    enemy.y = -20;
-                    break;
-                case 1: // right
-                    enemy.x = window.innerWidth + 20;
-                    enemy.y = Math.random() * (window.innerHeight - 120);
-                    break;
-                case 2: // bottom
-                    enemy.x = Math.random() * window.innerWidth;
-                    enemy.y = window.innerHeight - 100;
-                    break;
-                case 3: // left
-                    enemy.x = -20;
-                    enemy.y = Math.random() * (window.innerHeight - 120);
-                    break;
+          },
+          {
+            name: "Shadowmeld",
+            description: "2 AP, 6 AE: Become invisible for 2 turns. First attack from invisibility deals +100% crit.",
+            apCost: 2,
+            aeCost: 6,
+            cooldownMax: 4,
+            effect: function (player, game) {
+              player.statuses.invisible = 2; // 2 turns
+              game.log("You have become Invisible for 2 turns.");
             }
-            
-            enemy.element.className = 'entity enemy';
-            enemy.element.style.left = enemy.x + 'px';
-            enemy.element.style.top = enemy.y + 'px';
-            gameArea.appendChild(enemy.element);
-            
-            gameState.enemies.push(enemy);
-        }
-
-        function updateEnemies() {
-            let basePos = getBasePosition();
-            
-            gameState.enemies.forEach((enemy, index) => {
-                if (!enemy.element.parentNode) return;
-                
-                // Move towards base
-                let dx = basePos.x - enemy.x;
-                let dy = basePos.y - enemy.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance > 25) {
-                    enemy.x += (dx / distance) * enemy.speed;
-                    enemy.y += (dy / distance) * enemy.speed;
-                    
-                    enemy.element.style.left = enemy.x + 'px';
-                    enemy.element.style.top = enemy.y + 'px';
-                } else {
-                    // Damage base
-                    gameState.baseHealth -= 10;
-                    gameState.credits += 5; // Small reward for surviving contact
-                    
-                    enemy.element.remove();
-                    gameState.enemies.splice(index, 1);
-                    
-                    if (gameState.baseHealth <= 0) {
-                        gameOver();
-                    }
-                }
-            });
-        }
-
-        function updateTurrets() {
-            gameState.turrets.forEach(turret => {
-                if (turret.cooldown > 0) {
-                    turret.cooldown--;
-                    return;
-                }
-                
-                // Find nearest enemy
-                let nearestEnemy = null;
-                let nearestDistance = 150; // Turret range
-                
-                gameState.enemies.forEach(enemy => {
-                    let dx = enemy.x - turret.x;
-                    let dy = enemy.y - turret.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance < nearestDistance) {
-                        nearestEnemy = enemy;
-                        nearestDistance = distance;
-                    }
+          }
+        ]
+      },
+      "Aether Mage": {
+        maxHP: 70,
+        maxAE: 15,
+        baseAP: 4,
+        baseInit: 6,
+        skills: [
+          {
+            name: "Blazing Tempest",
+            description: "3 AP, 7 AE: Summon a fire tornado in a 3×3 area centered on you for 2 turns: deals 15 damage at start of enemy turn.",
+            apCost: 3,
+            aeCost: 7,
+            cooldownMax: 5,
+            effect: function (player, game) {
+              const coords = game.getAreaCoords(player.x, player.y, 1);
+              coords.forEach(([x, y]) => {
+                game.spawnHazard(x, y, {
+                  type: "fire_tornado",
+                  turns: 2,
+                  damage: 15
                 });
-                
-                if (nearestEnemy) {
-                    // Create projectile
-                    let projectile = {
-                        x: turret.x,
-                        y: turret.y,
-                        targetX: nearestEnemy.x,
-                        targetY: nearestEnemy.y,
-                        speed: 5,
-                        element: document.createElement('div')
-                    };
-                    
-                    projectile.element.className = 'entity projectile';
-                    projectile.element.style.left = projectile.x + 'px';
-                    projectile.element.style.top = projectile.y + 'px';
-                    gameArea.appendChild(projectile.element);
-                    
-                    gameState.projectiles.push(projectile);
-                    turret.cooldown = 30; // Fire rate
-                }
-            });
+              });
+              game.log("Blazing Tempest created in a 3×3 area.");
+            }
+          },
+          {
+            name: "Chain Lightning",
+            description: "3 AP, 8 AE: Chain lightning hits up to 3 enemies: 20 → 16 → 12 damage.",
+            apCost: 3,
+            aeCost: 8,
+            cooldownMax: 4,
+            effect: function (player, game) {
+              const hits = game.chainSpell(player.x, player.y, 3, "lightning");
+              game.log(`Chain Lightning struck ${hits.length} enemies.`);
+            }
+          }
+        ]
+      },
+      "Chrono Tinkerer": {
+        maxHP: 75,
+        maxAE: 12,
+        baseAP: 5,
+        baseInit: 4,
+        skills: [
+          {
+            name: "Temporal Loop",
+            description: "3 AP, 8 AE: Place a decoy that repeats your last two turns’ actions next enemy phase (decoy has 50% stats).",
+            apCost: 3,
+            aeCost: 8,
+            cooldownMax: 6,
+            effect: function (player, game) {
+              const lastActions = player.history.slice(-2);
+              player.spawnDecoy(lastActions);
+              game.log("Temporal Loop decoy spawned.");
+            }
+          },
+          {
+            name: "Flux Grenade",
+            description: "1 AP, 4 AE: Thrown to target tile: on explosion next enemy turn, slows enemies in 2‐tile radius for 2 turns.",
+            apCost: 1,
+            aeCost: 4,
+            cooldownMax: 3,
+            effect: function (player, game) {
+              const tx = player.facingX;
+              const ty = player.facingY;
+              game.spawnHazard(tx, ty, {
+                type: "flux_grenade",
+                turns: 1, // detonates next enemy turn
+                radius: 2,
+                slow: 50,
+                duration: 2
+              });
+              game.log(`Flux Grenade placed at (${tx}, ${ty}).`);
+            }
+          }
+        ]
+      }
+    };
+
+    const TILE_TYPES = {
+      FLOOR: 0,
+      WALL: 1
+    };
+
+    const COLORS = {
+      FLOOR: "#1f2a3a",
+      WALL: "#334155",
+      PLAYER: "#e0aaff",
+      ENEMY: "#ff6b6b",
+      HAZARD_FIRE: "rgba(255, 100, 0, 0.6)",
+      HAZARD_SLOW: "rgba(0, 100, 255, 0.6)",
+      DECAY: "#aaaaaa"
+    };
+
+    /* ============================================
+       GLOBAL GAME STATE
+    ============================================ */
+    let canvas, ctx;
+    let game; // will hold the main Game instance
+
+    /* ============================================
+       UTILITY FUNCTIONS
+    ============================================ */
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = getRandomInt(0, i);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    function deepCopy(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    /* ============================================
+       CORE CLASSES
+    ============================================ */
+
+    // ===============================
+    //  Tile / Room / Dungeon
+    // ===============================
+    class Room {
+      constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.tiles = this.generateTiles();
+      }
+
+      generateTiles() {
+        const tiles = [];
+        for (let y = 0; y < this.height; y++) {
+          tiles[y] = [];
+          for (let x = 0; x < this.width; x++) {
+            // Create perimeter walls
+            if (x === 0 || y === 0 || x === this.width - 1 || y === this.height - 1) {
+              tiles[y][x] = TILE_TYPES.WALL;
+            } else {
+              tiles[y][x] = Math.random() < 0.15 ? TILE_TYPES.WALL : TILE_TYPES.FLOOR;
+            }
+          }
         }
+        // Ensure start and exit are floor
+        tiles[1][1] = TILE_TYPES.FLOOR;
+        tiles[this.height - 2][this.width - 2] = TILE_TYPES.FLOOR;
+        return tiles;
+      }
 
-        function updateProjectiles() {
-            gameState.projectiles.forEach((projectile, pIndex) => {
-                let dx = projectile.targetX - projectile.x;
-                let dy = projectile.targetY - projectile.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance > 5) {
-                    projectile.x += (dx / distance) * projectile.speed;
-                    projectile.y += (dy / distance) * projectile.speed;
-                    
-                    projectile.element.style.left = projectile.x + 'px';
-                    projectile.element.style.top = projectile.y + 'px';
-                } else {
-                    // Check for enemy hits
-                    gameState.enemies.forEach((enemy, eIndex) => {
-                        let edx = enemy.x - projectile.x;
-                        let edy = enemy.y - projectile.y;
-                        let edistance = Math.sqrt(edx * edx + edy * edy);
-                        
-                        if (edistance < 15) {
-                            enemy.health -= gameState.damage;
-                            
-                            if (enemy.health <= 0) {
-                                enemy.element.remove();
-                                gameState.enemies.splice(eIndex, 1);
-                                gameState.credits += 10 + gameState.wave;
-                            }
-                        }
-                    });
-                    
-                    projectile.element.remove();
-                    gameState.projectiles.splice(pIndex, 1);
-                }
-            });
+      isWalkable(x, y) {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) return false;
+        return this.tiles[y][x] === TILE_TYPES.FLOOR;
+      }
+
+      draw(ctx) {
+        for (let y = 0; y < this.height; y++) {
+          for (let x = 0; x < this.width; x++) {
+            ctx.fillStyle = this.tiles[y][x] === TILE_TYPES.FLOOR ? COLORS.FLOOR : COLORS.WALL;
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
         }
+      }
+    }
 
-        function startWave() {
-            if (gameState.waveActive) return;
-            
-            gameState.waveActive = true;
-            gameState.enemiesSpawned = 0;
-            gameState.enemiesPerWave = 5 + gameState.wave * 2;
-            
-            let spawnInterval = setInterval(() => {
-                if (gameState.enemiesSpawned < gameState.enemiesPerWave && gameState.gameRunning) {
-                    spawnEnemy();
-                    gameState.enemiesSpawned++;
-                } else {
-                    clearInterval(spawnInterval);
-                }
-            }, 1000 - Math.min(gameState.wave * 50, 800));
-            
-            // Check for wave completion
-            let waveCheckInterval = setInterval(() => {
-                if (gameState.enemies.length === 0 && gameState.enemiesSpawned >= gameState.enemiesPerWave) {
-                    gameState.wave++;
-                    gameState.waveActive = false;
-                    gameState.credits += 20; // Wave bonus
-                    clearInterval(waveCheckInterval);
-                    
-                    setTimeout(() => {
-                        if (gameState.gameRunning) startWave();
-                    }, 2000);
-                }
-            }, 100);
+    class Dungeon {
+      constructor() {
+        this.rooms = [];
+        this.currentRoomIndex = 0;
+        this.generateDungeon(5);
+      }
+
+      generateDungeon(numRooms) {
+        for (let i = 0; i < numRooms; i++) {
+          const room = new Room(GRID_WIDTH, GRID_HEIGHT);
+          this.rooms.push(room);
         }
+      }
 
-        function gameOver() {
-            gameState.gameRunning = false;
-            document.getElementById('finalWave').textContent = gameState.wave;
-            document.getElementById('gameOver').style.display = 'block';
+      getCurrentRoom() {
+        return this.rooms[this.currentRoomIndex];
+      }
+
+      advanceRoom() {
+        if (this.currentRoomIndex < this.rooms.length - 1) {
+          this.currentRoomIndex++;
+          return true;
         }
+        return false; // no more rooms
+      }
+    }
 
-        function restartGame() {
-            // Reset game state
-            gameState = {
-                credits: 100,
-                baseHealth: 100,
-                maxBaseHealth: 100,
-                wave: 1,
-                turrets: [],
-                enemies: [],
-                projectiles: [],
-                damage: 10,
-                gameRunning: true,
-                enemiesSpawned: 0,
-                enemiesPerWave: 5,
-                waveActive: false
-            };
-            
-            // Clear entities
-            document.querySelectorAll('.entity:not(.base)').forEach(el => el.remove());
-            document.getElementById('gameOver').style.display = 'none';
-            
-            updateUI();
-            startWave();
+    // ===============================
+    //  Entity: Player, Enemy, Decoy
+    // ===============================
+    class Entity {
+      constructor(x, y, hp, maxHP, ap, maxAP, ae, maxAE, initiative, game) {
+        this.x = x;
+        this.y = y;
+        this.hp = hp;
+        this.maxHP = maxHP;
+        this.ap = ap;
+        this.maxAP = maxAP;
+        this.ae = ae;
+        this.maxAE = maxAE;
+        this.initiative = initiative;
+        this.game = game;
+        this.statuses = {
+          shielded: 0,
+          blind: 0,
+          invisible: 0,
+          slowed: 0,
+          stunned: 0
+        };
+        this.isDecoy = false;
+      }
+
+      isAlive() {
+        return this.hp > 0;
+      }
+
+      moveTo(x, y) {
+        if (this.game.currentRoom.isWalkable(x, y) && !this.game.getEnemyAt(x, y) && !this.game.playerAt(x, y)) {
+          this.x = x;
+          this.y = y;
         }
+      }
 
-        function gameLoop() {
-            if (!gameState.gameRunning) return;
-            
-            updateEnemies();
-            updateTurrets();
-            updateProjectiles();
-            updateUI();
-            
-            requestAnimationFrame(gameLoop);
+      distanceTo(other) {
+        return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
+      }
+
+      takeDamage(amount) {
+        // Shield absorbs flat amount if active
+        if (this.statuses.shielded > 0) {
+          const absorbed = Math.min(this.statuses.shielded * 15, amount);
+          amount -= absorbed;
+          this.statuses.shielded = Math.max(0, this.statuses.shielded - 1);
         }
+        this.hp -= amount;
+        if (this.hp <= 0) {
+          this.hp = 0;
+          this.onDeath();
+        }
+      }
 
-        // Initialize game
-        updateUI();
-        startWave();
-        gameLoop();
+      onDeath() {
+        // Placeholder: override in subclass
+      }
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            gameRect = gameArea.getBoundingClientRect();
+      applyStatusesOnTurnStart() {
+        if (this.statuses.blind > 0) this.statuses.blind--;
+        if (this.statuses.slowed > 0) this.statuses.slowed--;
+        if (this.statuses.stunned > 0) this.statuses.stunned--;
+        if (this.statuses.invisible > 0) this.statuses.invisible--;
+      }
+
+      regenerateAE() {
+        // Regenerate 1 AE if no skill used last turn
+        if (!this.usedSkillLastTurn) {
+          this.ae = Math.min(this.maxAE, this.ae + 1);
+        }
+        this.usedSkillLastTurn = false;
+      }
+
+      startTurn() {
+        this.applyStatusesOnTurnStart();
+        this.regenerateAE();
+        this.ap = this.maxAP;
+      }
+    }
+
+    class Player extends Entity {
+      constructor(cls, game) {
+        super(1, 1, CLASSES[cls].maxHP, CLASSES[cls].maxHP, CLASSES[cls].baseAP, CLASSES[cls].baseAP, CLASSES[cls].maxAE, CLASSES[cls].maxAE, CLASSES[cls].baseInit, game);
+        this.cls = cls;
+        this.skills = CLASSES[cls].skills.map(s => {
+          return {
+            name: s.name,
+            description: s.description,
+            apCost: s.apCost,
+            aeCost: s.aeCost,
+            cooldown: 0,
+            cooldownMax: s.cooldownMax,
+            effect: s.effect.bind(s)
+          };
         });
-    </script>
+        this.facingX = this.x + 1;
+        this.facingY = this.y;
+        this.history = []; // record of last actions for decoy
+        this.inventory = [];
+        this.codex = JSON.parse(localStorage.getItem("aetherbound_codex") || "[]"); // array of strings
+      }
+
+      onDeath() {
+        this.game.log("Warden has fallen. Game Over.");
+        this.game.gameOver();
+      }
+
+      basicAttack() {
+        if (this.ap < 1) {
+          this.game.log("Not enough AP to attack.");
+          return false;
+        }
+        const enemy = this.game.getEnemyAt(this.facingX, this.facingY);
+        if (!enemy) {
+          this.game.log("No enemy to attack.");
+          return false;
+        }
+        let dmg = 15;
+        // If invisible, first attack deals double damage
+        if (this.statuses.invisible > 0) {
+          dmg *= 2;
+          this.statuses.invisible = 0;
+          this.game.log("Critical strike from invisibility!");
+        }
+        enemy.takeDamage(dmg);
+        this.ap -= 1;
+        this.history.push({ type: "attack", x: this.x, y: this.y, facingX: this.facingX, facingY: this.facingY });
+        this.usedSkillLastTurn = false;
+        this.game.log(`Dealt ${dmg} damage to enemy.`);
+        if (!enemy.isAlive()) {
+          this.game.onEnemyDefeated(enemy);
+        }
+        return true;
+      }
+
+      useSkill(index) {
+        const skill = this.skills[index];
+        if (!skill) return;
+        if (skill.cooldown > 0) {
+          this.game.log(`${skill.name} is on cooldown (${skill.cooldown} turns left).`);
+          return false;
+        }
+        if (this.ap < skill.apCost) {
+          this.game.log("Not enough AP to use skill.");
+          return false;
+        }
+        if (this.ae < skill.aeCost) {
+          this.game.log("Not enough AE to use skill.");
+          return false;
+        }
+        skill.effect(this, this.game);
+        this.ap -= skill.apCost;
+        this.ae -= skill.aeCost;
+        skill.cooldown = skill.cooldownMax;
+        this.usedSkillLastTurn = true;
+        this.history.push({ type: "skill", skillIndex: index, x: this.x, y: this.y, facingX: this.facingX, facingY: this.facingY });
+        return true;
+      }
+
+      endTurn() {
+        // Decrement cooldowns
+        this.skills.forEach(s => {
+          if (s.cooldown > 0) s.cooldown--;
+        });
+        this.game.nextTurn();
+      }
+
+      move(dx, dy) {
+        if (this.ap < 1) return false;
+        const nx = this.x + dx;
+        const ny = this.y + dy;
+        if (!this.game.currentRoom.isWalkable(nx, ny)) return false;
+        if (this.game.getEnemyAt(nx, ny)) return false;
+        this.x = nx;
+        this.y = ny;
+        this.facingX = nx + dx;
+        this.facingY = ny + dy;
+        this.ap -= 1;
+        this.history.push({ type: "move", x: this.x, y: this.y, facingX: this.facingX, facingY: this.facingY });
+        this.usedSkillLastTurn = false;
+        return true;
+      }
+
+      spawnDecoy(lastActions) {
+        const decoy = new Decoy(this.x, this.y, this.maxHP * 0.5, this.maxHP * 0.5, this.maxAP, this.maxAP, this.maxAE * 0.5, this.maxAE * 0.5, this.initiative, this.game, lastActions);
+        this.game.decoys.push(decoy);
+      }
+
+      addToCodex(entry) {
+        if (!this.codex.includes(entry)) {
+          this.codex.push(entry);
+          localStorage.setItem("aetherbound_codex", JSON.stringify(this.codex));
+          this.game.log(`Codex entry unlocked: ${entry}`);
+        }
+      }
+    }
+
+    class Decoy extends Entity {
+      constructor(x, y, hp, maxHP, ap, maxAP, ae, maxAE, initiative, game, lastActions) {
+        super(x, y, hp, maxHP, ap, maxAP, ae, maxAE, initiative, game);
+        this.isDecoy = true;
+        this.actionsToReplay = [...lastActions];
+      }
+
+      takeTurn() {
+        // Replay stored actions if any
+        if (this.actionsToReplay.length > 0) {
+          const action = this.actionsToReplay.shift();
+          if (action.type === "move") {
+            this.moveTo(action.x, action.y);
+          } else if (action.type === "attack") {
+            const enemy = this.game.getEnemyAt(action.facingX, action.facingY);
+            if (enemy) {
+              enemy.takeDamage(10); // decoy deals reduced damage
+              if (!enemy.isAlive()) this.game.onEnemyDefeated(enemy);
+            }
+          } else if (action.type === "skill") {
+            // Simplify: decoy only replays attacks, no skills
+          }
+        }
+      }
+
+      onDeath() {
+        // Decoy simply disappears
+      }
+    }
+
+    class Enemy extends Entity {
+      constructor(x, y, game) {
+        super(x, y, 50, 50, 3, 3, 0, 0, 6, game); // Example stats
+        this.turnCounter = 0;
+      }
+
+      takeTurn() {
+        if (this.statuses.stunned > 0) {
+          this.game.log("Enemy is stunned and skips turn.");
+          return;
+        }
+        // If adjacent to player, attack
+        const player = this.game.player;
+        const dist = this.distanceTo(player);
+        if (dist === 1) {
+          this.attackPlayer();
+        } else {
+          // Move towards player if possible
+          this.moveTowardPlayer();
+        }
+      }
+
+      attackPlayer() {
+        if (this.ap < 1) return;
+        let dmg = 10;
+        if (Math.random() < 0.1) {
+          this.game.log("Enemy lands a critical hit!");
+          dmg *= 1.5;
+        }
+        this.game.player.takeDamage(dmg);
+        this.ap -= 1;
+        this.game.log(`Enemy hits you for ${dmg} damage.`);
+      }
+
+      moveTowardPlayer() {
+        if (this.ap < 1) return;
+        const player = this.game.player;
+        let dx = 0, dy = 0;
+        if (player.x > this.x) dx = 1;
+        else if (player.x < this.x) dx = -1;
+        else if (player.y > this.y) dy = 1;
+        else if (player.y < this.y) dy = -1;
+        const nx = this.x + dx;
+        const ny = this.y + dy;
+        if (this.game.currentRoom.isWalkable(nx, ny) && !this.game.getEnemyAt(nx, ny) && !this.game.playerAt(nx, ny)) {
+          this.x = nx;
+          this.y = ny;
+          this.ap -= 1;
+        }
+      }
+
+      onDeath() {
+        this.game.log("Enemy defeated.");
+      }
+    }
+
+    /* ============================================
+       HAZARDS & EFFECTS
+    ============================================ */
+    class Hazard {
+      constructor(x, y, config) {
+        this.x = x;
+        this.y = y;
+        this.type = config.type;
+        this.turns = config.turns;
+        this.damage = config.damage || 0;
+        this.radius = config.radius || 0;
+        this.slow = config.slow || 0;
+        this.duration = config.duration || 0;
+        this.timer = 0;
+        this.active = false;
+      }
+
+      processTurn(phase, game) {
+        if (this.type === "fire_tornado") {
+          if (phase === "enemy_start") {
+            // Deal damage to any entity on this tile
+            const entities = game.getEntitiesAt(this.x, this.y);
+            entities.forEach(ent => {
+              if (ent.isAlive()) ent.takeDamage(this.damage);
+            });
+            this.turns--;
+          }
+        } else if (this.type === "flux_grenade") {
+          if (this.timer > 0) {
+            this.timer--;
+          } else {
+            // Detonate now
+            const coords = game.getAreaCoords(this.x, this.y, this.radius);
+            coords.forEach(([x, y]) => {
+              const entities = game.getEntitiesAt(x, y);
+              entities.forEach(ent => {
+                ent.statuses.slowed = this.duration;
+              });
+            });
+            this.turns = 0;
+            game.log("Flux Grenade detonated, enemies slowed.");
+          }
+          if (this.timer === 0 && this.turns > 0) {
+            this.turns--;
+          }
+        }
+      }
+    }
+
+    /* ============================================
+       GAME CLASS (MANAGES EVERYTHING)
+    ============================================ */
+    class Game {
+      constructor() {
+        // Canvas setup
+        canvas = document.getElementById("game-canvas");
+        ctx = canvas.getContext("2d");
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        // UI Elements
+        this.statName = document.getElementById("stat-name");
+        this.statHP = document.getElementById("stat-hp");
+        this.statAP = document.getElementById("stat-ap");
+        this.statAE = document.getElementById("stat-ae");
+        this.statInit = document.getElementById("stat-init");
+        this.statTurn = document.getElementById("stat-turn");
+        this.skillsList = document.getElementById("skills-list");
+        this.inventoryGrid = document.getElementById("inventory-grid");
+        this.codexEntries = document.getElementById("codex-entries");
+        this.logBuffer = [];
+
+        // Game state
+        this.currentRoom = null;
+        this.dungeon = new Dungeon();
+        this.currentRoom = this.dungeon.getCurrentRoom();
+        this.player = null;
+        this.enemies = [];
+        this.decoys = [];
+        this.hazards = [];
+        this.turnOrder = []; // array of Entities
+        this.currentTurnIndex = 0;
+        this.turnPhase = "player"; // "player" or "enemy"
+        this.isRunning = false;
+        this.isGameOver = false;
+        this.turnCount = 1;
+
+        // Modal & input handling
+        this.modalOverlay = document.getElementById("modal-overlay");
+        this.bindClassSelection();
+        this.bindInput();
+
+        this.draw(); // initial draw
+      }
+
+      bindClassSelection() {
+        const buttons = document.querySelectorAll(".modal-btn");
+        buttons.forEach(btn => {
+          btn.addEventListener("click", () => {
+            const cls = btn.getAttribute("data-class");
+            this.startNewGame(cls);
+            this.modalOverlay.classList.add("hidden");
+          });
+        });
+      }
+
+      startNewGame(cls) {
+        this.player = new Player(cls, this);
+        this.spawnEnemies(5); // spawn 5 enemies in room
+        this.calculateTurnOrder();
+        this.isRunning = true;
+        this.gameLoop();
+      }
+
+      spawnEnemies(num) {
+        this.enemies = [];
+        for (let i = 0; i < num; i++) {
+          let ex, ey;
+          do {
+            ex = getRandomInt(1, GRID_WIDTH - 2);
+            ey = getRandomInt(1, GRID_HEIGHT - 2);
+          } while (
+            (ex === this.player.x && ey === this.player.y) ||
+            !this.currentRoom.isWalkable(ex, ey) ||
+            this.getEnemyAt(ex, ey)
+          );
+          const enemy = new Enemy(ex, ey, this);
+          this.enemies.push(enemy);
+        }
+      }
+
+      calculateTurnOrder() {
+        this.turnOrder = [this.player, ...this.enemies, ...this.decoys];
+        // Sort by (initiative, random tiebreak)
+        this.turnOrder.sort((a, b) => {
+          const ai = a.initiative + (Math.random() * 0.1 - 0.05);
+          const bi = b.initiative + (Math.random() * 0.1 - 0.05);
+          return bi - ai; // higher initiative acts first
+        });
+        this.currentTurnIndex = 0;
+      }
+
+      nextTurn() {
+        if (this.isGameOver) return;
+        this.currentTurnIndex++;
+        if (this.currentTurnIndex >= this.turnOrder.length) {
+          // New round
+          this.turnCount++;
+          this.enemies.forEach(e => {
+            e.startTurn();
+          });
+          this.player.startTurn();
+          this.decoys.forEach(d => {
+            d.startTurn();
+          });
+          this.hazards.forEach(h => {
+            h.processTurn("enemy_start", this);
+          });
+          this.calculateTurnOrder();
+        }
+        this.performTurn();
+      }
+
+      performTurn() {
+        if (this.isGameOver) return;
+        const actor = this.turnOrder[this.currentTurnIndex];
+        if (!actor.isAlive()) return this.nextTurn();
+        if (actor.isDecoy) {
+          actor.takeTurn();
+          return this.nextTurn();
+        }
+        if (actor === this.player) {
+          this.turnPhase = "player";
+          this.updateUI();
+        } else {
+          this.turnPhase = "enemy";
+          actor.takeTurn();
+          this.updateUI();
+          setTimeout(() => {
+            this.nextTurn();
+          }, 200); // small delay for enemy action
+        }
+      }
+
+      getEnemyAt(x, y) {
+        return this.enemies.find(e => e.x === x && e.y === y && e.isAlive());
+      }
+
+      playerAt(x, y) {
+        return this.player.x === x && this.player.y === y;
+      }
+
+      getEntitiesAt(x, y) {
+        const ents = [];
+        if (this.player.x === x && this.player.y === y && this.player.isAlive()) ents.push(this.player);
+        this.enemies.forEach(e => {
+          if (e.x === x && e.y === y && e.isAlive()) ents.push(e);
+        });
+        this.decoys.forEach(d => {
+          if (d.x === x && d.y === y && d.isAlive()) ents.push(d);
+        });
+        return ents;
+      }
+
+      getEnemiesInArea(cx, cy, radius) {
+        return this.enemies.filter(e => e.isAlive() && Math.abs(e.x - cx) <= radius && Math.abs(e.y - cy) <= radius);
+      }
+
+      getAreaCoords(cx, cy, radius) {
+        const coords = [];
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const x = cx + dx;
+            const y = cy + dy;
+            if (x >= 0 && y >= 0 && x < GRID_WIDTH && y < GRID_HEIGHT) {
+              coords.push([x, y]);
+            }
+          }
+        }
+        return coords;
+      }
+
+      chainSpell(sx, sy, maxHits, type) {
+        const hits = [];
+        let targets = [...this.enemies.filter(e => e.isAlive())];
+        targets.sort((a, b) => this.distance(sx, sy, a.x, a.y) - this.distance(sx, sy, b.x, b.y));
+        for (let i = 0; i < Math.min(maxHits, targets.length); i++) {
+          const e = targets[i];
+          const dmg = type === "lightning" ? 20 - i * 4 : 0;
+          e.takeDamage(dmg);
+          hits.push(e);
+          if (!e.isAlive()) this.onEnemyDefeated(e);
+        }
+        return hits;
+      }
+
+      spawnHazard(x, y, config) {
+        const hazard = new Hazard(x, y, config);
+        if (config.type === "flux_grenade") hazard.timer = 1; // detonates next enemy turn
+        this.hazards.push(hazard);
+      }
+
+      onEnemyDefeated(enemy) {
+        // Remove from array
+        this.enemies = this.enemies.filter(e => e !== enemy);
+        // Award Echo Score, codex entry, etc.
+        this.player.addToCodex(`Enemy defeated at (${enemy.x},${enemy.y})`);
+        if (this.enemies.length === 0) {
+          this.log("All enemies defeated. Proceed to next Chamber.");
+          if (this.dungeon.advanceRoom()) {
+            this.currentRoom = this.dungeon.getCurrentRoom();
+            this.player.x = 1; this.player.y = 1;
+            this.player.facingX = 2; this.player.facingY = 1;
+            this.spawnEnemies(5 + this.dungeon.currentRoomIndex * 2);
+            this.calculateTurnOrder();
+            this.turnCount = 1;
+          } else {
+            this.log("You have cleared all Chambers! Victory!");
+            this.gameOver(true);
+          }
+        }
+      }
+
+      distance(x1, y1, x2, y2) {
+        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+      }
+
+      gameOver(victory = false) {
+        this.isGameOver = true;
+        const overlay = document.getElementById("modal-overlay");
+        const modal = document.getElementById("modal");
+        modal.innerHTML = `
+          <h1>${victory ? "Victory!" : "Game Over"}</h1>
+          <p>${victory ? "You have conquered the Endless Abyss." : "Your Wardenship ends here."}</p>
+          <button class="modal-btn" id="restart-btn">Restart</button>
+        `;
+        overlay.classList.remove("hidden");
+        document.getElementById("restart-btn").addEventListener("click", () => {
+          location.reload();
+        });
+      }
+
+      log(text) {
+        console.log(text);
+        this.logBuffer.push(text);
+        if (this.logBuffer.length > 5) this.logBuffer.shift();
+      }
+
+      bindInput() {
+        window.addEventListener("keydown", e => {
+          if (!this.isRunning || this.turnPhase !== "player" || this.isGameOver) return;
+          let acted = false;
+          switch (e.key) {
+            case "ArrowUp":
+              acted = this.player.move(0, -1);
+              break;
+            case "ArrowDown":
+              acted = this.player.move(0, 1);
+              break;
+            case "ArrowLeft":
+              acted = this.player.move(-1, 0);
+              break;
+            case "ArrowRight":
+              acted = this.player.move(1, 0);
+              break;
+            case " ":
+              acted = this.player.basicAttack();
+              break;
+            case "1":
+            case "2":
+            case "3":
+            case "4":
+              const idx = parseInt(e.key) - 1;
+              acted = this.player.useSkill(idx);
+              break;
+            case "e":
+            case "E":
+              this.player.endTurn();
+              return; // already triggered next turn
+          }
+          if (acted) {
+            this.updateUI();
+            this.draw();
+          }
+        });
+      }
+
+      updateUI() {
+        // HUD
+        this.statName.textContent = `${this.player.cls}`;
+        this.statHP.textContent = `${this.player.hp} / ${this.player.maxHP}`;
+        this.statAP.textContent = `${this.player.ap} / ${this.player.maxAP}`;
+        this.statAE.textContent = `${this.player.ae} / ${this.player.maxAE}`;
+        this.statInit.textContent = `${this.player.initiative}`;
+        this.statTurn.textContent = `${this.turnPhase.charAt(0).toUpperCase() + this.turnPhase.slice(1)} (Room ${this.dungeon.currentRoomIndex + 1}, Turn ${this.turnCount})`;
+
+        // Skills
+        this.skillsList.innerHTML = "";
+        this.player.skills.forEach((s, i) => {
+          const btn = document.createElement("button");
+          btn.className = "btn";
+          btn.textContent = `${i + 1}: ${s.name} [AP:${s.apCost} AE:${s.aeCost} CD:${s.cooldown}/${s.cooldownMax}]`;
+          btn.title = s.description;
+          btn.addEventListener("click", () => {
+            if (this.turnPhase === "player" && !this.isGameOver) {
+              const used = this.player.useSkill(i);
+              if (used) {
+                this.updateUI();
+                this.draw();
+              }
+            }
+          });
+          this.skillsList.appendChild(btn);
+        });
+
+        // Inventory
+        this.inventoryGrid.innerHTML = "";
+        this.player.inventory.forEach(item => {
+          const slot = document.createElement("div");
+          slot.className = "inventory-slot";
+          const img = document.createElement("img");
+          img.src = item.icon;
+          slot.appendChild(img);
+          const tip = document.createElement("div");
+          tip.className = "tooltip";
+          tip.textContent = `${item.name}: ${item.description}`;
+          slot.appendChild(tip);
+          this.inventoryGrid.appendChild(slot);
+        });
+
+        // Codex
+        this.codexEntries.innerHTML = "";
+        if (this.player.codex.length === 0) {
+          this.codexEntries.textContent = "No entries unlocked.";
+        } else {
+          this.player.codex.forEach(entry => {
+            const div = document.createElement("div");
+            div.textContent = "• " + entry;
+            this.codexEntries.appendChild(div);
+          });
+        }
+      }
+
+      draw() {
+        // Clear
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        // Draw room
+        this.currentRoom.draw(ctx);
+
+        // Draw hazards
+        this.hazards.forEach(h => {
+          if (h.type === "fire_tornado") {
+            ctx.fillStyle = COLORS.HAZARD_FIRE;
+            ctx.fillRect(h.x * TILE_SIZE, h.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          } else if (h.type === "flux_grenade") {
+            ctx.fillStyle = COLORS.HAZARD_SLOW;
+            ctx.beginPath();
+            ctx.arc(h.x * TILE_SIZE + TILE_SIZE / 2, h.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        });
+
+        // Draw player
+        if (this.player.isAlive()) {
+          ctx.fillStyle = COLORS.PLAYER;
+          ctx.fillRect(this.player.x * TILE_SIZE + 5, this.player.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+          if (this.player.statuses.invisible > 0) {
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.player.x * TILE_SIZE + 5, this.player.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+          }
+        }
+
+        // Draw enemies
+        this.enemies.forEach(e => {
+          if (e.isAlive()) {
+            ctx.fillStyle = COLORS.ENEMY;
+            ctx.fillRect(e.x * TILE_SIZE + 5, e.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+            if (e.statuses.blind > 0) {
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "12px sans-serif";
+              ctx.fillText("?", e.x * TILE_SIZE + TILE_SIZE / 2 - 4, e.y * TILE_SIZE + TILE_SIZE / 2 + 4);
+            }
+          }
+        });
+
+        // Draw decoys
+        this.decoys.forEach(d => {
+          if (d.isAlive()) {
+            ctx.fillStyle = COLORS.DECAY;
+            ctx.fillRect(d.x * TILE_SIZE + 5, d.y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+          }
+        });
+
+        // Draw turn queue indicator on UI
+        // (omitted for brevity)
+      }
+
+      gameLoop() {
+        this.performTurn();
+        this.draw();
+        this.updateUI();
+      }
+    }
+
+    /* ============================================
+       INITIALIZE GAME
+    ============================================ */
+    window.onload = () => {
+      game = new Game();
+    };
+  </script>
 </body>
 </html>
+```
