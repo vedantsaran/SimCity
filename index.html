@@ -571,24 +571,31 @@
                 container.innerHTML = '';
 
                 Object.entries(this.buildings).forEach(([name, building]) => {
-                    // Check if building is unlocked
-                    if (building.requires && !this.research[building.requires]?.completed) {
-                        return;
-                    }
-
                     const buildingDiv = document.createElement('div');
                     buildingDiv.className = 'building';
                     
+                    // Check if building is unlocked
+                    const isUnlocked = !building.requires || this.research[building.requires]?.completed;
                     const canAfford = this.canAffordBuilding(name);
                     
-                    buildingDiv.innerHTML = `
-                        <h4>${name}</h4>
-                        <div class="building-count">${building.count}</div>
-                        <div class="building-cost">${this.formatCost(building.cost)}</div>
-                        <button class="btn ${canAfford ? '' : 'disabled'}" onclick="game.buildBuilding('${name}')" ${!canAfford ? 'disabled' : ''}>
-                            Build
-                        </button>
-                    `;
+                    if (!isUnlocked) {
+                        buildingDiv.innerHTML = `
+                            <h4>${name}</h4>
+                            <div class="building-count">${building.count}</div>
+                            <div class="building-cost">${this.formatCost(building.cost)}</div>
+                            <div style="color: #ff9800; font-size: 0.8rem; margin: 0.5rem 0;">Requires: ${building.requires}</div>
+                            <button class="btn disabled" disabled>Locked</button>
+                        `;
+                    } else {
+                        buildingDiv.innerHTML = `
+                            <h4>${name}</h4>
+                            <div class="building-count">${building.count}</div>
+                            <div class="building-cost">${this.formatCost(building.cost)}</div>
+                            <button class="btn ${canAfford ? '' : 'disabled'}" onclick="game.buildBuilding('${name}')" ${!canAfford ? 'disabled' : ''}>
+                                Build
+                            </button>
+                        `;
+                    }
                     
                     container.appendChild(buildingDiv);
                 });
@@ -624,14 +631,26 @@
             }
 
             buildBuilding(name) {
-                if (!this.canAffordBuilding(name)) return;
+                const building = this.buildings[name];
+                
+                // Check if building is unlocked
+                const isUnlocked = !building.requires || this.research[building.requires]?.completed;
+                if (!isUnlocked) {
+                    this.showNotification(`${name} requires ${building.requires} research!`);
+                    return;
+                }
 
-                const cost = this.buildings[name].cost;
+                if (!this.canAffordBuilding(name)) {
+                    this.showNotification(`Not enough resources for ${name}!`);
+                    return;
+                }
+
+                const cost = building.cost;
                 Object.entries(cost).forEach(([resource, amount]) => {
                     this.resources[resource] -= amount;
                 });
 
-                this.buildings[name].count++;
+                building.count++;
                 this.gameStats.totalBuildings++;
                 
                 this.showNotification(`Built ${name}!`);
@@ -721,8 +740,9 @@
                         tech.completed = true;
                         tech.researching = false;
                         tech.progress = tech.cost;
+                        const completedResearch = this.currentResearch;
                         this.currentResearch = null;
-                        this.showNotification(`Research completed: ${this.currentResearch || 'Unknown'}!`);
+                        this.showNotification(`Research completed: ${completedResearch}!`);
                         this.applyResearchEffects();
                         this.renderBuildings();
                     }
