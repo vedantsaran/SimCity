@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Block Blast - Puzzle Game</title>
     <style>
@@ -379,6 +379,10 @@
         let placedCount = 0;
         let gameRunning = true;
 
+        // For tap-to-place on mobile
+        let selectedPiece = null;
+        let selectedPieceIndex = -1;
+
         // Shape definitions
         const SHAPES = {
             single: [[0,0]],
@@ -678,7 +682,6 @@
                 
                 updateUI();
             } else {
-                // No lines to clear: just reset streak
                 streak = 0;
                 updateUI();
             }
@@ -752,6 +755,8 @@
             score = 0;
             streak = 0;
             placedCount = 0;
+            selectedPiece = null;
+            selectedPieceIndex = -1;
             gameRunning = true;
             createBoard();
             generateNewPieces();
@@ -761,7 +766,25 @@
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
-            document.getElementById('btn-mute').textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+            document.getElementById('btn-mute').textContent =
+                soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+        }
+
+        // Highlight all valid cells for selectedPiece (tap-to-place)
+        function highlightAllValidCells(piece) {
+            document.querySelectorAll('.cell').forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                if (isPlacementValid(piece.shape, row, col)) {
+                    cell.classList.add('drop-valid');
+                }
+            });
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('drop-valid', 'drop-invalid');
+            });
         }
 
         // Drag and Drop functionality
@@ -773,13 +796,54 @@
             document.getElementById('btn-mute').addEventListener('click', toggleSound);
             document.getElementById('btn-play-again').addEventListener('click', restartGame);
 
+            // Desktop drag/drop
             document.addEventListener('mousedown', handleMouseDown);
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
 
+            // Touch for drag/drop
             document.addEventListener('touchstart', handleTouchStart, { passive: false });
             document.addEventListener('touchmove', handleTouchMove, { passive: false });
             document.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+            // Tap-to-place: click on preview
+            document.querySelectorAll('.preview-slot').forEach(slot => {
+                slot.addEventListener('click', e => {
+                    if (!gameRunning) return;
+                    const idx = parseInt(slot.dataset.index);
+                    if (upcomingPieces[idx]) {
+                        selectedPiece = upcomingPieces[idx];
+                        selectedPieceIndex = idx;
+                        clearHighlights();
+                        highlightAllValidCells(selectedPiece);
+                    }
+                });
+            });
+
+            // Tap-to-place: click on board
+            document.getElementById('board').addEventListener('click', e => {
+                if (!gameRunning || !selectedPiece) return;
+                const cell = e.target.closest('.cell');
+                if (!cell) return;
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                // Attempt to place
+                if (placePiece(selectedPiece, row, col)) {
+                    upcomingPieces[selectedPieceIndex] = null;
+                    placedCount++;
+                    renderPreview();
+                    clearHighlights();
+                    checkAndClearLines();
+                    if (placedCount === 3) {
+                        placedCount = 0;
+                        generateNewPieces();
+                        if (checkGameOver()) endGame();
+                    }
+                }
+                // Clear selection
+                selectedPiece = null;
+                selectedPieceIndex = -1;
+            });
         }
 
         function handleMouseDown(e) {
@@ -787,6 +851,9 @@
             const previewSlot = e.target.closest('.preview-slot');
             if (previewSlot && previewSlot.dataset.pieceId) {
                 startDrag(previewSlot, e.clientX, e.clientY);
+                clearHighlights();
+                selectedPiece = null;
+                selectedPieceIndex = -1;
             }
         }
 
@@ -810,6 +877,9 @@
             if (previewSlot && previewSlot.dataset.pieceId) {
                 e.preventDefault();
                 startDrag(previewSlot, touch.clientX, touch.clientY);
+                clearHighlights();
+                selectedPiece = null;
+                selectedPieceIndex = -1;
             }
         }
 
@@ -918,11 +988,7 @@
                     upcomingPieces[draggedPieceIndex] = null;
                     placedCount++;
                     renderPreview();
-
-                    // Immediately clear any newly formed lines:
                     checkAndClearLines();
-
-                    // If that was the third placement (regardless of clears), spawn next three:
                     if (placedCount === 3) {
                         placedCount = 0;
                         generateNewPieces();
