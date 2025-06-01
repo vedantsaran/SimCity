@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Scale Clone - Browser Game</title>
+  <title>Scale Clone with Dragged Shapes</title>
   <style>
     html, body {
       margin: 0;
@@ -12,20 +12,43 @@
       background: linear-gradient(135deg, #0c0c0c, #1a1a2e);
       overflow: hidden;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       height: 100vh;
       font-family: 'Arial', sans-serif;
+    }
+    #palette {
+      margin: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .shape-button {
+      width: 60px;
+      height: 60px;
+      background: #222;
+      border: 2px solid #444;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .shape-button.selected {
+      border-color: #0ff;
+      box-shadow: 0 0 10px rgba(0,255,255,0.5);
+    }
+    .shape-button canvas {
+      pointer-events: none;
     }
     #gameCanvas {
       background: #000;
       border: 3px solid #333;
       border-radius: 8px;
-      display: block;
       box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
       touch-action: none;
     }
-    .game-over, .level-complete {
+    .overlay {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -39,11 +62,11 @@
       display: none;
       z-index: 10;
     }
-    .game-over h2, .level-complete h2 {
+    .overlay h2 {
       margin: 0 0 15px 0;
       color: #ff6b6b;
     }
-    .level-complete h2 {
+    .overlay.level-complete h2 {
       color: #51cf66;
     }
     button {
@@ -64,13 +87,23 @@
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="gameOver" class="game-over">
+  <div id="palette">
+    <div id="rectShapeBtn" class="shape-button" title="Straight Rectangle">
+      <canvas id="rectPreview" width="60" height="60"></canvas>
+    </div>
+    <div id="lShapeBtn" class="shape-button" title="L-Shape">
+      <canvas id="lPreview" width="60" height="60"></canvas>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <div id="gameOver" class="overlay">
     <h2>Game Over!</h2>
     <p>Final Level: <span id="finalLevel"></span></p>
     <button onclick="restartGame()">Restart Game</button>
   </div>
-  <div id="levelComplete" class="level-complete">
+  <div id="levelComplete" class="overlay level-complete">
     <h2>Level Complete!</h2>
     <p>Preparing next level...</p>
   </div>
@@ -98,17 +131,10 @@
             const result = this.performDifference(this.subjPaths[0], this.clipPaths[0]);
             solution.length = 0;
             if (result.length > 0) {
-              for (let poly of result) {
-                solution.push(poly);
-              }
+              for (let poly of result) solution.push(poly);
             }
           }
           return true;
-        };
-        this.performDifference = function(subject, clip) {
-          const intersections = this.findIntersections(subject, clip);
-          if (intersections.length === 0) return [subject];
-          return this.splitPolygonByLine(subject, clip);
         };
         this.getEdges = function(poly) {
           const edges = [];
@@ -139,12 +165,15 @@
           }
           return inters;
         };
+        this.pointToLineDistance = function(pt, ls, le) {
+          const A = le.Y - ls.Y, B = ls.X - le.X, C = le.X*ls.Y - ls.X*le.Y;
+          return A*pt.X + B*pt.Y + C;
+        };
         this.splitPolygonByLine = function(poly, cutRect) {
-          // Simplified splitting: separate vertices by distance sign
           const lineA = cutRect[0], lineC = cutRect[2];
           const side1 = [], side2 = [];
           for (let v of poly) {
-            const d = this.pointToLineDistance(v, lineA, lineC);
+            const d = this.pointToLineDistance({ X: Math.round(v.x*1000), Y: Math.round(v.y*1000) }, lineA, lineC);
             if (d > 0) side1.push(v);
             else side2.push(v);
           }
@@ -153,9 +182,12 @@
           if (side2.length >= 3) result.push(side2);
           return result.length ? result : [poly];
         };
-        this.pointToLineDistance = function(pt, ls, le) {
-          const A = le.Y - ls.Y, B = ls.X - le.X, C = le.X*ls.Y - ls.X*le.Y;
-          return A*pt.X + B*pt.Y + C;
+        this.performDifference = function(subject, clip) {
+          const subjPts = subject.map(p => ({ x: p.X/1000, y: p.Y/1000 }));
+          const clipPts = clip.map(p => ({ x: p.X/1000, y: p.Y/1000 }));
+          const intersections = this.findIntersections(subject, clip);
+          if (intersections.length === 0) return [subjPts];
+          return this.splitPolygonByLine(subjPts, clip);
         };
       },
       Paths: function() { return []; }
@@ -173,14 +205,36 @@
       height: 600,
       playfield: null,
       balls: [],
-      slice: null,
+      activeShape: null,      // { vertices: [...], offsetX, offsetY }
+      mousePos: { x: 0, y: 0 },
       level: 0,
       lives: 3,
       targetPercent: 70,
       remainingArea: 1.0,
       initialArea: 0,
-      isCutting: false,
       animationData: null
+    };
+
+    // Base shape definitions (centered at (0,0))
+    const SHAPES = {
+      rect: {
+        vertices: [
+          { x: -75, y: -10 },
+          { x:  75, y: -10 },
+          { x:  75, y:  10 },
+          { x: -75, y:  10 }
+        ]
+      },
+      L: {
+        vertices: [
+          { x: -30, y: -30 },
+          { x:  10, y: -30 },
+          { x:  10, y:  10 },
+          { x:  30, y:  10 },
+          { x:  30, y:  30 },
+          { x: -30, y:  30 }
+        ]
+      }
     };
 
     // -------------------------------------------------------------------
@@ -216,18 +270,6 @@
       return polygons[idx];
     }
 
-    function pointInPolygon(pt, poly) {
-      let inside = false;
-      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const xi = poly[i].x, yi = poly[i].y;
-        const xj = poly[j].x, yj = poly[j].y;
-        const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
-          (pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    }
-
     function orient(a, b, c) {
       return (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x);
     }
@@ -244,22 +286,25 @@
       return false;
     }
 
-    function lineIntersectsPolygon(a, b, poly) {
-      if (pointInPolygon(a, poly) || pointInPolygon(b, poly)) return true;
-      for (let i = 0; i < poly.length; i++) {
-        const c = poly[i], d = poly[(i + 1) % poly.length];
-        if (segmentsIntersect(a, b, c, d)) return true;
+    function pointInPolygon(pt, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i].x, yi = poly[i].y;
+        const xj = poly[j].x, yj = poly[j].y;
+        const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+          (pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
       }
-      return false;
+      return inside;
     }
 
     function circleSegmentCollision(ball, edge) {
       const { a, b } = edge;
       const vx = b.x - a.x, vy = b.y - a.y;
       const wx = ball.x - a.x, wy = ball.y - a.y;
-      const dot = wx * vx + wy * vy, len = vx * vx + vy * vy;
+      const dot = wx*vx + wy*vy, len = vx*vx + vy*vy;
       const proj = Math.max(0, Math.min(1, dot / len));
-      const closestX = a.x + proj * vx, closestY = a.y + proj * vy;
+      const closestX = a.x + proj*vx, closestY = a.y + proj*vy;
       const dx = ball.x - closestX, dy = ball.y - closestY;
       return (dx*dx + dy*dy) <= ball.radius * ball.radius;
     }
@@ -274,7 +319,7 @@
       const dot = ball.vx * nx + ball.vy * ny;
       ball.vx = ball.vx - 2 * dot * nx;
       ball.vy = ball.vy - 2 * dot * ny;
-      // Nudge out to avoid sticking
+      // Nudge out
       ball.x += nx * 2;
       ball.y += ny * 2;
     }
@@ -287,57 +332,62 @@
       return edges;
     }
 
-    // Generate a random convex‐like polygon for the playfield
-    function generateRandomPolygon() {
-      const centerX = GAME.width / 2;
-      const centerY = GAME.height / 2;
-      const maxRadius = Math.min(GAME.width, GAME.height) / 2 - 60;
-      const vertexCount = 6 + Math.min(GAME.level, 4); // up to 10 vertices
-      const angles = [];
-      for (let i = 0; i < vertexCount; i++) {
-        // even spacing + small random jitter
-        const baseAngle = (Math.PI * 2 / vertexCount) * i;
-        const jitter = (Math.random() - 0.5) * (Math.PI / vertexCount) * 0.4;
-        angles.push(baseAngle + jitter);
-      }
-      angles.sort((a, b) => a - b);
-      const poly = [];
-      for (let ang of angles) {
-        const radialFactor = 0.7 + 0.3 * Math.random();
-        const r = maxRadius * radialFactor;
-        const x = centerX + Math.cos(ang) * r;
-        const y = centerY + Math.sin(ang) * r;
-        poly.push({ x, y });
-      }
-      return poly;
+    function cutWithPolygon(playfield, shapePoly) {
+      const subj = toClipper([playfield]);
+      const clip = toClipper([shapePoly]);
+      const cpr = new ClipperLib.Clipper();
+      cpr.AddPaths(subj, ClipperLib.PolyType.ptSubject, true);
+      cpr.AddPaths(clip, ClipperLib.PolyType.ptClip, true);
+      const solution = new ClipperLib.Paths();
+      cpr.Execute(ClipperLib.ClipType.ctDifference, solution);
+      if (!solution.length) return [];
+      return fromClipper(solution);
     }
 
     // -------------------------------------------------------------------
     // Core Game Logic: Setup, Update, Rendering, Input, Level Progression
     // -------------------------------------------------------------------
-    function setupLevel(levelIndex) {
-      GAME.level = levelIndex;
+    function generateRandomPolygon() {
+      const cx = GAME.width / 2, cy = GAME.height / 2;
+      const maxR = Math.min(GAME.width, GAME.height) / 2 - 60;
+      const verts = 6 + Math.min(GAME.level, 4); // 6 to 10 vertices
+      const angles = [];
+      for (let i = 0; i < verts; i++) {
+        const base = (Math.PI * 2 / verts) * i;
+        const jitter = (Math.random() - 0.5) * (Math.PI / verts) * 0.5;
+        angles.push(base + jitter);
+      }
+      angles.sort((a, b) => a - b);
+      const poly = [];
+      for (let ang of angles) {
+        const rf = 0.7 + 0.3 * Math.random();
+        const r = maxR * rf;
+        poly.push({ x: cx + Math.cos(ang)*r, y: cy + Math.sin(ang)*r });
+      }
+      return poly;
+    }
+
+    function setupLevel(idx) {
+      GAME.level = idx;
       GAME.playfield = generateRandomPolygon();
       GAME.initialArea = polygonArea(GAME.playfield);
       GAME.remainingArea = 1.0;
-      GAME.targetPercent = Math.min(90, 70 + levelIndex * 2);
+      GAME.targetPercent = Math.min(90, 70 + idx*2);
       GAME.balls = [];
-      // Generate balls
-      const ballCount = Math.min(5, 1 + Math.floor(levelIndex / 2));
-      for (let i = 0; i < ballCount; i++) {
-        const radius = 8 + Math.random() * 4;
-        // Place inside canvas, but near center
+      const count = Math.min(5, 1 + Math.floor(idx/2));
+      for (let i = 0; i < count; i++) {
+        const radius = 8 + Math.random()*4;
         const margin = 80;
-        const x = margin + Math.random() * (GAME.width - 2 * margin);
-        const y = margin + Math.random() * (GAME.height - 2 * margin);
-        const speed = 80 + levelIndex * 15 + Math.random() * 40;
-        const angle = Math.random() * Math.PI * 2;
+        const x = margin + Math.random()*(GAME.width - 2*margin);
+        const y = margin + Math.random()*(GAME.height - 2*margin);
+        const speed = 80 + idx*15 + Math.random()*40;
+        const ang = Math.random()*Math.PI*2;
         GAME.balls.push({
           x, y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
+          vx: Math.cos(ang)*speed,
+          vy: Math.sin(ang)*speed,
           radius,
-          color: `hsl(${Math.random() * 360}, 70%, 60%)`
+          color: `hsl(${Math.random()*360},70%,60%)`
         });
       }
     }
@@ -356,43 +406,23 @@
       }
     }
 
-    function cutPolygon(playfield, sliceLine) {
-      const thickness = 3;
-      const dx = sliceLine[1].x - sliceLine[0].x;
-      const dy = sliceLine[1].y - sliceLine[0].y;
-      const len = Math.hypot(dx, dy);
-      if (len < 1) return [playfield];
-
-      const nx = -dy / len, ny = dx / len;
-      const p1 = { x: sliceLine[0].x + nx * thickness, y: sliceLine[0].y + ny * thickness };
-      const p2 = { x: sliceLine[1].x + nx * thickness, y: sliceLine[1].y + ny * thickness };
-      const p3 = { x: sliceLine[1].x - nx * thickness, y: sliceLine[1].y - ny * thickness };
-      const p4 = { x: sliceLine[0].x - nx * thickness, y: sliceLine[0].y - ny * thickness };
-      const cutPoly = [p1, p2, p3, p4];
-
-      const subj = toClipper([playfield]);
-      const clip = toClipper([cutPoly]);
-      const cpr = new ClipperLib.Clipper();
-      cpr.AddPaths(subj, ClipperLib.PolyType.ptSubject, true);
-      cpr.AddPaths(clip, ClipperLib.PolyType.ptClip, true);
-      const solution = new ClipperLib.Paths();
-      cpr.Execute(ClipperLib.ClipType.ctDifference, solution);
-      if (solution.length === 0) return [];
-      return fromClipper(solution);
-    }
-
-    function attemptSlice(start, end) {
-      if (!lineIntersectsPolygon(start, end, GAME.playfield)) return;
-      const resultPolys = cutPolygon(GAME.playfield, [start, end]);
-      if (resultPolys.length === 0) return;
-      const newPlay = keepLargest(resultPolys);
-      const newArea = polygonArea(newPlay);
+    function attemptShapeCut() {
+      if (!GAME.activeShape) return;
+      // Build translated polygon
+      const shapeBase = GAME.activeShape.vertices;
+      const px = GAME.mousePos.x, py = GAME.mousePos.y;
+      const translated = shapeBase.map(v => ({ x: px + v.x, y: py + v.y }));
+      const result = cutWithPolygon(GAME.playfield, translated);
+      if (result.length === 0) return;
+      GAME.playfield = keepLargest(result);
+      const newArea = polygonArea(GAME.playfield);
       GAME.remainingArea = newArea / GAME.initialArea;
-      GAME.playfield = newPlay;
-      const cutPct = (1 - GAME.remainingArea) * 100;
+      const cutPct = (1 - GAME.remainingArea)*100;
       if (cutPct >= GAME.targetPercent) {
         onLevelComplete();
       }
+      GAME.activeShape = null;
+      clearShapeSelection();
     }
 
     function onLevelComplete() {
@@ -407,23 +437,22 @@
         maxY = Math.max(maxY, p.y);
       }
       const boxW = maxX - minX, boxH = maxY - minY;
-      const scaleX = (GAME.width - 100) / boxW;
-      const scaleY = (GAME.height - 100) / boxH;
+      const scaleX = (GAME.width - 100)/boxW;
+      const scaleY = (GAME.height - 100)/boxH;
       const finalScale = Math.min(scaleX, scaleY);
-      const centerX = (minX + maxX) / 2, centerY = (minY + maxY) / 2;
-      const tx = GAME.width / 2 - centerX * finalScale;
-      const ty = GAME.height / 2 - centerY * finalScale;
+      const cx = (minX + maxX)/2, cy = (minY + maxY)/2;
+      const tx = GAME.width/2 - cx*finalScale;
+      const ty = GAME.height/2 - cy*finalScale;
       GAME.animationData = {
         startTime: null,
         duration: 1.0,
         startScale: 1,
-        finalScale: finalScale,
+        finalScale,
         startTx: 0,
         startTy: 0,
         tx,
         ty
       };
-      // Wait 2 seconds to show the overlay, then advance
       setTimeout(() => {
         document.getElementById('levelComplete').style.display = 'none';
         setupLevel(GAME.level + 1);
@@ -449,64 +478,16 @@
     }
 
     // -------------------------------------------------------------------
-    // Input Handling
-    // -------------------------------------------------------------------
-    function getCanvasCoords(evt) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      let clientX, clientY;
-      if (evt.touches && evt.touches.length) {
-        clientX = evt.touches[0].clientX;
-        clientY = evt.touches[0].clientY;
-      } else {
-        clientX = evt.clientX;
-        clientY = evt.clientY;
-      }
-      return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-      };
-    }
-
-    function onPointerDown(evt) {
-      if (gameState !== 'playing') return;
-      const { x, y } = getCanvasCoords(evt);
-      GAME.isCutting = true;
-      GAME.slice = { start: { x, y }, end: { x, y } };
-      evt.preventDefault();
-    }
-
-    function onPointerMove(evt) {
-      if (!GAME.isCutting || gameState !== 'playing') return;
-      const { x, y } = getCanvasCoords(evt);
-      GAME.slice.end.x = x;
-      GAME.slice.end.y = y;
-      evt.preventDefault();
-    }
-
-    function onPointerUp(evt) {
-      if (!GAME.isCutting || gameState !== 'playing') return;
-      const { x, y } = getCanvasCoords(evt);
-      GAME.slice.end.x = x;
-      GAME.slice.end.y = y;
-      GAME.isCutting = false;
-      attemptSlice(GAME.slice.start, GAME.slice.end);
-      GAME.slice = null;
-      evt.preventDefault();
-    }
-
-    // -------------------------------------------------------------------
     // Rendering
     // -------------------------------------------------------------------
     function render() {
       ctx.clearRect(0, 0, GAME.width, GAME.height);
 
       // Starfield background
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
       for (let i = 0; i < 50; i++) {
-        const x = (Date.now() * 0.01 + i * 127) % GAME.width;
-        const y = (Date.now() * 0.007 + i * 433) % GAME.height;
+        const x = (Date.now()*0.01 + i*127) % GAME.width;
+        const y = (Date.now()*0.007 + i*433) % GAME.height;
         ctx.fillRect(x, y, 1, 1);
       }
 
@@ -516,7 +497,7 @@
       }
 
       // Draw playfield polygon
-      ctx.fillStyle = 'rgba(0, 50, 100, 0.3)';
+      ctx.fillStyle = 'rgba(0,50,100,0.3)';
       ctx.strokeStyle = '#00ffff';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -535,7 +516,7 @@
         ctx.shadowColor = ball.color;
         ctx.shadowBlur = 15;
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
         ctx.fillStyle = ball.color;
         ctx.fill();
         ctx.strokeStyle = '#fff';
@@ -544,17 +525,22 @@
         ctx.restore();
       }
 
-      // Draw active slice
-      if (GAME.isCutting && GAME.slice) {
-        ctx.strokeStyle = '#ff0080';
-        ctx.lineWidth = 4;
-        ctx.shadowColor = '#ff0080';
-        ctx.shadowBlur = 10;
+      // Draw preview of active shape
+      if (GAME.activeShape) {
+        const base = GAME.activeShape.vertices;
+        const px = GAME.mousePos.x, py = GAME.mousePos.y;
+        const verts = base.map(v => ({ x: px + v.x, y: py + v.y }));
+        ctx.fillStyle = 'rgba(255,0,0,0.3)';
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(GAME.slice.start.x, GAME.slice.start.y);
-        ctx.lineTo(GAME.slice.end.x, GAME.slice.end.y);
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for (let i = 1; i < verts.length; i++) {
+          ctx.lineTo(verts[i].x, verts[i].y);
+        }
+        ctx.closePath();
+        ctx.fill();
         ctx.stroke();
-        ctx.shadowBlur = 0;
       }
 
       drawUI();
@@ -576,7 +562,7 @@
       ctx.setTransform(curScale, 0, 0, curScale, curTx, curTy);
 
       // Playfield scaled
-      ctx.fillStyle = `rgba(0, 255, 255, ${0.2 + 0.3 * frac})`;
+      ctx.fillStyle = `rgba(0,255,255,${0.2 + 0.3*frac})`;
       ctx.strokeStyle = '#00ffff';
       ctx.lineWidth = 3 / curScale;
       ctx.beginPath();
@@ -627,18 +613,18 @@
       ctx.fillText(pctText, GAME.width - pctWidth - 20, 35);
 
       // Progress bar
-      const barWidth = 200, barHeight = 20;
-      const barX = GAME.width - barWidth - 20, barY = 45;
+      const barW = 200, barH = 20;
+      const barX = GAME.width - barW - 20, barY = 45;
       ctx.strokeStyle = '#00ffff';
       ctx.lineWidth = 2;
-      ctx.strokeRect(barX, barY, barWidth, barHeight);
-      const progressWidth = (pct / GAME.targetPercent) * barWidth;
-      const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
-      gradient.addColorStop(0, '#ff6b6b');
-      gradient.addColorStop(0.5, '#feca57');
-      gradient.addColorStop(1, '#48dbfb');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(barX, barY, Math.min(progressWidth, barWidth), barHeight);
+      ctx.strokeRect(barX, barY, barW, barH);
+      const progW = (pct / GAME.targetPercent) * barW;
+      const grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+      grad.addColorStop(0, '#ff6b6b');
+      grad.addColorStop(0.5, '#feca57');
+      grad.addColorStop(1, '#48dbfb');
+      ctx.fillStyle = grad;
+      ctx.fillRect(barX, barY, Math.min(progW, barW), barH);
     }
 
     // -------------------------------------------------------------------
@@ -647,17 +633,7 @@
     function update(delta) {
       if (gameState !== 'playing') return;
       updateBalls(delta);
-      // Check ball-slice collision
-      if (GAME.isCutting && GAME.slice) {
-        for (let ball of GAME.balls) {
-          if (circleSegmentCollision(ball, { a: GAME.slice.start, b: GAME.slice.end })) {
-            loseLife();
-            GAME.isCutting = false;
-            GAME.slice = null;
-            break;
-          }
-        }
-      }
+      // No ball-slice collision: shape placement is instantaneous
     }
 
     function loop(timestamp) {
@@ -670,47 +646,124 @@
     }
 
     // -------------------------------------------------------------------
+    // Input Handling & Shape Palette
+    // -------------------------------------------------------------------
+    function getCanvasCoords(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let clientX, clientY;
+      if (evt.touches && evt.touches.length) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+      } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+      }
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function onCanvasMove(evt) {
+      const pos = getCanvasCoords(evt);
+      GAME.mousePos = pos;
+    }
+
+    function onCanvasClick(evt) {
+      if (gameState !== 'playing') return;
+      if (GAME.activeShape) {
+        attemptShapeCut();
+      }
+    }
+
+    function clearShapeSelection() {
+      GAME.activeShape = null;
+      document.getElementById('rectShapeBtn').classList.remove('selected');
+      document.getElementById('lShapeBtn').classList.remove('selected');
+    }
+
+    document.getElementById('rectShapeBtn').addEventListener('click', () => {
+      clearShapeSelection();
+      GAME.activeShape = { vertices: SHAPES.rect.vertices };
+      document.getElementById('rectShapeBtn').classList.add('selected');
+    });
+    document.getElementById('lShapeBtn').addEventListener('click', () => {
+      clearShapeSelection();
+      GAME.activeShape = { vertices: SHAPES.L.vertices };
+      document.getElementById('lShapeBtn').classList.add('selected');
+    });
+
+    // -------------------------------------------------------------------
+    // Draw palette previews
+    // -------------------------------------------------------------------
+    function drawPalette() {
+      const rectCv = document.getElementById('rectPreview').getContext('2d');
+      rectCv.clearRect(0, 0, 60, 60);
+      rectCv.fillStyle = '#ff0000';
+      rectCv.strokeStyle = '#fff';
+      rectCv.lineWidth = 2;
+      rectCv.translate(30, 30);
+      rectCv.beginPath();
+      const r = SHAPES.rect.vertices;
+      rectCv.moveTo(r[0].x * 0.3, r[0].y * 0.3);
+      for (let i = 1; i < r.length; i++) {
+        rectCv.lineTo(r[i].x * 0.3, r[i].y * 0.3);
+      }
+      rectCv.closePath();
+      rectCv.fill();
+      rectCv.stroke();
+      rectCv.resetTransform();
+
+      const lCv = document.getElementById('lPreview').getContext('2d');
+      lCv.clearRect(0, 0, 60, 60);
+      lCv.fillStyle = '#ff0000';
+      lCv.strokeStyle = '#fff';
+      lCv.lineWidth = 2;
+      lCv.translate(30, 30);
+      const l = SHAPES.L.vertices;
+      lCv.beginPath();
+      lCv.moveTo(l[0].x * 0.3, l[0].y * 0.3);
+      for (let i = 1; i < l.length; i++) {
+        lCv.lineTo(l[i].x * 0.3, l[i].y * 0.3);
+      }
+      lCv.closePath();
+      lCv.fill();
+      lCv.stroke();
+      lCv.resetTransform();
+    }
+
+    // -------------------------------------------------------------------
     // Initialization
     // -------------------------------------------------------------------
     function init() {
       canvas = document.getElementById('gameCanvas');
       ctx = canvas.getContext('2d');
+
       canvas.width = GAME.width;
       canvas.height = GAME.height;
 
       // Responsive sizing
       function resizeCanvas() {
-        const aspectRatio = GAME.width / GAME.height;
-        const windowRatio = window.innerWidth / window.innerHeight;
-        if (windowRatio > aspectRatio) {
-          canvas.style.height = '90vh';
-          canvas.style.width = (90 * aspectRatio) + 'vh';
+        const ar = GAME.width / GAME.height;
+        const wr = window.innerWidth / window.innerHeight;
+        if (wr > ar) {
+          canvas.style.height = '80vh';
+          canvas.style.width = (80 * ar) + 'vh';
         } else {
-          canvas.style.width = '90vw';
-          canvas.style.height = (90 / aspectRatio) + 'vw';
+          canvas.style.width = '80vw';
+          canvas.style.height = (80 / ar) + 'vw';
         }
       }
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
       setupLevel(0);
+      drawPalette();
 
-      // Mouse events
-      canvas.addEventListener('mousedown', onPointerDown);
-      canvas.addEventListener('mousemove', onPointerMove);
-      canvas.addEventListener('mouseup', onPointerUp);
-      canvas.addEventListener('mouseleave', onPointerUp);
-
-      // Touch events
-      canvas.addEventListener('touchstart', (e) => {
-        onPointerDown(e);
-      }, { passive: false });
-      canvas.addEventListener('touchmove', (e) => {
-        onPointerMove(e);
-      }, { passive: false });
-      canvas.addEventListener('touchend', (e) => {
-        onPointerUp(e);
-      }, { passive: false });
+      canvas.addEventListener('mousemove', onCanvasMove);
+      canvas.addEventListener('click', onCanvasClick);
 
       requestAnimationFrame(loop);
     }
