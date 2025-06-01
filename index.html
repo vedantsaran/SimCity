@@ -1,1177 +1,516 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mini Motorways – Traffic Network Builder</title>
+  <title>Scale Clone - Browser Edition</title>
   <style>
-    /* --------------------
-       BASE STYLES
-       -------------------- */
-    :root {
-      --bg-dark: #121212;
-      --bg-panel: #1e1e1e;
-      --fg-light: #e0e0e0;
-      --fg-muted: #888;
-      --accent: #56c0e8;
-      --warning: #e04e4e;
-      --grid-line: rgba(255,255,255,0.05);
-      --road-standard: #444;
-      --road-dual: #555;
-      --road-bridge: #666;
-      --road-express: #ffd700;
-      --house-size: 18px;
-      --dest-size: 20px;
-      font-size: 14px;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    }
-
-    * {
+    html, body {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background: var(--bg-dark);
-      color: var(--fg-light);
+      background: #111;
       overflow: hidden;
-      user-select: none;
-    }
-
-    button {
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-    }
-
-    h2, h3 {
-      font-weight: 400;
-    }
-
-    /* --------------------
-       CANVAS
-       -------------------- */
-    #gameCanvas {
-      display: block;
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      cursor: crosshair;
-      background: var(--bg-dark);
-    }
-
-    /* --------------------
-       HUD – Top & Bottom Bars
-       -------------------- */
-    .hud {
-      position: fixed;
-      z-index: 100;
-      width: 100%;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      pointer-events: none;
-    }
-
-    .top-bar {
-      top: 0;
-      height: 56px;
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--grid-line);
-      pointer-events: auto;
-    }
-
-    .bottom-bar {
-      bottom: 0;
-      height: 40px;
-      background: var(--bg-panel);
-      border-top: 1px solid var(--grid-line);
-      pointer-events: auto;
-      font-size: 13px;
-      color: var(--fg-muted);
-      padding-left: 16px;
-    }
-
-    .stat-item {
-      margin-right: 24px;
-      display: flex;
-      align-items: center;
-      font-weight: 300;
-      color: var(--fg-light);
-    }
-
-    .stat-item span {
-      margin-left: 4px;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .top-controls {
-      display: flex;
-      align-items: center;
-    }
-
-    .top-controls button {
-      margin-left: 12px;
-      background: var(--accent);
-      color: var(--bg-dark);
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      transition: background 0.2s;
-    }
-
-    .top-controls button:hover {
-      background: #45abce;
-    }
-
-    /* --------------------
-       RESOURCE PANEL (SLIDE-OUT)
-       -------------------- */
-    .resource-panel {
-      position: fixed;
-      top: 56px;
-      right: -280px;
-      width: 280px;
-      height: calc(100vh - 56px);
-      background: var(--bg-panel);
-      border-left: 1px solid var(--grid-line);
-      padding: 16px;
-      overflow-y: auto;
-      transition: right 0.25s ease;
-      pointer-events: auto;
-    }
-
-    .resource-panel.open {
-      right: 0;
-    }
-
-    .resource-panel h3 {
-      font-size: 16px;
-      margin-bottom: 12px;
-      color: var(--fg-light);
-      font-weight: 400;
-    }
-
-    .resource-button {
-      width: 100%;
-      background: transparent;
-      border: 1px solid var(--grid-line);
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 12px;
-      text-align: left;
-      color: var(--fg-light);
-      transition: background 0.2s, border-color 0.2s;
-      font-size: 14px;
-      line-height: 1.3;
-    }
-
-    .resource-button:hover:not(:disabled) {
-      background: rgba(255,255,255,0.05);
-      border-color: var(--accent);
-    }
-
-    .resource-button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* --------------------
-       MODALS (PAUSE, GUIDE, GAME OVER)
-       -------------------- */
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(18,18,18,0.9);
-      display: none;
-      align-items: center;
       justify-content: center;
-      z-index: 200;
-      pointer-events: auto;
+      align-items: center;
+      height: 100vh;
     }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-content {
-      background: var(--bg-panel);
-      border: 1px solid var(--grid-line);
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 440px;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    }
-
-    .modal-content h2 {
-      margin-bottom: 16px;
-      font-size: 20px;
-      font-weight: 400;
-      color: var(--fg-light);
-    }
-
-    .modal-content p {
-      font-size: 14px;
-      margin-bottom: 12px;
-      color: var(--fg-light);
-      line-height: 1.4;
-    }
-
-    .modal-content ul {
-      text-align: left;
-      margin: 8px 0 16px 0;
-      padding-left: 20px;
-      color: var(--fg-light);
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    .modal-content ul li {
-      margin-bottom: 6px;
-    }
-
-    .modal-content button {
-      background: var(--accent);
-      color: var(--bg-dark);
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      transition: background 0.2s;
-      margin-top: 12px;
-    }
-
-    .modal-content button:hover {
-      background: #45abce;
-    }
-
-    .button-danger {
-      background: var(--warning);
-    }
-
-    .button-danger:hover {
-      background: #c13f3f;
-    }
-
-    /* --------------------
-       NOTIFICATION TOAST
-       -------------------- */
-    .notification {
-      position: fixed;
-      top: 72px;
-      right: 16px;
-      background: var(--accent);
-      color: var(--bg-dark);
-      padding: 10px 16px;
-      border-radius: 4px;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: transform 0.3s ease, opacity 0.3s;
-      font-size: 13px;
-      z-index: 150;
-    }
-
-    .notification.show {
-      opacity: 1;
-      transform: translateX(0);
+    #gameCanvas {
+      background: #222;
+      border: 2px solid #444;
+      display: block;
+      touch-action: none; /* prevent default touch scrolling */
     }
   </style>
 </head>
 <body>
-  <!-- CANVAS -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- TOP BAR -->
-  <div class="hud top-bar">
-    <div style="display: flex; align-items: center;">
-      <div class="stat-item">Week: <span id="weekDisplay">1</span></div>
-      <div class="stat-item">Month: <span id="monthDisplay">1</span></div>
-    </div>
-    <div class="top-controls">
-      <div class="stat-item">Delivered: <span id="scoreDisplay">0</span></div>
-      <div class="stat-item">Tokens: <span id="tokensDisplay">2</span></div>
-      <button onclick="toggleResourcePanel()">🔧 Build</button>
-      <button onclick="togglePause()">⏸ Pause</button>
-      <button title="Guide" onclick="toggleGuide()">❔</button>
-    </div>
-  </div>
-
-  <!-- BOTTOM BAR -->
-  <div class="hud bottom-bar">
-    <span id="tooltipText">Click a node and drag to build roads. Keep traffic flowing to avoid gridlock.</span>
-  </div>
-
-  <!-- RESOURCE PANEL -->
-  <div class="hud resource-panel" id="resourcePanel">
-    <h3>Construction</h3>
-    <button class="resource-button" id="roadBtn" onclick="selectResource('road')">
-      <strong>Road (1 Token)</strong><br>
-      Place a standard road segment
-    </button>
-    <button class="resource-button" id="dualBtn" onclick="selectResource('dual')">
-      <strong>Dual Lane (1 Token)</strong><br>
-      Upgrade an existing road to dual lane
-    </button>
-    <button class="resource-button" id="roundaboutBtn" onclick="selectResource('roundabout')">
-      <strong>Roundabout (2 Tokens)</strong><br>
-      Convert a 4-way intersection to a roundabout
-    </button>
-    <button class="resource-button" id="bridgeBtn" onclick="selectResource('bridge')">
-      <strong>Bridge (2 Tokens)</strong><br>
-      Build over water or obstacle
-    </button>
-    <button class="resource-button" id="expresswayBtn" onclick="selectResource('expressway')">
-      <strong>Expressway (3 Tokens)</strong><br>
-      High-speed straight road
-    </button>
-  </div>
-
-  <!-- GUIDE MODAL -->
-  <div class="modal" id="guideModal">
-    <div class="modal-content">
-      <h2>How to Play</h2>
-      <ul>
-        <li>🏠 Houses spawn cars of a matching color; connect them to same-color destinations (circles).</li>
-        <li>🛣️ Click a node (house/destination/intersection), drag to another node, and release to build a road.</li>
-        <li>🚗 Cars automatically follow the shortest path to a matching destination.</li>
-        <li>⚠️ If any house accumulates 12+ queued cars, it overloads and the game ends.</li>
-        <li>🔧 Every week (20s), you gain 1 token. Spend tokens to build roads or upgrades:</li>
-        <ul>
-          <li>• Road (1 Token): Standard single-lane segment.</li>
-          <li>• Dual Lane (1 Token): Upgrade a road’s capacity ×2.</li>
-          <li>• Roundabout (2 Tokens): Smooth a 4-way intersection.</li>
-          <li>• Bridge (2 Tokens): Cross rivers/mountains.</li>
-          <li>• Expressway (3 Tokens): Straight, high-speed road.</li>
-        </ul>
-        <li>💡 Upgrade intersections or build bridges/tunnels to prevent congestion.</li>
-        <li>🚦 Plan ahead—traffic jams spread quickly on a small network.</li>
-      </ul>
-      <button onclick="toggleGuide()">Got It</button>
-    </div>
-  </div>
-
-  <!-- PAUSE MODAL -->
-  <div class="modal" id="pauseModal">
-    <div class="modal-content">
-      <h2>Game Paused</h2>
-      <p>Take a moment to plan your network.</p>
-      <button onclick="togglePause()">Resume</button>
-      <button class="button-danger" onclick="restartGame()">Restart</button>
-      <button onclick="toggleGuide()">Guide</button>
-    </div>
-  </div>
-
-  <!-- GAME OVER MODAL -->
-  <div class="modal" id="gameOverModal">
-    <div class="modal-content">
-      <h2>Game Over!</h2>
-      <p id="gameOverReason">A house became overloaded with traffic.</p>
-      <div style="margin: 16px 0; font-size: 14px;">
-        <p>Weeks Survived: <strong id="finalWeeks">0</strong></p>
-        <p>Cars Delivered: <strong id="finalScore">0</strong></p>
-        <p>Average Commute: <strong id="avgCommute">0</strong>s</p>
-      </div>
-      <button onclick="restartGame()">Play Again</button>
-    </div>
-  </div>
-
-  <!-- NOTIFICATION TOAST -->
-  <div class="notification" id="notification"></div>
-
+  <!-- Clipper.js via CDN for polygon clipping -->
+  <script src="https://unpkg.com/js-clipper@6.4.2/clipper.js"></script>
   <script>
-    // ------------------------------
-    //   GAME STATE & CONFIGURATION
-    // ------------------------------
-    const GameState = {
-      stations: new Map(),
-      destinations: new Map(),
-      roadSegments: new Map(),
-      intersections: new Map(),
-      cars: new Map(),
-
-      nextStationID: 1,
-      nextDestinationID: 1,
-      nextSegmentID: 1,
-      nextIntersectionID: 1,
-      nextCarID: 1,
-
-      score: 0,
-      totalWaitTime: 0,
-      deliveredCount: 0,
-
-      week: 1,
-      month: 1,
-      isGameOver: false,
-      isPaused: false,
-
-      tokens: 2,
-      selectedResource: null,
-      selectedNode: null,
-      previewLine: null,
-      mousePos: { x: 0, y: 0 }
+    // ==== GLOBAL GAME STATE ====
+    const GAME = {
+      width: 800,
+      height: 600,
+      canvas: null,
+      ctx: null,
+      lastTimestamp: 0,
+      playfield: [],        // current polygon (array of {x,y})
+      balls: [],            // array of {x,y,vx,vy,radius}
+      slice: null,          // {start:{x,y}, end:{x,y}}
+      isCutting: false,
+      isAnimating: false,
+      level: 0,
+      lives: 3,
+      targetPercent: 70,    // percentage to cut this level
+      initialArea: 1,
+      remainingArea: 1,
     };
 
-    const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
-    const REAL_SECONDS_PER_WEEK = 20;
-    const PASSENGER_SPAWN_INTERVAL = 1.5;
-    const STATION_SPAWN_INTERVAL = 15;
-    const DESTINATION_SPAWN_INTERVAL = 30;
-
-    // ------------------------------
-    //      CANVAS & RENDER LOOP
-    // ------------------------------
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let lastTime = 0;
-    let weekTimer = 0;
-    let stationSpawnTimer = 0;
-    let destinationSpawnTimer = 0;
-    let passengerSpawnTimer = 0;
-
-    function resizeCanvas() {
-      const dpr = window.devicePixelRatio || 1;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
+    // ==== UTILITY FUNCTIONS ====
+    function polygonArea(poly) {
+      let area = 0;
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i];
+        const b = poly[(i + 1) % poly.length];
+        area += a.x * b.y - b.x * a.y;
+      }
+      return Math.abs(area) / 2;
     }
 
-    window.addEventListener('resize', resizeCanvas);
+    function toClipper(subjectPolygons) {
+      // convert [[{x,y},...],...] → [[{X,Y},...],...], scaled by 1000
+      return subjectPolygons.map(poly =>
+        poly.map(pt => ({ X: Math.round(pt.x * 1000), Y: Math.round(pt.y * 1000) }))
+      );
+    }
 
-    // ------------------------------
-    //       GAME OBJECT CLASSES
-    // ------------------------------
-    class Station {
-      constructor(x, y, color) {
-        this.id = GameState.nextStationID++;
-        this.x = x; this.y = y;
-        this.color = color;
-        this.queue = []; // array of car IDs waiting to depart
-        this.spawnInterval = PASSENGER_SPAWN_INTERVAL;
-        this.spawnTimer = 0;
-      }
+    function fromClipper(clipperPolygons) {
+      // convert [[{X,Y},...],...] → [[{x,y},...],...]
+      return clipperPolygons.map(poly =>
+        poly.map(pt => ({ x: pt.X / 1000, y: pt.Y / 1000 }))
+      );
+    }
 
-      spawnCar() {
-        const choices = Array.from(GameState.destinations.values())
-          .filter(dest => dest.color === this.color);
-        if (!choices.length) return;
-
-        const dest = choices[Math.floor(Math.random() * choices.length)];
-        const path = computeShortestPath(this.id, dest.id);
-        if (!path || path.length < 2) return;
-
-        const car = new Car(this.id, dest.id, path);
-        GameState.cars.set(car.id, car);
-        this.queue.push(car.id);
-
-        if (this.queue.length > 12) {
-          endGame(`House overloaded with ${this.queue.length} queued cars!`);
+    function keepLargest(polygons) {
+      let maxArea = -Infinity, idx = 0;
+      for (let i = 0; i < polygons.length; i++) {
+        const a = polygonArea(polygons[i]);
+        if (a > maxArea) {
+          maxArea = a;
+          idx = i;
         }
       }
-
-      removeCarFromQueue(carId) {
-        const idx = this.queue.indexOf(carId);
-        if (idx > -1) this.queue.splice(idx, 1);
-      }
-
-      draw(ctx) {
-        // House as a small square
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x - 9, this.y - 9, 18, 18);
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(this.x - 9, this.y - 9, 18, 18);
-
-        // Draw queue count
-        if (this.queue.length > 0) {
-          ctx.fillStyle = this.queue.length > 8 ? 'var(--warning)' : '#fff';
-          ctx.font = '12px Helvetica Neue';
-          ctx.textAlign = 'center';
-          ctx.fillText(this.queue.length.toString(), this.x, this.y - 14);
-        }
-      }
+      return polygons[idx];
     }
 
-    class Destination {
-      constructor(x, y, color) {
-        this.id = GameState.nextDestinationID++;
-        this.x = x; this.y = y;
-        this.color = color;
+    function getEdges(polygon) {
+      const edges = [];
+      for (let i = 0; i < polygon.length; i++) {
+        const a = polygon[i];
+        const b = polygon[(i + 1) % polygon.length];
+        edges.push({ a, b });
       }
-
-      draw(ctx) {
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, 11, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
+      return edges;
     }
 
-    class RoadSegment {
-      constructor(startNodeID, endNodeID, type = 'standard') {
-        this.id = GameState.nextSegmentID++;
-        this.start = startNodeID;
-        this.end = endNodeID;
-        this.type = type;
+    function reflectBall(ball, edge) {
+      const { a, b } = edge;
+      const ex = b.x - a.x;
+      const ey = b.y - a.y;
+      const len = Math.hypot(ex, ey);
+      if (len === 0) return;
+      const ux = ex / len;
+      const uy = ey / len;
+      const nx = -uy, ny = ux;
+      const dot = ball.vx * nx + ball.vy * ny;
+      ball.vx = ball.vx - 2 * dot * nx;
+      ball.vy = ball.vy - 2 * dot * ny;
+    }
 
-        this.width = type === 'dual' ? 8 : type === 'expressway' ? 10 : 4;
-        this.speedLimit = type === 'expressway' ? 160 : 80;
-        this.capacity = type === 'dual' ? 2 : 1;
-        this.carsOnSegment = [];
-      }
+    function circleSegmentCollision(ball, edge) {
+      const { a, b } = edge;
+      const vx = b.x - a.x, vy = b.y - a.y;
+      const wx = ball.x - a.x, wy = ball.y - a.y;
+      const proj = (wx * vx + wy * vy) / (vx * vx + vy * vy);
+      const t = Math.max(0, Math.min(1, proj));
+      const closestX = a.x + t * vx, closestY = a.y + t * vy;
+      const dx = ball.x - closestX, dy = ball.y - closestY;
+      return (dx * dx + dy * dy) <= ball.radius * ball.radius;
+    }
 
-      draw(ctx) {
-        const a = getNodeByID(this.start);
-        const b = getNodeByID(this.end);
-        if (!a || !b) return;
-
-        let color = 'var(--road-standard)';
-        if (this.type === 'dual') color = 'var(--road-dual)';
-        else if (this.type === 'bridge') color = 'var(--road-bridge)';
-        else if (this.type === 'expressway') color = 'var(--road-express)';
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = this.width;
-        if (this.type === 'bridge') ctx.setLineDash([6,6]);
-        else ctx.setLineDash([]);
-
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // If congested, draw a semi-transparent red overlay
-        if (this.carsOnSegment.length >= this.capacity) {
-          ctx.strokeStyle = 'var(--warning)';
-          ctx.lineWidth = this.width + 4;
-          ctx.globalAlpha = 0.4;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
+    function reflectBallIfEdgeCollision(ball, polygon) {
+      const edges = getEdges(polygon);
+      for (const edge of edges) {
+        if (circleSegmentCollision(ball, edge)) {
+          reflectBall(ball, edge);
+          // move ball slightly out along new velocity direction
+          const norm = Math.hypot(ball.vx, ball.vy);
+          if (norm > 0) {
+            ball.x += (ball.vx / norm) * ball.radius * 0.1;
+            ball.y += (ball.vy / norm) * ball.radius * 0.1;
+          }
         }
       }
     }
 
-    class Intersection {
-      constructor(x, y, type = '4way') {
-        this.id = GameState.nextIntersectionID++;
-        this.x = x; this.y = y;
-        this.type = type; // '4way' or 'roundabout'
-        this.queue = [];
+    function pointInPolygon(pt, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i].x, yi = poly[i].y;
+        const xj = poly[j].x, yj = poly[j].y;
+        const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+          (pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
       }
+      return inside;
+    }
 
-      draw(ctx) {
-        if (this.type === 'roundabout') {
-          ctx.strokeStyle = 'var(--road-dual)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
-          ctx.stroke();
-        }
+    function onSegment(p, q, r) {
+      return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+             q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
+    }
 
-        if (this.queue.length > 0) {
-          ctx.fillStyle = 'var(--warning)';
-          ctx.font = '11px Helvetica Neue';
-          ctx.textAlign = 'center';
-          ctx.fillText(this.queue.length.toString(), this.x, this.y - 16);
-        }
+    function orient(a, b, c) {
+      return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    }
+
+    function segmentsIntersect(p1, p2, p3, p4) {
+      const o1 = orient(p1, p2, p3);
+      const o2 = orient(p1, p2, p4);
+      const o3 = orient(p3, p4, p1);
+      const o4 = orient(p3, p4, p2);
+
+      if (o1 === 0 && onSegment(p1, p3, p2)) return true;
+      if (o2 === 0 && onSegment(p1, p4, p2)) return true;
+      if (o3 === 0 && onSegment(p3, p1, p4)) return true;
+      if (o4 === 0 && onSegment(p3, p2, p4)) return true;
+
+      if ((o1 > 0 && o2 < 0 || o1 < 0 && o2 > 0) &&
+          (o3 > 0 && o4 < 0 || o3 < 0 && o4 > 0)) {
+        return true;
+      }
+      return false;
+    }
+
+    function lineIntersectsPolygon(a, b, poly) {
+      if (pointInPolygon(a, poly) || pointInPolygon(b, poly)) return true;
+      for (let i = 0; i < poly.length; i++) {
+        const c = poly[i];
+        const d = poly[(i + 1) % poly.length];
+        if (segmentsIntersect(a, b, c, d)) return true;
+      }
+      return false;
+    }
+
+    function getCanvasCoords(evt) {
+      const rect = GAME.canvas.getBoundingClientRect();
+      const scaleX = GAME.canvas.width / rect.width;
+      const scaleY = GAME.canvas.height / rect.height;
+      let clientX, clientY;
+      if (evt.touches && evt.touches.length > 0) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+      } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+      }
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+      return { x, y };
+    }
+
+    // ==== POLYGON CLIPPING ====
+    function cutPolygon(playfield, sliceLine) {
+      const thickness = 2; // px
+      const dx = sliceLine[1].x - sliceLine[0].x;
+      const dy = sliceLine[1].y - sliceLine[0].y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1) return [playfield];
+
+      const nx = -dy / len, ny = dx / len;
+      const p1 = { x: sliceLine[0].x + nx * thickness, y: sliceLine[0].y + ny * thickness };
+      const p2 = { x: sliceLine[1].x + nx * thickness, y: sliceLine[1].y + ny * thickness };
+      const p3 = { x: sliceLine[1].x - nx * thickness, y: sliceLine[1].y - ny * thickness };
+      const p4 = { x: sliceLine[0].x - nx * thickness, y: sliceLine[0].y - ny * thickness };
+      const cutPoly = [p1, p2, p3, p4];
+
+      const subj = toClipper([playfield]);
+      const clip = toClipper([cutPoly]);
+      const cpr = new ClipperLib.Clipper();
+      cpr.AddPaths(subj, ClipperLib.PolyType.ptSubject, true);
+      cpr.AddPaths(clip, ClipperLib.PolyType.ptClip, true);
+      const solution = new ClipperLib.Paths();
+      cpr.Execute(
+        ClipperLib.ClipType.ctDifference,
+        solution,
+        ClipperLib.PolyFillType.pftNonZero,
+        ClipperLib.PolyFillType.pftNonZero
+      );
+      if (solution.length === 0) return [];
+      return fromClipper(solution);
+    }
+
+    // ==== LEVEL MANAGEMENT ====
+    function setupLevel(i) {
+      GAME.level = i;
+      GAME.lives = 3;
+      GAME.playfield = [
+        { x: 0, y: 0 },
+        { x: GAME.width, y: 0 },
+        { x: GAME.width, y: GAME.height },
+        { x: 0, y: GAME.height }
+      ];
+      GAME.initialArea = polygonArea(GAME.playfield);
+      GAME.remainingArea = 1;
+      GAME.targetPercent = Math.min(90, 70 + i * 2);
+
+      // Initialize balls
+      GAME.balls = [];
+      const ballCount = 1 + Math.floor(i / 2);
+      for (let b = 0; b < ballCount; b++) {
+        const radius = 10;
+        const x = radius + Math.random() * (GAME.width - 2 * radius);
+        const y = radius + Math.random() * (GAME.height - 2 * radius);
+        const speed = 100 + i * 10;
+        const angle = Math.random() * Math.PI * 2;
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        GAME.balls.push({ x, y, vx, vy, radius });
       }
     }
 
-    class Car {
-      constructor(originStationID, targetDestID, path) {
-        this.id = GameState.nextCarID++;
-        this.color = GameState.stations.get(originStationID).color;
-        this.origin = originStationID;
-        this.destination = targetDestID;
-        this.path = path.slice(); // array of node IDs
-        this.currentEdgeIndex = 0;
-        this.progress = 0;
-        this.speed = 0;
-        this.state = 'WAITING';
-        this.spawnTime = performance.now();
-        this.waitDuration = 0;
+    function nextLevel() {
+      GAME.isAnimating = false;
+      setupLevel(GAME.level + 1);
+      // Reset lastTimestamp for smooth animation
+      GAME.lastTimestamp = performance.now();
+    }
+
+    function gameOver() {
+      alert("Game Over! Restarting from Level 1.");
+      setupLevel(0);
+      GAME.lastTimestamp = performance.now();
+    }
+
+    function loseLife() {
+      GAME.lives--;
+      if (GAME.lives <= 0) {
+        GAME.isCutting = false;
+        GAME.slice = null;
+        gameOver();
       }
+    }
 
-      update(deltaTime) {
-        if (this.state === 'WAITING') {
-          if (this.currentEdgeIndex >= this.path.length - 1) {
-            this.deliverCar();
-            return;
-          }
-          const curr = this.path[this.currentEdgeIndex];
-          const nxt = this.path[this.currentEdgeIndex + 1];
-          const seg = findSegmentBetween(curr, nxt);
-          if (seg && seg.carsOnSegment.length < seg.capacity) {
-            const st = GameState.stations.get(this.origin);
-            if (st) st.removeCarFromQueue(this.id);
-            this.state = 'MOVING';
-            this.speed = seg.speedLimit;
-            seg.carsOnSegment.push(this.id);
-            this.progress = 0;
-          } else {
-            this.waitDuration += deltaTime;
-          }
-        }
-        else if (this.state === 'MOVING') {
-          const curr = this.path[this.currentEdgeIndex];
-          const nxt = this.path[this.currentEdgeIndex + 1];
-          const seg = findSegmentBetween(curr, nxt);
-          if (!seg) {
-            GameState.cars.delete(this.id);
-            return;
-          }
-          const a = getNodeByID(curr);
-          const b = getNodeByID(nxt);
-          const dx = b.x - a.x, dy = b.y - a.y;
-          const length = Math.hypot(dx, dy);
-          const travelTime = length / seg.speedLimit;
-          this.progress += deltaTime / travelTime;
-
-          if (this.progress >= 1) {
-            const idx = seg.carsOnSegment.indexOf(this.id);
-            if (idx > -1) seg.carsOnSegment.splice(idx, 1);
-            this.currentEdgeIndex++;
-            if (this.currentEdgeIndex >= this.path.length - 1) {
-              this.deliverCar();
-            } else {
-              const nextNext = this.path[this.currentEdgeIndex + 1];
-              const nextSeg = findSegmentBetween(this.path[this.currentEdgeIndex], nextNext);
-              if (nextSeg && nextSeg.carsOnSegment.length < nextSeg.capacity) {
-                this.state = 'MOVING';
-                this.speed = nextSeg.speedLimit;
-                nextSeg.carsOnSegment.push(this.id);
-                this.progress = 0;
-              } else {
-                this.state = 'QUEUED';
-                this.progress = 0;
-              }
-            }
-          }
-        }
-        else if (this.state === 'QUEUED') {
-          const curr = this.path[this.currentEdgeIndex];
-          const nxt = this.path[this.currentEdgeIndex + 1];
-          const nextSeg = findSegmentBetween(curr, nxt);
-          if (nextSeg && nextSeg.carsOnSegment.length < nextSeg.capacity) {
-            this.state = 'MOVING';
-            this.speed = nextSeg.speedLimit;
-            nextSeg.carsOnSegment.push(this.id);
-            this.progress = 0;
-          } else {
-            this.waitDuration += deltaTime;
-          }
-        }
+    function onLevelComplete() {
+      GAME.isAnimating = true;
+      const pf = GAME.playfield;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const p of pf) {
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y);
+        maxY = Math.max(maxY, p.y);
       }
+      const boxW = maxX - minX, boxH = maxY - minY;
+      const scaleX = GAME.width / boxW;
+      const scaleY = GAME.height / boxH;
+      const finalScale = Math.min(scaleX, scaleY);
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const tx = GAME.width / 2 - centerX * finalScale;
+      const ty = GAME.height / 2 - centerY * finalScale;
 
-      deliverCar() {
-        GameState.score++;
-        GameState.deliveredCount++;
-        GameState.totalWaitTime += (performance.now() - this.spawnTime) / 1000;
-        GameState.cars.delete(this.id);
-        updateUI();
-      }
+      const duration = 0.5; // seconds
+      let startTime = null;
 
-      draw(ctx) {
-        let x, y;
-        if (this.state === 'WAITING') {
-          const st = GameState.stations.get(this.origin);
-          if (st) {
-            const qp = st.queue.indexOf(this.id);
-            x = st.x + ((qp % 3) - 1) * 6;
-            y = st.y + Math.floor(qp / 3) * 6 + 16;
-          }
+      function scaleAnimationStep(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const t = (timestamp - startTime) / 1000;
+        const elapsed = Math.min(duration, t);
+        const frac = elapsed / duration;
+
+        const curScale = 1 + (finalScale - 1) * frac;
+        const curTx = tx * frac;
+        const curTy = ty * frac;
+
+        GAME.ctx.clearRect(0, 0, GAME.width, GAME.height);
+        GAME.ctx.save();
+        GAME.ctx.setTransform(curScale, 0, 0, curScale, curTx, curTy);
+
+        // Draw scaled playfield
+        GAME.ctx.fillStyle = "#222";
+        GAME.ctx.strokeStyle = "#888";
+        GAME.ctx.lineWidth = 2 / curScale;
+        GAME.ctx.beginPath();
+        GAME.ctx.moveTo(pf[0].x, pf[0].y);
+        for (let i = 1; i < pf.length; i++) {
+          GAME.ctx.lineTo(pf[i].x, pf[i].y);
+        }
+        GAME.ctx.closePath();
+        GAME.ctx.fill();
+        GAME.ctx.stroke();
+
+        // Draw balls inside (scaled)
+        for (const ball of GAME.balls) {
+          GAME.ctx.beginPath();
+          GAME.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+          GAME.ctx.fillStyle = "#f06";
+          GAME.ctx.fill();
+          GAME.ctx.strokeStyle = "#fff";
+          GAME.ctx.lineWidth = 1 / curScale;
+          GAME.ctx.stroke();
+        }
+
+        GAME.ctx.restore();
+
+        if (elapsed < duration) {
+          requestAnimationFrame(scaleAnimationStep);
         } else {
-          const curr = this.path[this.currentEdgeIndex];
-          const nxt = this.path[this.currentEdgeIndex + 1];
-          const a = getNodeByID(curr);
-          const b = getNodeByID(nxt);
-          if (a && b) {
-            const dx = b.x - a.x, dy = b.y - a.y;
-            x = a.x + dx * Math.min(this.progress, 1);
-            y = a.y + dy * Math.min(this.progress, 1);
+          nextLevel();
+        }
+      }
+
+      requestAnimationFrame(scaleAnimationStep);
+    }
+
+    // ==== GAME LOOP ====
+    function update(delta) {
+      if (GAME.isAnimating) return;
+
+      // Move and bounce balls
+      for (const ball of GAME.balls) {
+        ball.x += ball.vx * delta;
+        ball.y += ball.vy * delta;
+        reflectBallIfEdgeCollision(ball, GAME.playfield);
+      }
+
+      // If slicing, check for ball-slice collisions
+      if (GAME.isCutting && GAME.slice) {
+        for (const ball of GAME.balls) {
+          if (circleSegmentCollision(ball, { a: GAME.slice.start, b: GAME.slice.end })) {
+            loseLife();
+            GAME.isCutting = false;
+            GAME.slice = null;
+            break;
           }
         }
-        if (x !== undefined && y !== undefined) {
-          ctx.fillStyle = this.color;
-          ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    // ------------------------------
-    //    UTILITY / PATHFINDING
-    // ------------------------------
-    function getNodeByID(id) {
-      return GameState.stations.get(id)
-        || GameState.destinations.get(id)
-        || GameState.intersections.get(id);
-    }
-
-    function findSegmentBetween(aID, bID) {
-      for (const seg of GameState.roadSegments.values()) {
-        if ((seg.start === aID && seg.end === bID)
-         || (seg.start === bID && seg.end === aID)) {
-          return seg;
-        }
-      }
-      return null;
-    }
-
-    function computeShortestPath(startID, destID) {
-      // Simple BFS (all edges equal weight)
-      const queue = [[startID]];
-      const visited = new Set([startID]);
-      while (queue.length) {
-        const path = queue.shift();
-        const current = path[path.length - 1];
-        if (current === destID) return path;
-        for (const seg of GameState.roadSegments.values()) {
-          let neighbor = null;
-          if (seg.start === current) neighbor = seg.end;
-          else if (seg.end === current) neighbor = seg.start;
-          if (neighbor != null && !visited.has(neighbor)) {
-            visited.add(neighbor);
-            queue.push([...path, neighbor]);
-          }
-        }
-      }
-      return null;
-    }
-
-    function distance(x1, y1, x2, y2) {
-      return Math.hypot(x2 - x1, y2 - y1);
-    }
-
-    function getRandomColor() {
-      return COLORS[Math.floor(Math.random() * COLORS.length)];
-    }
-
-    function findValidPosition(minDist = 80) {
-      const attempts = 50;
-      for (let i = 0; i < attempts; i++) {
-        const x = Math.random() * (canvas.width - 100) + 50;
-        const y = Math.random() * (canvas.height - 200) + 100;
-        let ok = true;
-        for (const st of GameState.stations.values()) {
-          if (distance(x, y, st.x, st.y) < minDist) { ok = false; break; }
-        }
-        if (!ok) continue;
-        for (const dest of GameState.destinations.values()) {
-          if (distance(x, y, dest.x, dest.y) < minDist) { ok = false; break; }
-        }
-        if (ok) return { x, y };
-      }
-      return { x: canvas.width / 2, y: canvas.height / 2 };
-    }
-
-    // ------------------------------
-    //    SPAWN & GAME LOGIC
-    // ------------------------------
-    function spawnStation() {
-      const pos = findValidPosition();
-      const color = getRandomColor();
-      const station = new Station(pos.x, pos.y, color);
-      GameState.stations.set(station.id, station);
-      updateTooltip(`New ${color} house appeared`);
-    }
-
-    function spawnDestination() {
-      const pos = findValidPosition();
-      const color = getRandomColor();
-      const dest = new Destination(pos.x, pos.y, color);
-      GameState.destinations.set(dest.id, dest);
-      updateTooltip(`New ${color} destination opened`);
-    }
-
-    function spawnAllHouseCars() {
-      for (const station of GameState.stations.values()) {
-        station.spawnTimer += PASSENGER_SPAWN_INTERVAL;
-        if (station.spawnTimer >= station.spawnInterval) {
-          station.spawnCar();
-          station.spawnTimer = 0;
-        }
-      }
-    }
-
-    function updateGameLogic(deltaTime) {
-      if (GameState.isPaused || GameState.isGameOver) return;
-
-      stationSpawnTimer += deltaTime;
-      destinationSpawnTimer += deltaTime;
-      passengerSpawnTimer += deltaTime;
-      weekTimer += deltaTime;
-
-      if (stationSpawnTimer >= STATION_SPAWN_INTERVAL) {
-        spawnStation();
-        stationSpawnTimer = 0;
-      }
-      if (destinationSpawnTimer >= DESTINATION_SPAWN_INTERVAL) {
-        spawnDestination();
-        destinationSpawnTimer = 0;
-      }
-      if (passengerSpawnTimer >= PASSENGER_SPAWN_INTERVAL) {
-        spawnAllHouseCars();
-        passengerSpawnTimer = 0;
-      }
-      if (weekTimer >= REAL_SECONDS_PER_WEEK) {
-        GameState.week++;
-        if (GameState.week > 4) {
-          GameState.week = 1;
-          GameState.month++;
-        }
-        GameState.tokens++;
-        showNotification(`Week ${GameState.week}: +1 Token`);
-        weekTimer = 0;
-        updateUI();
-      }
-
-      for (const car of GameState.cars.values()) {
-        car.update(deltaTime);
       }
     }
 
     function render() {
-      // Clear
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (GAME.isAnimating) return;
+      const ctx = GAME.ctx;
+      ctx.clearRect(0, 0, GAME.width, GAME.height);
 
-      // Grid
-      ctx.strokeStyle = 'var(--grid-line)';
-      ctx.lineWidth = 1;
-      const gs = 50;
-      for (let x = 0; x < canvas.width; x += gs) {
+      // Draw playfield
+      ctx.fillStyle = "#222";
+      ctx.strokeStyle = "#888";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const pf = GAME.playfield;
+      ctx.moveTo(pf[0].x, pf[0].y);
+      for (let i = 1; i < pf.length; i++) {
+        ctx.lineTo(pf[i].x, pf[i].y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw balls
+      for (const ball of GAME.balls) {
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "#f06";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1;
         ctx.stroke();
       }
-      for (let y = 0; y < canvas.height; y += gs) {
+
+      // Draw slice line if active
+      if (GAME.isCutting && GAME.slice) {
+        ctx.strokeStyle = "#0f0";
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.moveTo(GAME.slice.start.x, GAME.slice.start.y);
+        ctx.lineTo(GAME.slice.end.x, GAME.slice.end.y);
         ctx.stroke();
       }
 
-      // Draw roads
-      for (const seg of GameState.roadSegments.values()) {
-        seg.draw(ctx);
-      }
-
-      // Preview line
-      if (GameState.previewLine) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-        ctx.lineWidth = 4;
-        ctx.setLineDash([5,5]);
-        ctx.beginPath();
-        ctx.moveTo(GameState.previewLine.startX, GameState.previewLine.startY);
-        ctx.lineTo(GameState.previewLine.endX, GameState.previewLine.endY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // Intersections
-      for (const inter of GameState.intersections.values()) {
-        inter.draw(ctx);
-      }
-
-      // Nodes
-      for (const st of GameState.stations.values()) st.draw(ctx);
-      for (const dest of GameState.destinations.values()) dest.draw(ctx);
-
-      // Cars
-      for (const car of GameState.cars.values()) car.draw(ctx);
+      drawUI();
     }
 
-    function gameLoop(ts) {
-      const dt = Math.min((ts - lastTime) / 1000, 0.05);
-      lastTime = ts;
-      updateGameLogic(dt);
+    function loop(timestamp) {
+      if (!GAME.lastTimestamp) GAME.lastTimestamp = timestamp;
+      const delta = (timestamp - GAME.lastTimestamp) / 1000;
+      GAME.lastTimestamp = timestamp;
+
+      update(delta);
       render();
-      requestAnimationFrame(gameLoop);
+      requestAnimationFrame(loop);
     }
 
-    // ------------------------------
-    //    UI CONTROL FUNCTIONS
-    // ------------------------------
-    function updateUI() {
-      document.getElementById('weekDisplay').textContent = GameState.week;
-      document.getElementById('monthDisplay').textContent = GameState.month;
-      document.getElementById('scoreDisplay').textContent = GameState.score;
-      document.getElementById('tokensDisplay').textContent = GameState.tokens;
-
-      const hasTokens = GameState.tokens > 0;
-      document.getElementById('roadBtn').disabled = !hasTokens;
-      document.getElementById('dualBtn').disabled = !hasTokens || GameState.roadSegments.size === 0;
-      document.getElementById('roundaboutBtn').disabled = !hasTokens || GameState.intersections.size === 0;
-      document.getElementById('bridgeBtn').disabled = !hasTokens;
-      document.getElementById('expresswayBtn').disabled = !hasTokens;
+    // ==== INPUT HANDLERS ====
+    function onPointerDown(evt) {
+      if (GAME.isAnimating) return;
+      const { x, y } = getCanvasCoords(evt);
+      GAME.isCutting = true;
+      GAME.slice = { start: { x, y }, end: { x, y } };
+      evt.preventDefault();
     }
 
-    function toggleResourcePanel() {
-      const panel = document.getElementById('resourcePanel');
-      panel.classList.toggle('open');
+    function onPointerMove(evt) {
+      if (!GAME.isCutting || GAME.isAnimating) return;
+      const { x, y } = getCanvasCoords(evt);
+      GAME.slice.end.x = x;
+      GAME.slice.end.y = y;
+      evt.preventDefault();
     }
 
-    function selectResource(type) {
-      GameState.selectedResource = type;
-      updateTooltip(`Selected: ${type}. Click a node to start.`);
+    function onPointerUp(evt) {
+      if (!GAME.isCutting || GAME.isAnimating) return;
+      const { x, y } = getCanvasCoords(evt);
+      GAME.slice.end.x = x;
+      GAME.slice.end.y = y;
+      GAME.isCutting = false;
+
+      attemptSlice(GAME.slice.start, GAME.slice.end);
+      GAME.slice = null;
+      evt.preventDefault();
     }
 
-    function togglePause() {
-      GameState.isPaused = !GameState.isPaused;
-      document.getElementById('pauseModal').classList.toggle('show', GameState.isPaused);
-      if (!GameState.isPaused) updateTooltip('Back to building!');
-    }
+    function attemptSlice(start, end) {
+      if (!lineIntersectsPolygon(start, end, GAME.playfield)) return;
+      const resultPolys = cutPolygon(GAME.playfield, [start, end]);
+      if (resultPolys.length === 0) return;
+      const newPlay = keepLargest(resultPolys);
+      const newArea = polygonArea(newPlay);
+      GAME.remainingArea = newArea / GAME.initialArea;
+      GAME.playfield = newPlay;
 
-    function restartGame() {
-      document.getElementById('pauseModal').classList.remove('show');
-      document.getElementById('gameOverModal').classList.remove('show');
-      initGame();
-    }
-
-    function toggleGuide() {
-      const gm = document.getElementById('guideModal');
-      gm.classList.toggle('show');
-      GameState.isPaused = gm.classList.contains('show');
-      updateTooltip(gm.classList.contains('show') ? '' : 'Back to building!');
-    }
-
-    function updateTooltip(txt) {
-      document.getElementById('tooltipText').textContent = txt;
-    }
-
-    function showNotification(txt) {
-      const notif = document.getElementById('notification');
-      notif.textContent = txt;
-      notif.classList.add('show');
-      setTimeout(() => notif.classList.remove('show'), 2000);
-    }
-
-    function endGame(reason) {
-      GameState.isGameOver = true;
-      document.getElementById('gameOverReason').textContent = reason;
-      const weeks = (GameState.month - 1) * 4 + GameState.week;
-      document.getElementById('finalWeeks').textContent = weeks;
-      document.getElementById('finalScore').textContent = GameState.score;
-      const avg = GameState.deliveredCount
-        ? (GameState.totalWaitTime / GameState.deliveredCount).toFixed(1)
-        : '0.0';
-      document.getElementById('avgCommute').textContent = avg;
-      document.getElementById('gameOverModal').classList.add('show');
-    }
-
-    // ------------------------------
-    //    MOUSE & BUILDING LOGIC
-    // ------------------------------
-    canvas.addEventListener('mousedown', (e) => {
-      if (GameState.isPaused || GameState.isGameOver) return;
-
-      GameState.mousePos.x = e.clientX;
-      GameState.mousePos.y = e.clientY;
-      const r = GameState.selectedResource;
-
-      // If building roads, pick a node under cursor
-      if (r === 'road' || r === 'bridge' || r === 'expressway') {
-        for (const node of [
-          ...GameState.stations.values(),
-          ...GameState.destinations.values(),
-          ...GameState.intersections.values()
-        ]) {
-          if (distance(e.clientX, e.clientY, node.x, node.y) <= 20) {
-            GameState.selectedNode = node;
-            GameState.previewLine = {
-              startX: node.x,
-              startY: node.y,
-              endX: e.clientX,
-              endY: e.clientY
-            };
-            return;
-          }
-        }
+      const cutPct = (1 - GAME.remainingArea) * 100;
+      if (cutPct >= GAME.targetPercent) {
+        onLevelComplete();
       }
-      // If upgrading roads
-      else if (r === 'dual') {
-        for (const seg of GameState.roadSegments.values()) {
-          const a = getNodeByID(seg.start), b = getNodeByID(seg.end);
-          const proj = projectOnSegment(a.x, a.y, b.x, b.y, e.clientX, e.clientY);
-          if (distance(e.clientX, e.clientY, proj.x, proj.y) <= 6) {
-            if (GameState.tokens >= 1 && seg.type === 'standard') {
-              seg.type = 'dual';
-              seg.width = 8;
-              seg.speedLimit += 10;
-              seg.capacity = 2;
-              GameState.tokens--;
-              updateUI();
-              showNotification('Road upgraded to dual lane');
-            }
-            return;
-          }
-        }
-      }
-      // If upgrading intersections
-      else if (r === 'roundabout') {
-        for (const inter of GameState.intersections.values()) {
-          if (distance(e.clientX, e.clientY, inter.x, inter.y) <= 15
-              && GameState.tokens >= 2 && inter.type === '4way') {
-            inter.type = 'roundabout';
-            GameState.tokens -= 2;
-            updateUI();
-            showNotification('Intersection upgraded to roundabout');
-            return;
-          }
-        }
-      }
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-      GameState.mousePos.x = e.clientX;
-      GameState.mousePos.y = e.clientY;
-      if (GameState.previewLine) {
-        GameState.previewLine.endX = e.clientX;
-        GameState.previewLine.endY = e.clientY;
-      }
-    });
-
-    canvas.addEventListener('mouseup', (e) => {
-      if (GameState.isPaused || GameState.isGameOver) {
-        GameState.previewLine = null;
-        GameState.selectedNode = null;
-        return;
-      }
-      const { x, y } = GameState.mousePos;
-      const r = GameState.selectedResource;
-
-      if (GameState.previewLine && GameState.selectedNode) {
-        let target = null;
-        for (const node of [
-          ...GameState.stations.values(),
-          ...GameState.destinations.values(),
-          ...GameState.intersections.values()
-        ]) {
-          if (node !== GameState.selectedNode
-              && distance(x, y, node.x, node.y) <= 20) {
-            target = node;
-            break;
-          }
-        }
-        if (target && GameState.tokens > 0) {
-          let type = 'standard';
-          if (r === 'bridge') type = 'bridge';
-          else if (r === 'expressway') {
-            const dx = Math.abs(target.x - GameState.selectedNode.x);
-            const dy = Math.abs(target.y - GameState.selectedNode.y);
-            if (dx < dy * 0.1) type = 'expressway';
-            else if (dy < dx * 0.1) type = 'expressway';
-            else {
-              updateTooltip('Expressway must be straight horizontal or vertical.');
-              GameState.previewLine = null;
-              GameState.selectedNode = null;
-              return;
-            }
-          }
-          if (!findSegmentBetween(GameState.selectedNode.id, target.id)) {
-            const seg = new RoadSegment(GameState.selectedNode.id, target.id, type);
-            GameState.roadSegments.set(seg.id, seg);
-            // If node now has 3+ connections → create intersection
-            [GameState.selectedNode, target].forEach(node => {
-              let cnt = 0;
-              for (const s of GameState.roadSegments.values()) {
-                if (s.start === node.id || s.end === node.id) cnt++;
-              }
-              if (cnt >= 3 && !GameState.intersections.has(node.id)) {
-                const inter = new Intersection(node.x, node.y, '4way');
-                GameState.intersections.set(inter.id, inter);
-              }
-            });
-            GameState.tokens--;
-            updateUI();
-            showNotification('Road built');
-          }
-        }
-      }
-
-      GameState.previewLine = null;
-      GameState.selectedNode = null;
-    });
-
-    function projectOnSegment(x1,y1,x2,y2,px,py) {
-      const dx = x2 - x1, dy = y2 - y1;
-      const len2 = dx*dx + dy*dy;
-      if (len2 === 0) return { x: x1, y: y1 };
-      let t = ((px - x1)*dx + (py - y1)*dy) / len2;
-      t = Math.max(0, Math.min(1, t));
-      return { x: x1 + t*dx, y: y1 + t*dy };
     }
 
-    // ------------------------------
-    //     GAME INITIALIZATION
-    // ------------------------------
-    function initGame() {
-      GameState.stations.clear();
-      GameState.destinations.clear();
-      GameState.roadSegments.clear();
-      GameState.intersections.clear();
-      GameState.cars.clear();
-      GameState.nextStationID = 1;
-      GameState.nextDestinationID = 1;
-      GameState.nextSegmentID = 1;
-      GameState.nextIntersectionID = 1;
-      GameState.nextCarID = 1;
-      GameState.score = 0;
-      GameState.totalWaitTime = 0;
-      GameState.deliveredCount = 0;
-      GameState.week = 1;
-      GameState.month = 1;
-      GameState.isGameOver = false;
-      GameState.isPaused = false;
-      GameState.tokens = 2;
-      GameState.selectedResource = null;
-      GameState.selectedNode = null;
-      GameState.previewLine = null;
-      GameState.mousePos = { x:0, y:0 };
-
-      stationSpawnTimer = 0;
-      destinationSpawnTimer = 0;
-      passengerSpawnTimer = 0;
-      weekTimer = 0;
-
-      // Spawn initial nodes
-      for (let i = 0; i < 3; i++) spawnStation();
-      for (let i = 0; i < 2; i++) spawnDestination();
-
-      updateUI();
-      updateTooltip('Click a node and drag to build roads.');
+    // ==== UI DRAW ====
+    function drawUI() {
+      const ctx = GAME.ctx;
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("Lives: " + GAME.lives, 20, 30);
+      const pct = Math.round((1 - GAME.remainingArea) * 100);
+      ctx.fillText(pct + "% cut", GAME.width - 100, 30);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      resizeCanvas();
-      initGame();
-      document.getElementById('guideModal').classList.add('show');
-      lastTime = performance.now();
-      requestAnimationFrame(gameLoop);
-    });
+    // ==== INITIALIZATION ====
+    function init() {
+      GAME.canvas = document.getElementById("gameCanvas");
+      GAME.ctx = GAME.canvas.getContext("2d");
+
+      GAME.canvas.width = GAME.width;
+      GAME.canvas.height = GAME.height;
+
+      setupLevel(0);
+
+      GAME.canvas.addEventListener("mousedown", onPointerDown);
+      GAME.canvas.addEventListener("mousemove", onPointerMove);
+      GAME.canvas.addEventListener("mouseup", onPointerUp);
+      GAME.canvas.addEventListener("mouseleave", onPointerUp);
+
+      GAME.canvas.addEventListener("touchstart", onPointerDown);
+      GAME.canvas.addEventListener("touchmove", onPointerMove);
+      GAME.canvas.addEventListener("touchend", onPointerUp);
+
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("load", init);
   </script>
 </body>
 </html>
+```
