@@ -731,20 +731,18 @@
 
         function endGame() {
             gameRunning=false;
-            const isNew = score>bestScore;
-            if (isNew) {
-                bestScore=score;
-                saveBestScore();
-                document.getElementById('new-best').style.display='block';
-            } else {
-                document.getElementById('new-best').style.display='none';
-            }
+            const isNew = false; // no immediate best update here
             document.getElementById('final-score').textContent=score;
             document.getElementById('game-over-modal').style.display='flex';
             playSound(220,0.5,'sawtooth');
         }
 
         function updateUI() {
+            // Update bestScore immediately when score surpasses it
+            if (score > bestScore) {
+                bestScore = score;
+                saveBestScore();
+            }
             document.getElementById('score').textContent=score;
             document.getElementById('streak').textContent=streak;
             document.getElementById('best').textContent=bestScore;
