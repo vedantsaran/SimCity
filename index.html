@@ -19,7 +19,7 @@
       justify-content: center;
       align-items: center;
       overflow-x: hidden;
-      position: relative; /* For absolute popups */
+      position: relative;
     }
     #game-container {
       display: flex;
@@ -118,6 +118,10 @@
       background: rgba(255, 76, 76, 0.3) !important;
       border: 2px solid #FF4C4C;
     }
+    .cell.drop-clear {
+      background: rgba(255, 215, 0, 0.4) !important;
+      border: 2px solid #FFD700;
+    }
 
     @keyframes explode {
       0%   { transform: scale(1); opacity: 1; }
@@ -128,7 +132,6 @@
       animation: explode 0.25s ease-out forwards;
     }
 
-    /* Colors */
     .color-red    { background: linear-gradient(135deg, #FF4C4C, #C62828); }
     .color-green  { background: linear-gradient(135deg, #4CFF4C, #2E7D32); }
     .color-blue   { background: linear-gradient(135deg, #4C4CFF, #1565C0); }
@@ -213,7 +216,6 @@
       50%      { border-color: #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
     }
 
-    /* New: Popup for points gained */
     .score-popup {
       position: fixed;
       top: 50%;
@@ -342,7 +344,6 @@
   </div>
 
   <script>
-    // Game State
     let board = [];
     let upcomingPieces = [];
     let score = 0;
@@ -355,7 +356,6 @@
     let selectedPieceIndex = -1;
     let clearGrace = 0;
 
-    // Shapes (including longer shapes)
     const SHAPES = {
       single: [[0,0]],
       dominoH: [[0,0],[1,0]],
@@ -388,7 +388,6 @@
     const COLORS = ['red','green','blue','yellow','purple','orange'];
     const SHAPE_KEYS = Object.keys(SHAPES);
 
-    // Audio
     let audioContext;
     function initAudio() {
       try {
@@ -411,7 +410,6 @@
       osc.stop(audioContext.currentTime + dur);
     }
 
-    // Initialize game
     function initGame() {
       initAudio();
       loadBestScore();
@@ -448,12 +446,10 @@
       return { shape: SHAPES[key], color: color, id: Date.now() + Math.random() };
     }
 
-    // Deep copy board
     function copyBoard(src) {
       return src.map(row => row.slice());
     }
 
-    // Find full rows/columns on a simulated board
     function findFullLinesOnBoard(boardState) {
       const fullRows = [];
       const fullCols = [];
@@ -484,7 +480,6 @@
       });
     }
 
-    // Check if a trio of pieces is solvable
     function isTrioSolvable(pieces, currentBoard) {
       const perms = [
         [0,1,2],[0,2,1],[1,0,2],
@@ -496,7 +491,6 @@
         for (let idx of perm) {
           const piece = pieces[idx];
           let placed = false;
-          // Try every cell
           for (let r = 0; r < 8 && !placed; r++) {
             for (let c = 0; c < 8 && !placed; c++) {
               const [sr, sc] = getAnchorPosition(piece.shape, r, c);
@@ -589,7 +583,6 @@
       return container;
     }
 
-    // Compute anchor for a shape given a target cell
     function getAnchorPosition(shape, targetRow, targetCol) {
       const { minX, minY, width, height } = getPieceBounds(shape);
       const dxCenter = minX + Math.floor(width / 2);
@@ -668,33 +661,20 @@
       const { fullRows, fullCols } = findFullLines();
       const totalLines = fullRows.length + fullCols.length;
       if (totalLines > 0) {
-        // Compute base points
         const clearedBlocks = clearLines(fullRows, fullCols);
         const basePts = clearedBlocks * 10;
-
-        // Compute multiplier based on number of lines cleared
         let mul = 1;
         if (totalLines >= 4) mul = 2.5;
         else if (totalLines >= 3) mul = 2.0;
         else if (totalLines >= 2) mul = 1.5;
-
-        // Increase streak before calculating the final points
         streak++;
         clearGrace = 3;
-
-        // Final points incorporate streak multiplier
         const pts = Math.floor(basePts * mul) * streak;
         score += pts;
-
-        // Bonus for every 5th streak
         if (streak % 5 === 0) {
           score += 500;
         }
-
-        // Show pop-up of points gained
         showScorePopup(pts);
-
-        // If multi-line clear, show combo effect
         if (totalLines >= 2) {
           showComboEffect(totalLines, mul);
           document.getElementById('board').classList.add('board-combo');
@@ -702,15 +682,11 @@
             document.getElementById('board').classList.remove('board-combo');
           }, 500);
         }
-
-        // Play different sounds depending on lines
         if (totalLines >= 3) playSound(880, 0.3, 'square');
         else if (totalLines >= 2) playSound(660, 0.2);
         else playSound(550, 0.15);
-
         updateUI();
       } else {
-        // If no lines cleared, decrement grace and maybe reset streak
         if (clearGrace > 0) {
           clearGrace--;
           if (clearGrace === 0) streak = 0;
@@ -812,7 +788,6 @@
         : '🔇 Sound: OFF';
     }
 
-    // Drag/drop state
     let draggedPiece = null;
     let draggedPieceIndex = -1;
 
@@ -821,17 +796,14 @@
       document.getElementById('btn-mute').addEventListener('click', toggleSound);
       document.getElementById('btn-play-again').addEventListener('click', restartGame);
 
-      // Desktop drag/drop
       document.addEventListener('mousedown', handleMouseDown);
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
 
-      // Touch drag/drop
       document.addEventListener('touchstart', handleTouchStart, { passive: false });
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd, { passive: false });
 
-      // Tap-to-place on preview
       document.querySelectorAll('.preview-slot').forEach(slot => {
         slot.addEventListener('click', () => {
           if (!gameRunning) return;
@@ -847,11 +819,10 @@
             selectedPiece = upcomingPieces[idx];
             selectedPieceIndex = idx;
           }
-          document.querySelectorAll('.cell').forEach(c => c.classList.remove('drop-invalid','drop-valid'));
+          document.querySelectorAll('.cell').forEach(c => c.classList.remove('drop-invalid','drop-valid','drop-clear'));
         });
       });
 
-      // Tap-to-place on board
       document.getElementById('board').addEventListener('click', e => {
         if (!gameRunning || !selectedPiece) return;
         const cell = e.target.closest('.cell');
@@ -961,18 +932,47 @@
     }
     function highlightDropZone(x, y) {
       document.querySelectorAll('.cell').forEach(cell => {
-        cell.classList.remove('drop-valid','drop-invalid');
+        cell.classList.remove('drop-valid','drop-invalid','drop-clear');
       });
       const target = document.elementFromPoint(x, y);
       if (target && target.classList.contains('cell') && draggedPiece) {
         const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
         const [sr, sc] = getAnchorPosition(draggedPiece.shape, r, c);
+
         if (isPlacementValid(draggedPiece.shape, sr, sc)) {
+          const tempBoard = copyBoard(board);
+          draggedPiece.shape.forEach(([dx, dy]) => {
+            const rr = sr + dy, cc = sc + dx;
+            tempBoard[rr][cc] = { color: draggedPiece.color, id: draggedPiece.id };
+          });
+          const { fullRows, fullCols } = findFullLinesOnBoard(tempBoard);
+
+          const willClear = fullRows.length > 0 || fullCols.length > 0;
+          const pieceClass = willClear ? 'drop-clear' : 'drop-valid';
           draggedPiece.shape.forEach(([dx, dy]) => {
             const rr = sr + dy, cc = sc + dx;
             const cellEl = document.querySelector(`[data-row="${rr}"][data-col="${cc}"]`);
-            if (cellEl) cellEl.classList.add('drop-valid');
+            if (cellEl) cellEl.classList.add(pieceClass);
           });
+
+          if (willClear) {
+            fullRows.forEach(rowIdx => {
+              for (let colIdx = 0; colIdx < 8; colIdx++) {
+                const cellEl = document.querySelector(`[data-row="${rowIdx}"][data-col="${colIdx}"]`);
+                if (cellEl && !cellEl.classList.contains('occupied')) {
+                  cellEl.classList.add('drop-clear');
+                }
+              }
+            });
+            fullCols.forEach(colIdx => {
+              for (let rowIdx = 0; rowIdx < 8; rowIdx++) {
+                const cellEl = document.querySelector(`[data-row="${rowIdx}"][data-col="${colIdx}"]`);
+                if (cellEl && !cellEl.classList.contains('occupied')) {
+                  cellEl.classList.add('drop-clear');
+                }
+              }
+            });
+          }
         } else {
           target.classList.add('drop-invalid');
         }
@@ -981,7 +981,7 @@
     function attemptDrop(x, y) {
       const fp = document.getElementById('floating-piece');
       if (fp) fp.remove();
-      document.querySelectorAll('.cell').forEach(c => c.classList.remove('drop-valid','drop-invalid'));
+      document.querySelectorAll('.cell').forEach(c => c.classList.remove('drop-valid','drop-invalid','drop-clear'));
       const target = document.elementFromPoint(x, y);
       if (target && target.classList.contains('cell') && draggedPiece) {
         const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
