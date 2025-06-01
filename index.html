@@ -599,9 +599,9 @@
         building.count++;
         this.gameStats.totalBuildings++;
         this.showNotification(`Built ${name}!`);
-        this.updateDisplay();
         this.renderBuildings();
         this.updateColonyLevel();
+        this.updateDisplay();
       }
 
       startResearch(name) {
@@ -612,8 +612,8 @@
         tech.progress = 0;
         this.currentResearch = name;
         this.showNotification(`Started researching ${name}!`);
-        this.updateDisplay();
         this.renderResearch();
+        this.updateDisplay();
       }
 
       formatCost(cost) {
@@ -701,8 +701,11 @@
         // Advance day every 60 real seconds
         this.gameStats.day += 1 / 60;
         this.updateGameStats();
-        this.updateDisplay();
+
+        // Update UI
+        this.renderBuildings();    // <-- Ensure building affordability updates
         this.renderResearch();
+        this.updateDisplay();
       }
 
       startGameLoop() {
