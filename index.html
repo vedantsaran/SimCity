@@ -1,1231 +1,1177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Metro Transit Game</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini Motorways – Traffic Network Builder</title>
+  <style>
+    /* --------------------
+       BASE STYLES
+       -------------------- */
+    :root {
+      --bg-dark: #121212;
+      --bg-panel: #1e1e1e;
+      --fg-light: #e0e0e0;
+      --fg-muted: #888;
+      --accent: #56c0e8;
+      --warning: #e04e4e;
+      --grid-line: rgba(255,255,255,0.05);
+      --road-standard: #444;
+      --road-dual: #555;
+      --road-bridge: #666;
+      --road-express: #ffd700;
+      --house-size: 18px;
+      --dest-size: 20px;
+      font-size: 14px;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background: #1a1a1a;
-            color: white;
-            overflow: hidden;
-            user-select: none;
-        }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        #gameCanvas {
-            display: block;
-            background: #2a2a2a;
-            cursor: crosshair;
-        }
+    body {
+      background: var(--bg-dark);
+      color: var(--fg-light);
+      overflow: hidden;
+      user-select: none;
+    }
 
-        .hud {
-            position: absolute;
-            z-index: 10;
-            pointer-events: none;
-        }
+    button {
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
 
-        .top-bar {
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            pointer-events: auto;
-        }
+    h2, h3 {
+      font-weight: 400;
+    }
 
-        .bottom-bar {
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            font-size: 14px;
-        }
+    /* --------------------
+       CANVAS
+       -------------------- */
+    #gameCanvas {
+      display: block;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      background: var(--bg-dark);
+    }
 
-        .stat-group {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
+    /* --------------------
+       HUD – Top & Bottom Bars
+       -------------------- */
+    .hud {
+      position: fixed;
+      z-index: 100;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      pointer-events: none;
+    }
 
-        .stat {
-            font-weight: bold;
-        }
+    .top-bar {
+      top: 0;
+      height: 56px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--grid-line);
+      pointer-events: auto;
+    }
 
-        .resource-panel {
-            position: absolute;
-            top: 60px;
-            right: -300px;
-            width: 280px;
-            height: calc(100vh - 60px);
-            background: rgba(0, 0, 0, 0.9);
-            transition: right 0.3s ease;
-            padding: 20px;
-            pointer-events: auto;
-        }
+    .bottom-bar {
+      bottom: 0;
+      height: 40px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--grid-line);
+      pointer-events: auto;
+      font-size: 13px;
+      color: var(--fg-muted);
+      padding-left: 16px;
+    }
 
-        .resource-panel.open {
-            right: 0;
-        }
+    .stat-item {
+      margin-right: 24px;
+      display: flex;
+      align-items: center;
+      font-weight: 300;
+      color: var(--fg-light);
+    }
 
-        .resource-button {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            background: #4a4a4a;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
+    .stat-item span {
+      margin-left: 4px;
+      color: var(--accent);
+      font-weight: 500;
+    }
 
-        .resource-button:hover:not(:disabled) {
-            background: #5a5a5a;
-        }
+    .top-controls {
+      display: flex;
+      align-items: center;
+    }
 
-        .resource-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    .top-controls button {
+      margin-left: 12px;
+      background: var(--accent);
+      color: var(--bg-dark);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
 
-        .game-over-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-        }
+    .top-controls button:hover {
+      background: #45abce;
+    }
 
-        .modal-content {
-            background: #333;
-            padding: 30px;
-            border-radius: 10px;
-            text-align: center;
-            max-width: 400px;
-        }
+    /* --------------------
+       RESOURCE PANEL (SLIDE-OUT)
+       -------------------- */
+    .resource-panel {
+      position: fixed;
+      top: 56px;
+      right: -280px;
+      width: 280px;
+      height: calc(100vh - 56px);
+      background: var(--bg-panel);
+      border-left: 1px solid var(--grid-line);
+      padding: 16px;
+      overflow-y: auto;
+      transition: right 0.25s ease;
+      pointer-events: auto;
+    }
 
-        .modal-content h2 {
-            margin-bottom: 20px;
-            color: #ff6b6b;
-        }
+    .resource-panel.open {
+      right: 0;
+    }
 
-        .modal-content p {
-            margin: 10px 0;
-        }
+    .resource-panel h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: var(--fg-light);
+      font-weight: 400;
+    }
 
-        .modal-button {
-            padding: 10px 20px;
-            margin: 10px;
-            background: #4a90e2;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            font-size: 16px;
-        }
+    .resource-button {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--grid-line);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+      text-align: left;
+      color: var(--fg-light);
+      transition: background 0.2s, border-color 0.2s;
+      font-size: 14px;
+      line-height: 1.3;
+    }
 
-        .modal-button:hover {
-            background: #357abd;
-        }
+    .resource-button:hover:not(:disabled) {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--accent);
+    }
 
-        .pause-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-        }
+    .resource-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
 
-        .tutorial-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-        }
+    /* --------------------
+       MODALS (PAUSE, GUIDE, GAME OVER)
+       -------------------- */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(18,18,18,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      pointer-events: auto;
+    }
 
-        .tutorial-content {
-            background: #333;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 500px;
-            text-align: center;
-        }
+    .modal.show {
+      display: flex;
+    }
 
-        .tutorial-step {
-            display: none;
-            margin: 20px 0;
-        }
+    .modal-content {
+      background: var(--bg-panel);
+      border: 1px solid var(--grid-line);
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
 
-        .tutorial-step.active {
-            display: block;
-        }
+    .modal-content h2 {
+      margin-bottom: 16px;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--fg-light);
+    }
 
-        .clickable {
-            pointer-events: auto;
-            cursor: pointer;
-        }
+    .modal-content p {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: var(--fg-light);
+      line-height: 1.4;
+    }
 
-        .notification {
-            position: absolute;
-            top: 70px;
-            right: 20px;
-            background: rgba(74, 144, 226, 0.9);
-            padding: 15px;
-            border-radius: 5px;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            pointer-events: none;
-        }
+    .modal-content ul {
+      text-align: left;
+      margin: 8px 0 16px 0;
+      padding-left: 20px;
+      color: var(--fg-light);
+      font-size: 14px;
+      line-height: 1.4;
+    }
 
-        .notification.show {
-            transform: translateX(0);
-        }
+    .modal-content ul li {
+      margin-bottom: 6px;
+    }
 
-        @media (max-width: 768px) {
-            .top-bar {
-                padding: 0 10px;
-                font-size: 14px;
-            }
-            
-            .stat-group {
-                gap: 10px;
-            }
-            
-            .resource-panel {
-                width: 100%;
-                right: -100%;
-            }
-        }
-    </style>
+    .modal-content button {
+      background: var(--accent);
+      color: var(--bg-dark);
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+      margin-top: 12px;
+    }
+
+    .modal-content button:hover {
+      background: #45abce;
+    }
+
+    .button-danger {
+      background: var(--warning);
+    }
+
+    .button-danger:hover {
+      background: #c13f3f;
+    }
+
+    /* --------------------
+       NOTIFICATION TOAST
+       -------------------- */
+    .notification {
+      position: fixed;
+      top: 72px;
+      right: 16px;
+      background: var(--accent);
+      color: var(--bg-dark);
+      padding: 10px 16px;
+      border-radius: 4px;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: transform 0.3s ease, opacity 0.3s;
+      font-size: 13px;
+      z-index: 150;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    
-    <!-- HUD Elements -->
-    <div class="hud top-bar">
-        <div class="stat-group">
-            <span class="stat">Week: <span id="weekDisplay">1</span></span>
-            <span class="stat">Month: <span id="monthDisplay">1</span></span>
-        </div>
-        <div class="stat-group">
-            <span class="stat">Delivered: <span id="scoreDisplay">0</span></span>
-            <span class="stat clickable" id="tokensDisplay" style="color: #4a90e2;">Tokens: 0</span>
-            <button class="modal-button" id="pauseButton">⏸</button>
-        </div>
+  <!-- CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- TOP BAR -->
+  <div class="hud top-bar">
+    <div style="display: flex; align-items: center;">
+      <div class="stat-item">Week: <span id="weekDisplay">1</span></div>
+      <div class="stat-item">Month: <span id="monthDisplay">1</span></div>
     </div>
-
-    <div class="hud bottom-bar">
-        <span id="tooltipDisplay">
-            Draw lines between stations to connect them. Trains will carry passengers to matching colored stations.
-        </span>
+    <div class="top-controls">
+      <div class="stat-item">Delivered: <span id="scoreDisplay">0</span></div>
+      <div class="stat-item">Tokens: <span id="tokensDisplay">2</span></div>
+      <button onclick="toggleResourcePanel()">🔧 Build</button>
+      <button onclick="togglePause()">⏸ Pause</button>
+      <button title="Guide" onclick="toggleGuide()">❔</button>
     </div>
+  </div>
 
-    <!-- Resource Panel -->
-    <div class="resource-panel" id="resourcePanel">
-        <h3>Spend Resources</h3>
-        <button class="resource-button" id="addTrainBtn" data-cost="1">
-            🚂 Add Train (1 Token)
-            <br><small>Add a new train to an existing line</small>
-        </button>
-        <button class="resource-button" id="addCarriageBtn" data-cost="1">
-            🚃 Add Carriage (1 Token)
-            <br><small>Increase train capacity by 4</small>
-        </button>
-        <button class="resource-button" id="addLineBtn" data-cost="1">
-            📏 New Line (1 Token)
-            <br><small>Unlock ability to draw another line</small>
-        </button>
-        <button class="resource-button" id="addTunnelBtn" data-cost="1">
-            🚇 Tunnel (1 Token)
-            <br><small>Cross barriers with next line segment</small>
-        </button>
-        <button class="resource-button" id="closeResourcePanel">Close</button>
+  <!-- BOTTOM BAR -->
+  <div class="hud bottom-bar">
+    <span id="tooltipText">Click a node and drag to build roads. Keep traffic flowing to avoid gridlock.</span>
+  </div>
+
+  <!-- RESOURCE PANEL -->
+  <div class="hud resource-panel" id="resourcePanel">
+    <h3>Construction</h3>
+    <button class="resource-button" id="roadBtn" onclick="selectResource('road')">
+      <strong>Road (1 Token)</strong><br>
+      Place a standard road segment
+    </button>
+    <button class="resource-button" id="dualBtn" onclick="selectResource('dual')">
+      <strong>Dual Lane (1 Token)</strong><br>
+      Upgrade an existing road to dual lane
+    </button>
+    <button class="resource-button" id="roundaboutBtn" onclick="selectResource('roundabout')">
+      <strong>Roundabout (2 Tokens)</strong><br>
+      Convert a 4-way intersection to a roundabout
+    </button>
+    <button class="resource-button" id="bridgeBtn" onclick="selectResource('bridge')">
+      <strong>Bridge (2 Tokens)</strong><br>
+      Build over water or obstacle
+    </button>
+    <button class="resource-button" id="expresswayBtn" onclick="selectResource('expressway')">
+      <strong>Expressway (3 Tokens)</strong><br>
+      High-speed straight road
+    </button>
+  </div>
+
+  <!-- GUIDE MODAL -->
+  <div class="modal" id="guideModal">
+    <div class="modal-content">
+      <h2>How to Play</h2>
+      <ul>
+        <li>🏠 Houses spawn cars of a matching color; connect them to same-color destinations (circles).</li>
+        <li>🛣️ Click a node (house/destination/intersection), drag to another node, and release to build a road.</li>
+        <li>🚗 Cars automatically follow the shortest path to a matching destination.</li>
+        <li>⚠️ If any house accumulates 12+ queued cars, it overloads and the game ends.</li>
+        <li>🔧 Every week (20s), you gain 1 token. Spend tokens to build roads or upgrades:</li>
+        <ul>
+          <li>• Road (1 Token): Standard single-lane segment.</li>
+          <li>• Dual Lane (1 Token): Upgrade a road’s capacity ×2.</li>
+          <li>• Roundabout (2 Tokens): Smooth a 4-way intersection.</li>
+          <li>• Bridge (2 Tokens): Cross rivers/mountains.</li>
+          <li>• Expressway (3 Tokens): Straight, high-speed road.</li>
+        </ul>
+        <li>💡 Upgrade intersections or build bridges/tunnels to prevent congestion.</li>
+        <li>🚦 Plan ahead—traffic jams spread quickly on a small network.</li>
+      </ul>
+      <button onclick="toggleGuide()">Got It</button>
     </div>
+  </div>
 
-    <!-- Game Over Modal -->
-    <div class="game-over-modal" id="gameOverModal">
-        <div class="modal-content">
-            <h2>Game Over!</h2>
-            <p id="gameOverReason">Station Overloaded</p>
-            <p>Time Survived: <span id="finalWeek">0</span> weeks</p>
-            <p>Passengers Delivered: <span id="finalScore">0</span></p>
-            <p>Average Wait Time: <span id="avgWaitTime">0.0s</span></p>
-            <button class="modal-button" id="restartButton">Restart Game</button>
-        </div>
+  <!-- PAUSE MODAL -->
+  <div class="modal" id="pauseModal">
+    <div class="modal-content">
+      <h2>Game Paused</h2>
+      <p>Take a moment to plan your network.</p>
+      <button onclick="togglePause()">Resume</button>
+      <button class="button-danger" onclick="restartGame()">Restart</button>
+      <button onclick="toggleGuide()">Guide</button>
     </div>
+  </div>
 
-    <!-- Pause Modal -->
-    <div class="pause-modal" id="pauseModal">
-        <div class="modal-content">
-            <h2>Game Paused</h2>
-            <button class="modal-button" id="resumeButton">Resume</button>
-            <button class="modal-button" id="restartFromPauseButton">Restart</button>
-            <button class="modal-button" id="tutorialButton">Tutorial</button>
-        </div>
+  <!-- GAME OVER MODAL -->
+  <div class="modal" id="gameOverModal">
+    <div class="modal-content">
+      <h2>Game Over!</h2>
+      <p id="gameOverReason">A house became overloaded with traffic.</p>
+      <div style="margin: 16px 0; font-size: 14px;">
+        <p>Weeks Survived: <strong id="finalWeeks">0</strong></p>
+        <p>Cars Delivered: <strong id="finalScore">0</strong></p>
+        <p>Average Commute: <strong id="avgCommute">0</strong>s</p>
+      </div>
+      <button onclick="restartGame()">Play Again</button>
     </div>
+  </div>
 
-    <!-- Tutorial Modal -->
-    <div class="tutorial-modal" id="tutorialModal" style="display: none;">
-        <div class="tutorial-content">
-            <div class="tutorial-step active">
-                <h3>Welcome to Mini Metro!</h3>
-                <p>Build an efficient transit network by connecting stations with colored lines.</p>
-                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
-            </div>
-            <div class="tutorial-step">
-                <h3>Drawing Lines</h3>
-                <p>Click and drag from one station to another to create your first line. Trains will automatically run on your lines.</p>
-                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
-            </div>
-            <div class="tutorial-step">
-                <h3>Passengers & Colors</h3>
-                <p>Colored passengers appear at stations and want to travel to stations of matching color. Keep queues short!</p>
-                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
-            </div>
-            <div class="tutorial-step">
-                <h3>Resources & Upgrades</h3>
-                <p>Every week you'll receive tokens. Spend them to add trains, carriages, new lines, and tunnels. Click the 'Tokens' counter to spend.</p>
-                <button class="modal-button" onclick="nextTutorialStep()">Next</button>
-            </div>
-            <div class="tutorial-step">
-                <h3>Win Condition</h3>
-                <p>If any station's queue exceeds 20 passengers, you lose! Build smart and keep traffic flowing.</p>
-                <button class="modal-button" onclick="startGame()">Start Playing!</button>
-            </div>
-        </div>
-    </div>
+  <!-- NOTIFICATION TOAST -->
+  <div class="notification" id="notification"></div>
 
-    <!-- Notification -->
-    <div class="notification" id="notification"></div>
+  <script>
+    // ------------------------------
+    //   GAME STATE & CONFIGURATION
+    // ------------------------------
+    const GameState = {
+      stations: new Map(),
+      destinations: new Map(),
+      roadSegments: new Map(),
+      intersections: new Map(),
+      cars: new Map(),
 
-    <script>
-        // -------------------------
-        // Game Constants
-        // -------------------------
-        const STATION_COLORS = [
-            '#ff6b6b',' #4ecdc4',' #45b7d1',' #f9ca24',' #f0932b',' #eb4d4b'
-        ];
-        const LINE_COLORS = ['#666','#777','#888','#999','#aaa','#bbb'];
-        const STATION_RADIUS = 15;
-        const TRAIN_SIZE = 8;
-        const MAX_QUEUE_LENGTH = 20;
-        const REAL_SECONDS_PER_WEEK = 20; // 20s = 1 “week” (sped up for testing)
-        const DEFAULT_TRAIN_SPEED = 80;  // px/sec
-        const DEFAULT_TRAIN_CAPACITY = 4;
+      nextStationID: 1,
+      nextDestinationID: 1,
+      nextSegmentID: 1,
+      nextIntersectionID: 1,
+      nextCarID: 1,
 
-        // -------------------------
-        // Game State
-        // -------------------------
-        let gameState = {
-            stations: new Map(),
-            lines: new Map(),
-            trains: new Map(),
-            passengers: new Map(),
-            nextStationID: 1,
-            nextLineID: 1,
-            nextTrainID: 1,
-            nextPassengerID: 1,
-            score: 0,
-            totalWaitTime: 0,
-            deliveredCount: 0,
-            week: 1,
-            month: 1,
-            isGameOver: false,
-            isPaused: true,    // start paused until tutorial closes
-            tokens: 1,
-            maxLines: 2,
-            usedLines: 0,
-            tunnelsAvailable: 0
-        };
+      score: 0,
+      totalWaitTime: 0,
+      deliveredCount: 0,
 
-        // -------------------------
-        // Timing Variables
-        // -------------------------
-        let lastTime = 0;
-        let stationSpawnTimer = 0;
-        let passengerSpawnTimer = 0;
-        let weekTimer = 0;
-        let stationSpawnInterval = 8;    // spawn a station every 8s initially
-        let passengerSpawnInterval = 1.2; // spawn a passenger every 1.2s
+      week: 1,
+      month: 1,
+      isGameOver: false,
+      isPaused: false,
 
-        // -------------------------
-        // UI State
-        // -------------------------
-        let selectedStation = null;
-        let isDragging = false;
-        let dragEndX = 0;
-        let dragEndY = 0;
-        let mouseX = 0;
-        let mouseY = 0;
-        let showingResourcePanel = false;
-        let pendingResourceAction = null; // 'addTrain' or 'addCarriage'
-        let tutorialStep = 0;
+      tokens: 2,
+      selectedResource: null,
+      selectedNode: null,
+      previewLine: null,
+      mousePos: { x: 0, y: 0 }
+    };
 
-        // -------------------------
-        // Canvas Setup
-        // -------------------------
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
+    const REAL_SECONDS_PER_WEEK = 20;
+    const PASSENGER_SPAWN_INTERVAL = 1.5;
+    const STATION_SPAWN_INTERVAL = 15;
+    const DESTINATION_SPAWN_INTERVAL = 30;
 
-        function resizeCanvas() {
-            const dpr = window.devicePixelRatio || 1;
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            canvas.style.width = width + 'px';
-            canvas.style.height = height + 'px';
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.scale(dpr, dpr);
+    // ------------------------------
+    //      CANVAS & RENDER LOOP
+    // ------------------------------
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let lastTime = 0;
+    let weekTimer = 0;
+    let stationSpawnTimer = 0;
+    let destinationSpawnTimer = 0;
+    let passengerSpawnTimer = 0;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // ------------------------------
+    //       GAME OBJECT CLASSES
+    // ------------------------------
+    class Station {
+      constructor(x, y, color) {
+        this.id = GameState.nextStationID++;
+        this.x = x; this.y = y;
+        this.color = color;
+        this.queue = []; // array of car IDs waiting to depart
+        this.spawnInterval = PASSENGER_SPAWN_INTERVAL;
+        this.spawnTimer = 0;
+      }
+
+      spawnCar() {
+        const choices = Array.from(GameState.destinations.values())
+          .filter(dest => dest.color === this.color);
+        if (!choices.length) return;
+
+        const dest = choices[Math.floor(Math.random() * choices.length)];
+        const path = computeShortestPath(this.id, dest.id);
+        if (!path || path.length < 2) return;
+
+        const car = new Car(this.id, dest.id, path);
+        GameState.cars.set(car.id, car);
+        this.queue.push(car.id);
+
+        if (this.queue.length > 12) {
+          endGame(`House overloaded with ${this.queue.length} queued cars!`);
+        }
+      }
+
+      removeCarFromQueue(carId) {
+        const idx = this.queue.indexOf(carId);
+        if (idx > -1) this.queue.splice(idx, 1);
+      }
+
+      draw(ctx) {
+        // House as a small square
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - 9, this.y - 9, 18, 18);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(this.x - 9, this.y - 9, 18, 18);
+
+        // Draw queue count
+        if (this.queue.length > 0) {
+          ctx.fillStyle = this.queue.length > 8 ? 'var(--warning)' : '#fff';
+          ctx.font = '12px Helvetica Neue';
+          ctx.textAlign = 'center';
+          ctx.fillText(this.queue.length.toString(), this.x, this.y - 14);
+        }
+      }
+    }
+
+    class Destination {
+      constructor(x, y, color) {
+        this.id = GameState.nextDestinationID++;
+        this.x = x; this.y = y;
+        this.color = color;
+      }
+
+      draw(ctx) {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    class RoadSegment {
+      constructor(startNodeID, endNodeID, type = 'standard') {
+        this.id = GameState.nextSegmentID++;
+        this.start = startNodeID;
+        this.end = endNodeID;
+        this.type = type;
+
+        this.width = type === 'dual' ? 8 : type === 'expressway' ? 10 : 4;
+        this.speedLimit = type === 'expressway' ? 160 : 80;
+        this.capacity = type === 'dual' ? 2 : 1;
+        this.carsOnSegment = [];
+      }
+
+      draw(ctx) {
+        const a = getNodeByID(this.start);
+        const b = getNodeByID(this.end);
+        if (!a || !b) return;
+
+        let color = 'var(--road-standard)';
+        if (this.type === 'dual') color = 'var(--road-dual)';
+        else if (this.type === 'bridge') color = 'var(--road-bridge)';
+        else if (this.type === 'expressway') color = 'var(--road-express)';
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = this.width;
+        if (this.type === 'bridge') ctx.setLineDash([6,6]);
+        else ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // If congested, draw a semi-transparent red overlay
+        if (this.carsOnSegment.length >= this.capacity) {
+          ctx.strokeStyle = 'var(--warning)';
+          ctx.lineWidth = this.width + 4;
+          ctx.globalAlpha = 0.4;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    class Intersection {
+      constructor(x, y, type = '4way') {
+        this.id = GameState.nextIntersectionID++;
+        this.x = x; this.y = y;
+        this.type = type; // '4way' or 'roundabout'
+        this.queue = [];
+      }
+
+      draw(ctx) {
+        if (this.type === 'roundabout') {
+          ctx.strokeStyle = 'var(--road-dual)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
+          ctx.stroke();
         }
 
-        // -------------------------
-        // Station Class
-        // -------------------------
-        class Station {
-            constructor(x, y, color) {
-                this.id = gameState.nextStationID++;
-                this.x = x;
-                this.y = y;
-                this.color = color;
-                this.queue = [];    // array of passenger IDs
-                this.isOverloaded = false;
-            }
-
-            addPassenger(passenger) {
-                this.queue.push(passenger.id);
-                if (this.queue.length >= MAX_QUEUE_LENGTH && !gameState.isGameOver) {
-                    this.isOverloaded = true;
-                    endGame(`Station overloaded! Queue reached ${this.queue.length} passengers.`);
-                }
-            }
-
-            removePassenger(passengerId) {
-                const idx = this.queue.indexOf(passengerId);
-                if (idx > -1) {
-                    this.queue.splice(idx, 1);
-                }
-            }
-
-            draw() {
-                const pulseTime = performance.now() * 0.005;
-                const isWarning = this.queue.length >= 15;
-                const radius = STATION_RADIUS + (isWarning ? Math.sin(pulseTime) * 3 : 0);
-
-                // Draw station circle
-                ctx.fillStyle = this.color;
-                ctx.strokeStyle = isWarning ? '#ff0000' : '#ffffff';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                // Draw up to 4 passenger‐color dots inside
-                if (this.queue.length > 0) {
-                    const displayCount = Math.min(4, this.queue.length);
-                    for (let i = 0; i < displayCount; i++) {
-                        const passenger = gameState.passengers.get(this.queue[i]);
-                        if (passenger) {
-                            const angle = (i / displayCount) * Math.PI * 2;
-                            const qx = this.x + Math.cos(angle) * (radius - 6);
-                            const qy = this.y + Math.sin(angle) * (radius - 6);
-                            ctx.fillStyle = passenger.targetColor;
-                            ctx.beginPath();
-                            ctx.arc(qx, qy, 3, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    }
-                    if (this.queue.length > 4) {
-                        ctx.fillStyle = 'white';
-                        ctx.font = '12px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(`+${this.queue.length - 4}`, this.x, this.y + radius + 15);
-                    }
-                }
-            }
+        if (this.queue.length > 0) {
+          ctx.fillStyle = 'var(--warning)';
+          ctx.font = '11px Helvetica Neue';
+          ctx.textAlign = 'center';
+          ctx.fillText(this.queue.length.toString(), this.x, this.y - 16);
         }
+      }
+    }
 
-        // -------------------------
-        // Line Class
-        // -------------------------
-        class Line {
-            constructor() {
-                this.id = gameState.nextLineID++;
-                this.stations = [];     // array of station IDs, in order
-                this.trains = [];       // array of train IDs on this line
-                this.color = LINE_COLORS[gameState.usedLines % LINE_COLORS.length];
-                gameState.usedLines++;
-                this.colorStationsMap = {};  // maps station‐color→[indexes]
-            }
+    class Car {
+      constructor(originStationID, targetDestID, path) {
+        this.id = GameState.nextCarID++;
+        this.color = GameState.stations.get(originStationID).color;
+        this.origin = originStationID;
+        this.destination = targetDestID;
+        this.path = path.slice(); // array of node IDs
+        this.currentEdgeIndex = 0;
+        this.progress = 0;
+        this.speed = 0;
+        this.state = 'WAITING';
+        this.spawnTime = performance.now();
+        this.waitDuration = 0;
+      }
 
-            addStation(stationId) {
-                if (!this.stations.includes(stationId)) {
-                    this.stations.push(stationId);
-                    this.updateColorMap();
-                }
-            }
-
-            updateColorMap() {
-                this.colorStationsMap = {};
-                this.stations.forEach((sid, idx) => {
-                    const st = gameState.stations.get(sid);
-                    if (st) {
-                        if (!this.colorStationsMap[st.color]) {
-                            this.colorStationsMap[st.color] = [];
-                        }
-                        this.colorStationsMap[st.color].push(idx);
-                    }
-                });
-            }
-
-            canReachColor(fromIdx, targetColor, direction) {
-                const arr = this.colorStationsMap[targetColor] || [];
-                return arr.some(idx => {
-                    if (direction === 'forward') return idx > fromIdx;
-                    if (direction === 'backward') return idx < fromIdx;
-                    return false;
-                });
-            }
-
-            draw() {
-                if (this.stations.length < 2) return;
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 6;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.beginPath();
-                for (let i = 0; i < this.stations.length - 1; i++) {
-                    const s1 = gameState.stations.get(this.stations[i]);
-                    const s2 = gameState.stations.get(this.stations[i + 1]);
-                    if (s1 && s2) {
-                        if (i === 0) ctx.moveTo(s1.x, s1.y);
-                        ctx.lineTo(s2.x, s2.y);
-                    }
-                }
-                ctx.stroke();
-            }
+      update(deltaTime) {
+        if (this.state === 'WAITING') {
+          if (this.currentEdgeIndex >= this.path.length - 1) {
+            this.deliverCar();
+            return;
+          }
+          const curr = this.path[this.currentEdgeIndex];
+          const nxt = this.path[this.currentEdgeIndex + 1];
+          const seg = findSegmentBetween(curr, nxt);
+          if (seg && seg.carsOnSegment.length < seg.capacity) {
+            const st = GameState.stations.get(this.origin);
+            if (st) st.removeCarFromQueue(this.id);
+            this.state = 'MOVING';
+            this.speed = seg.speedLimit;
+            seg.carsOnSegment.push(this.id);
+            this.progress = 0;
+          } else {
+            this.waitDuration += deltaTime;
+          }
         }
+        else if (this.state === 'MOVING') {
+          const curr = this.path[this.currentEdgeIndex];
+          const nxt = this.path[this.currentEdgeIndex + 1];
+          const seg = findSegmentBetween(curr, nxt);
+          if (!seg) {
+            GameState.cars.delete(this.id);
+            return;
+          }
+          const a = getNodeByID(curr);
+          const b = getNodeByID(nxt);
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const length = Math.hypot(dx, dy);
+          const travelTime = length / seg.speedLimit;
+          this.progress += deltaTime / travelTime;
 
-        // -------------------------
-        // Train Class
-        // -------------------------
-        class Train {
-            constructor(lineId) {
-                this.id = gameState.nextTrainID++;
-                this.lineId = lineId;
-                this.currentStationIndex = 0;
-                this.direction = 'forward';
-                this.speed = DEFAULT_TRAIN_SPEED;
-                this.capacity = DEFAULT_TRAIN_CAPACITY;
-                this.passengers = [];  // array of passenger IDs
-                this.x = 0;
-                this.y = 0;
-                this.targetX = 0;
-                this.targetY = 0;
-
-                const ln = gameState.lines.get(lineId);
-                if (ln && ln.stations.length > 0) {
-                    const firstSt = gameState.stations.get(ln.stations[0]);
-                    if (firstSt) {
-                        this.x = firstSt.x;
-                        this.y = firstSt.y;
-                        this.updateTarget();
-                    }
-                }
+          if (this.progress >= 1) {
+            const idx = seg.carsOnSegment.indexOf(this.id);
+            if (idx > -1) seg.carsOnSegment.splice(idx, 1);
+            this.currentEdgeIndex++;
+            if (this.currentEdgeIndex >= this.path.length - 1) {
+              this.deliverCar();
+            } else {
+              const nextNext = this.path[this.currentEdgeIndex + 1];
+              const nextSeg = findSegmentBetween(this.path[this.currentEdgeIndex], nextNext);
+              if (nextSeg && nextSeg.carsOnSegment.length < nextSeg.capacity) {
+                this.state = 'MOVING';
+                this.speed = nextSeg.speedLimit;
+                nextSeg.carsOnSegment.push(this.id);
+                this.progress = 0;
+              } else {
+                this.state = 'QUEUED';
+                this.progress = 0;
+              }
             }
-
-            updateTarget() {
-                const ln = gameState.lines.get(this.lineId);
-                if (!ln || ln.stations.length < 2) return;
-
-                let nextIdx = this.direction === 'forward'
-                    ? this.currentStationIndex + 1
-                    : this.currentStationIndex - 1;
-
-                if (nextIdx >= ln.stations.length) {
-                    this.direction = 'backward';
-                    this.currentStationIndex = ln.stations.length - 1;
-                    nextIdx = this.currentStationIndex - 1;
-                } else if (nextIdx < 0) {
-                    this.direction = 'forward';
-                    this.currentStationIndex = 0;
-                    nextIdx = this.currentStationIndex + 1;
-                }
-
-                const tgtSt = gameState.stations.get(ln.stations[nextIdx]);
-                if (tgtSt) {
-                    this.targetX = tgtSt.x;
-                    this.targetY = tgtSt.y;
-                }
-            }
-
-            update(deltaTime) {
-                if (gameState.isPaused || gameState.isGameOver) return;
-                const dx = this.targetX - this.x;
-                const dy = this.targetY - this.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-
-                if (dist < 2) {
-                    this.arriveAtStation();
-                } else {
-                    const moveDist = this.speed * deltaTime;
-                    this.x += (dx/dist) * moveDist;
-                    this.y += (dy/dist) * moveDist;
-                }
-            }
-
-            arriveAtStation() {
-                const ln = gameState.lines.get(this.lineId);
-                if (!ln) return;
-                let nextIdx = this.direction === 'forward'
-                    ? this.currentStationIndex + 1
-                    : this.currentStationIndex - 1;
-                this.currentStationIndex = nextIdx;
-
-                const curSt = gameState.stations.get(ln.stations[nextIdx]);
-                if (curSt) {
-                    this.x = curSt.x;
-                    this.y = curSt.y;
-
-                    // Deboard
-                    this.passengers = this.passengers.filter(pid => {
-                        const p = gameState.passengers.get(pid);
-                        if (p && p.targetColor === curSt.color) {
-                            gameState.score++;
-                            gameState.deliveredCount++;
-                            gameState.totalWaitTime += p.waitDuration;
-                            gameState.passengers.delete(pid);
-                            updateUI();
-                            return false;
-                        }
-                        return true;
-                    });
-
-                    // Board
-                    const spaceLeft = this.capacity - this.passengers.length;
-                    let boarded = 0;
-                    for (let i = 0; i < curSt.queue.length && boarded < spaceLeft; i++) {
-                        const pid = curSt.queue[i];
-                        const p = gameState.passengers.get(pid);
-                        if (p && this.canReachColor(p.targetColor)) {
-                            this.passengers.push(pid);
-                            curSt.removePassenger(pid);
-                            boarded++;
-                            i--; // because array shortened
-                        }
-                    }
-                }
-                this.updateTarget();
-            }
-
-            canReachColor(targetColor) {
-                const ln = gameState.lines.get(this.lineId);
-                if (!ln) return false;
-                return ln.canReachColor(
-                    this.currentStationIndex, 
-                    targetColor, 
-                    this.direction
-                ) || ln.canReachColor(
-                    this.currentStationIndex,
-                    targetColor,
-                    this.direction === 'forward' ? 'backward' : 'forward'
-                );
-            }
-
-            draw() {
-                ctx.fillStyle = '#ffffff';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, TRAIN_SIZE, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                // Show capacity text above train
-                ctx.fillStyle = 'black';
-                ctx.font = '10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(
-                    `${this.passengers.length}/${this.capacity}`, 
-                    this.x, 
-                    this.y - TRAIN_SIZE - 5
-                );
-            }
+          }
         }
-
-        // -------------------------
-        // Passenger Class
-        // -------------------------
-        class Passenger {
-            constructor(originStationId, targetColor) {
-                this.id = gameState.nextPassengerID++;
-                this.originStationId = originStationId;
-                this.targetColor = targetColor;
-                this.spawnTime = performance.now();
-                this.waitDuration = 0;
-            }
-
-            update(deltaTime) {
-                this.waitDuration += deltaTime;
-            }
+        else if (this.state === 'QUEUED') {
+          const curr = this.path[this.currentEdgeIndex];
+          const nxt = this.path[this.currentEdgeIndex + 1];
+          const nextSeg = findSegmentBetween(curr, nxt);
+          if (nextSeg && nextSeg.carsOnSegment.length < nextSeg.capacity) {
+            this.state = 'MOVING';
+            this.speed = nextSeg.speedLimit;
+            nextSeg.carsOnSegment.push(this.id);
+            this.progress = 0;
+          } else {
+            this.waitDuration += deltaTime;
+          }
         }
+      }
 
-        // -------------------------
-        // Initialize / Reset Game
-        // -------------------------
-        function initGame() {
-            gameState = {
-                stations: new Map(),
-                lines: new Map(),
-                trains: new Map(),
-                passengers: new Map(),
-                nextStationID: 1,
-                nextLineID: 1,
-                nextTrainID: 1,
-                nextPassengerID: 1,
-                score: 0,
-                totalWaitTime: 0,
-                deliveredCount: 0,
-                week: 1,
-                month: 1,
-                isGameOver: false,
-                isPaused: true, // remain paused until tutorial closes
-                tokens: 1,
-                maxLines: 2,
-                usedLines: 0,
-                tunnelsAvailable: 0
+      deliverCar() {
+        GameState.score++;
+        GameState.deliveredCount++;
+        GameState.totalWaitTime += (performance.now() - this.spawnTime) / 1000;
+        GameState.cars.delete(this.id);
+        updateUI();
+      }
+
+      draw(ctx) {
+        let x, y;
+        if (this.state === 'WAITING') {
+          const st = GameState.stations.get(this.origin);
+          if (st) {
+            const qp = st.queue.indexOf(this.id);
+            x = st.x + ((qp % 3) - 1) * 6;
+            y = st.y + Math.floor(qp / 3) * 6 + 16;
+          }
+        } else {
+          const curr = this.path[this.currentEdgeIndex];
+          const nxt = this.path[this.currentEdgeIndex + 1];
+          const a = getNodeByID(curr);
+          const b = getNodeByID(nxt);
+          if (a && b) {
+            const dx = b.x - a.x, dy = b.y - a.y;
+            x = a.x + dx * Math.min(this.progress, 1);
+            y = a.y + dy * Math.min(this.progress, 1);
+          }
+        }
+        if (x !== undefined && y !== undefined) {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // ------------------------------
+    //    UTILITY / PATHFINDING
+    // ------------------------------
+    function getNodeByID(id) {
+      return GameState.stations.get(id)
+        || GameState.destinations.get(id)
+        || GameState.intersections.get(id);
+    }
+
+    function findSegmentBetween(aID, bID) {
+      for (const seg of GameState.roadSegments.values()) {
+        if ((seg.start === aID && seg.end === bID)
+         || (seg.start === bID && seg.end === aID)) {
+          return seg;
+        }
+      }
+      return null;
+    }
+
+    function computeShortestPath(startID, destID) {
+      // Simple BFS (all edges equal weight)
+      const queue = [[startID]];
+      const visited = new Set([startID]);
+      while (queue.length) {
+        const path = queue.shift();
+        const current = path[path.length - 1];
+        if (current === destID) return path;
+        for (const seg of GameState.roadSegments.values()) {
+          let neighbor = null;
+          if (seg.start === current) neighbor = seg.end;
+          else if (seg.end === current) neighbor = seg.start;
+          if (neighbor != null && !visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push([...path, neighbor]);
+          }
+        }
+      }
+      return null;
+    }
+
+    function distance(x1, y1, x2, y2) {
+      return Math.hypot(x2 - x1, y2 - y1);
+    }
+
+    function getRandomColor() {
+      return COLORS[Math.floor(Math.random() * COLORS.length)];
+    }
+
+    function findValidPosition(minDist = 80) {
+      const attempts = 50;
+      for (let i = 0; i < attempts; i++) {
+        const x = Math.random() * (canvas.width - 100) + 50;
+        const y = Math.random() * (canvas.height - 200) + 100;
+        let ok = true;
+        for (const st of GameState.stations.values()) {
+          if (distance(x, y, st.x, st.y) < minDist) { ok = false; break; }
+        }
+        if (!ok) continue;
+        for (const dest of GameState.destinations.values()) {
+          if (distance(x, y, dest.x, dest.y) < minDist) { ok = false; break; }
+        }
+        if (ok) return { x, y };
+      }
+      return { x: canvas.width / 2, y: canvas.height / 2 };
+    }
+
+    // ------------------------------
+    //    SPAWN & GAME LOGIC
+    // ------------------------------
+    function spawnStation() {
+      const pos = findValidPosition();
+      const color = getRandomColor();
+      const station = new Station(pos.x, pos.y, color);
+      GameState.stations.set(station.id, station);
+      updateTooltip(`New ${color} house appeared`);
+    }
+
+    function spawnDestination() {
+      const pos = findValidPosition();
+      const color = getRandomColor();
+      const dest = new Destination(pos.x, pos.y, color);
+      GameState.destinations.set(dest.id, dest);
+      updateTooltip(`New ${color} destination opened`);
+    }
+
+    function spawnAllHouseCars() {
+      for (const station of GameState.stations.values()) {
+        station.spawnTimer += PASSENGER_SPAWN_INTERVAL;
+        if (station.spawnTimer >= station.spawnInterval) {
+          station.spawnCar();
+          station.spawnTimer = 0;
+        }
+      }
+    }
+
+    function updateGameLogic(deltaTime) {
+      if (GameState.isPaused || GameState.isGameOver) return;
+
+      stationSpawnTimer += deltaTime;
+      destinationSpawnTimer += deltaTime;
+      passengerSpawnTimer += deltaTime;
+      weekTimer += deltaTime;
+
+      if (stationSpawnTimer >= STATION_SPAWN_INTERVAL) {
+        spawnStation();
+        stationSpawnTimer = 0;
+      }
+      if (destinationSpawnTimer >= DESTINATION_SPAWN_INTERVAL) {
+        spawnDestination();
+        destinationSpawnTimer = 0;
+      }
+      if (passengerSpawnTimer >= PASSENGER_SPAWN_INTERVAL) {
+        spawnAllHouseCars();
+        passengerSpawnTimer = 0;
+      }
+      if (weekTimer >= REAL_SECONDS_PER_WEEK) {
+        GameState.week++;
+        if (GameState.week > 4) {
+          GameState.week = 1;
+          GameState.month++;
+        }
+        GameState.tokens++;
+        showNotification(`Week ${GameState.week}: +1 Token`);
+        weekTimer = 0;
+        updateUI();
+      }
+
+      for (const car of GameState.cars.values()) {
+        car.update(deltaTime);
+      }
+    }
+
+    function render() {
+      // Clear
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = 'var(--grid-line)';
+      ctx.lineWidth = 1;
+      const gs = 50;
+      for (let x = 0; x < canvas.width; x += gs) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gs) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw roads
+      for (const seg of GameState.roadSegments.values()) {
+        seg.draw(ctx);
+      }
+
+      // Preview line
+      if (GameState.previewLine) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([5,5]);
+        ctx.beginPath();
+        ctx.moveTo(GameState.previewLine.startX, GameState.previewLine.startY);
+        ctx.lineTo(GameState.previewLine.endX, GameState.previewLine.endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Intersections
+      for (const inter of GameState.intersections.values()) {
+        inter.draw(ctx);
+      }
+
+      // Nodes
+      for (const st of GameState.stations.values()) st.draw(ctx);
+      for (const dest of GameState.destinations.values()) dest.draw(ctx);
+
+      // Cars
+      for (const car of GameState.cars.values()) car.draw(ctx);
+    }
+
+    function gameLoop(ts) {
+      const dt = Math.min((ts - lastTime) / 1000, 0.05);
+      lastTime = ts;
+      updateGameLogic(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ------------------------------
+    //    UI CONTROL FUNCTIONS
+    // ------------------------------
+    function updateUI() {
+      document.getElementById('weekDisplay').textContent = GameState.week;
+      document.getElementById('monthDisplay').textContent = GameState.month;
+      document.getElementById('scoreDisplay').textContent = GameState.score;
+      document.getElementById('tokensDisplay').textContent = GameState.tokens;
+
+      const hasTokens = GameState.tokens > 0;
+      document.getElementById('roadBtn').disabled = !hasTokens;
+      document.getElementById('dualBtn').disabled = !hasTokens || GameState.roadSegments.size === 0;
+      document.getElementById('roundaboutBtn').disabled = !hasTokens || GameState.intersections.size === 0;
+      document.getElementById('bridgeBtn').disabled = !hasTokens;
+      document.getElementById('expresswayBtn').disabled = !hasTokens;
+    }
+
+    function toggleResourcePanel() {
+      const panel = document.getElementById('resourcePanel');
+      panel.classList.toggle('open');
+    }
+
+    function selectResource(type) {
+      GameState.selectedResource = type;
+      updateTooltip(`Selected: ${type}. Click a node to start.`);
+    }
+
+    function togglePause() {
+      GameState.isPaused = !GameState.isPaused;
+      document.getElementById('pauseModal').classList.toggle('show', GameState.isPaused);
+      if (!GameState.isPaused) updateTooltip('Back to building!');
+    }
+
+    function restartGame() {
+      document.getElementById('pauseModal').classList.remove('show');
+      document.getElementById('gameOverModal').classList.remove('show');
+      initGame();
+    }
+
+    function toggleGuide() {
+      const gm = document.getElementById('guideModal');
+      gm.classList.toggle('show');
+      GameState.isPaused = gm.classList.contains('show');
+      updateTooltip(gm.classList.contains('show') ? '' : 'Back to building!');
+    }
+
+    function updateTooltip(txt) {
+      document.getElementById('tooltipText').textContent = txt;
+    }
+
+    function showNotification(txt) {
+      const notif = document.getElementById('notification');
+      notif.textContent = txt;
+      notif.classList.add('show');
+      setTimeout(() => notif.classList.remove('show'), 2000);
+    }
+
+    function endGame(reason) {
+      GameState.isGameOver = true;
+      document.getElementById('gameOverReason').textContent = reason;
+      const weeks = (GameState.month - 1) * 4 + GameState.week;
+      document.getElementById('finalWeeks').textContent = weeks;
+      document.getElementById('finalScore').textContent = GameState.score;
+      const avg = GameState.deliveredCount
+        ? (GameState.totalWaitTime / GameState.deliveredCount).toFixed(1)
+        : '0.0';
+      document.getElementById('avgCommute').textContent = avg;
+      document.getElementById('gameOverModal').classList.add('show');
+    }
+
+    // ------------------------------
+    //    MOUSE & BUILDING LOGIC
+    // ------------------------------
+    canvas.addEventListener('mousedown', (e) => {
+      if (GameState.isPaused || GameState.isGameOver) return;
+
+      GameState.mousePos.x = e.clientX;
+      GameState.mousePos.y = e.clientY;
+      const r = GameState.selectedResource;
+
+      // If building roads, pick a node under cursor
+      if (r === 'road' || r === 'bridge' || r === 'expressway') {
+        for (const node of [
+          ...GameState.stations.values(),
+          ...GameState.destinations.values(),
+          ...GameState.intersections.values()
+        ]) {
+          if (distance(e.clientX, e.clientY, node.x, node.y) <= 20) {
+            GameState.selectedNode = node;
+            GameState.previewLine = {
+              startX: node.x,
+              startY: node.y,
+              endX: e.clientX,
+              endY: e.clientY
             };
-
-            stationSpawnTimer = 0;
-            passengerSpawnTimer = 0;
-            weekTimer = 0;
-            stationSpawnInterval = 8;
-            passengerSpawnInterval = 1.2;
-
-            // Spawn 2 stations right away, and a third after 2s
-            spawnStation();
-            spawnStation();
-            setTimeout(spawnStation, 2000);
-
+            return;
+          }
+        }
+      }
+      // If upgrading roads
+      else if (r === 'dual') {
+        for (const seg of GameState.roadSegments.values()) {
+          const a = getNodeByID(seg.start), b = getNodeByID(seg.end);
+          const proj = projectOnSegment(a.x, a.y, b.x, b.y, e.clientX, e.clientY);
+          if (distance(e.clientX, e.clientY, proj.x, proj.y) <= 6) {
+            if (GameState.tokens >= 1 && seg.type === 'standard') {
+              seg.type = 'dual';
+              seg.width = 8;
+              seg.speedLimit += 10;
+              seg.capacity = 2;
+              GameState.tokens--;
+              updateUI();
+              showNotification('Road upgraded to dual lane');
+            }
+            return;
+          }
+        }
+      }
+      // If upgrading intersections
+      else if (r === 'roundabout') {
+        for (const inter of GameState.intersections.values()) {
+          if (distance(e.clientX, e.clientY, inter.x, inter.y) <= 15
+              && GameState.tokens >= 2 && inter.type === '4way') {
+            inter.type = 'roundabout';
+            GameState.tokens -= 2;
             updateUI();
+            showNotification('Intersection upgraded to roundabout');
+            return;
+          }
         }
+      }
+    });
 
-        // -------------------------
-        // Spawn a New Station
-        // -------------------------
-        function spawnStation() {
-            if (gameState.isGameOver) return;
-            let tries = 0;
-            let x, y;
-            const minDist = 80;
-            do {
-                x = Math.random() * (window.innerWidth - 100) + 50;
-                y = Math.random() * (window.innerHeight - 160) + 80;
-                tries++;
-            } while (
-                tries < 20 &&
-                Array.from(gameState.stations.values()).some(st => {
-                    const dx = st.x - x;
-                    const dy = st.y - y;
-                    return Math.sqrt(dx*dx + dy*dy) < minDist;
-                })
-            );
-            const color = STATION_COLORS[
-                Math.floor(Math.random() * STATION_COLORS.length)
-            ];
-            const station = new Station(x, y, color);
-            gameState.stations.set(station.id, station);
+    canvas.addEventListener('mousemove', (e) => {
+      GameState.mousePos.x = e.clientX;
+      GameState.mousePos.y = e.clientY;
+      if (GameState.previewLine) {
+        GameState.previewLine.endX = e.clientX;
+        GameState.previewLine.endY = e.clientY;
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (GameState.isPaused || GameState.isGameOver) {
+        GameState.previewLine = null;
+        GameState.selectedNode = null;
+        return;
+      }
+      const { x, y } = GameState.mousePos;
+      const r = GameState.selectedResource;
+
+      if (GameState.previewLine && GameState.selectedNode) {
+        let target = null;
+        for (const node of [
+          ...GameState.stations.values(),
+          ...GameState.destinations.values(),
+          ...GameState.intersections.values()
+        ]) {
+          if (node !== GameState.selectedNode
+              && distance(x, y, node.x, node.y) <= 20) {
+            target = node;
+            break;
+          }
         }
-
-        // -------------------------
-        // Spawn a New Passenger
-        // -------------------------
-        function spawnPassenger() {
-            if (gameState.isGameOver || gameState.stations.size === 0) return;
-            const allStations = Array.from(gameState.stations.values());
-            const randomSt = allStations[
-                Math.floor(Math.random() * allStations.length)
-            ];
-            const availableColors = STATION_COLORS.filter(
-                c => c !== randomSt.color
-            );
-            if (availableColors.length === 0) return;
-            const targetColor = availableColors[
-                Math.floor(Math.random() * availableColors.length)
-            ];
-            const p = new Passenger(randomSt.id, targetColor);
-            gameState.passengers.set(p.id, p);
-            randomSt.addPassenger(p);
-        }
-
-        // -------------------------
-        // Main Game Logic Update
-        // -------------------------
-        function updateGameLogic(deltaTime) {
-            if (gameState.isPaused || gameState.isGameOver) return;
-
-            stationSpawnTimer += deltaTime;
-            passengerSpawnTimer += deltaTime;
-            weekTimer += deltaTime;
-
-            if (stationSpawnTimer >= stationSpawnInterval) {
-                spawnStation();
-                stationSpawnTimer = 0;
+        if (target && GameState.tokens > 0) {
+          let type = 'standard';
+          if (r === 'bridge') type = 'bridge';
+          else if (r === 'expressway') {
+            const dx = Math.abs(target.x - GameState.selectedNode.x);
+            const dy = Math.abs(target.y - GameState.selectedNode.y);
+            if (dx < dy * 0.1) type = 'expressway';
+            else if (dy < dx * 0.1) type = 'expressway';
+            else {
+              updateTooltip('Expressway must be straight horizontal or vertical.');
+              GameState.previewLine = null;
+              GameState.selectedNode = null;
+              return;
             }
-
-            if (passengerSpawnTimer >= passengerSpawnInterval) {
-                spawnPassenger();
-                passengerSpawnTimer = 0;
-            }
-
-            if (weekTimer >= REAL_SECONDS_PER_WEEK) {
-                gameState.week++;
-                if (gameState.week > 4) {
-                    gameState.week = 1;
-                    gameState.month++;
-                    stationSpawnInterval = Math.max(3, stationSpawnInterval - 0.5);
-                    passengerSpawnInterval = Math.max(0.5, passengerSpawnInterval - 0.1);
-                }
-                gameState.tokens++;
-                showNotification(`Week ${gameState.week}: +1 Token`);
-                weekTimer = 0;
-                updateUI();
-            }
-
-            gameState.trains.forEach(tr => tr.update(deltaTime));
-            gameState.passengers.forEach(p => p.update(deltaTime));
-        }
-
-        // -------------------------
-        // Render Everything
-        // -------------------------
-        function render() {
-            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-            // Draw subtle grid
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-            ctx.lineWidth = 1;
-            const grid = 50;
-            for (let x = 0; x < window.innerWidth; x += grid) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, window.innerHeight);
-                ctx.stroke();
-            }
-            for (let y = 0; y < window.innerHeight; y += grid) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(window.innerWidth, y);
-                ctx.stroke();
-            }
-
-            // Draw lines
-            gameState.lines.forEach(ln => ln.draw());
-
-            // Draw preview if dragging
-            if (isDragging && selectedStation) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 4;
-                ctx.setLineDash([5, 5]);
-                ctx.beginPath();
-                ctx.moveTo(selectedStation.x, selectedStation.y);
-                ctx.lineTo(dragEndX, dragEndY);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            // Draw stations
-            gameState.stations.forEach(st => st.draw());
-
-            // Draw trains
-            gameState.trains.forEach(tr => tr.draw());
-        }
-
-        // -------------------------
-        // Main Loop
-        // -------------------------
-        function gameLoop(timestamp) {
-            const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
-            lastTime = timestamp;
-            updateGameLogic(dt);
-            render();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // -------------------------
-        // UI Updates
-        // -------------------------
-        function updateUI() {
-            document.getElementById('weekDisplay').textContent = gameState.week;
-            document.getElementById('monthDisplay').textContent = gameState.month;
-            document.getElementById('scoreDisplay').textContent = gameState.score;
-            document.getElementById('tokensDisplay').textContent = `Tokens: ${gameState.tokens}`;
-
-            const hasTokens = gameState.tokens > 0;
-            document.getElementById('addTrainBtn').disabled = !hasTokens || gameState.lines.size === 0;
-            document.getElementById('addCarriageBtn').disabled = !hasTokens || gameState.trains.size === 0;
-            document.getElementById('addLineBtn').disabled = !hasTokens || gameState.usedLines >= 6;
-            document.getElementById('addTunnelBtn').disabled = !hasTokens;
-        }
-
-        // -------------------------
-        // End Game
-        // -------------------------
-        function endGame(reason) {
-            gameState.isGameOver = true;
-            document.getElementById('gameOverReason').textContent = reason;
-            const weeksSurvived = (gameState.month - 1) * 4 + gameState.week;
-            document.getElementById('finalWeek').textContent = weeksSurvived;
-            document.getElementById('finalScore').textContent = gameState.score;
-            const avg = gameState.deliveredCount > 0
-                ? (gameState.totalWaitTime / gameState.deliveredCount).toFixed(1)
-                : '0.0';
-            document.getElementById('avgWaitTime').textContent = `${avg}s`;
-            document.getElementById('gameOverModal').style.display = 'flex';
-        }
-
-        // -------------------------
-        // Show Notification
-        // -------------------------
-        function showNotification(txt) {
-            const n = document.getElementById('notification');
-            n.textContent = txt;
-            n.classList.add('show');
-            setTimeout(() => n.classList.remove('show'), 2000);
-        }
-
-        // -------------------------
-        // Handle Resource Actions
-        // -------------------------
-        function toggleResourcePanel() {
-            showingResourcePanel = !showingResourcePanel;
-            document.getElementById('resourcePanel').classList.toggle('open', showingResourcePanel);
-        }
-        function closeResourcePanel() {
-            showingResourcePanel = false;
-            document.getElementById('resourcePanel').classList.remove('open');
-            pendingResourceAction = null;
-            document.getElementById('tooltipDisplay').textContent =
-                'Draw lines between stations to connect them. Trains carry passengers to matching colors.';
-        }
-
-        function handleResourceAction(action) {
-            if (gameState.tokens <= 0) return;
-            gameState.tokens--;
+          }
+          if (!findSegmentBetween(GameState.selectedNode.id, target.id)) {
+            const seg = new RoadSegment(GameState.selectedNode.id, target.id, type);
+            GameState.roadSegments.set(seg.id, seg);
+            // If node now has 3+ connections → create intersection
+            [GameState.selectedNode, target].forEach(node => {
+              let cnt = 0;
+              for (const s of GameState.roadSegments.values()) {
+                if (s.start === node.id || s.end === node.id) cnt++;
+              }
+              if (cnt >= 3 && !GameState.intersections.has(node.id)) {
+                const inter = new Intersection(node.x, node.y, '4way');
+                GameState.intersections.set(inter.id, inter);
+              }
+            });
+            GameState.tokens--;
             updateUI();
-
-            if (action === 'addTrain') {
-                pendingResourceAction = 'addTrain';
-                document.getElementById('tooltipDisplay').textContent = 
-                    'Click a station on a line to add a new train to that line.';
-            }
-            if (action === 'addCarriage') {
-                pendingResourceAction = 'addCarriage';
-                document.getElementById('tooltipDisplay').textContent =
-                    'Click a train to increase its capacity by 4.';
-            }
-            if (action === 'addLine') {
-                gameState.maxLines++;
-                showNotification('New line unlocked!');
-                setTimeout(closeResourcePanel, 200);
-            }
-            if (action === 'addTunnel') {
-                gameState.tunnelsAvailable++;
-                showNotification('Tunnel token acquired! (No barriers implemented)');
-                setTimeout(closeResourcePanel, 200);
-            }
+            showNotification('Road built');
+          }
         }
+      }
 
-        function tryPlaceTrainAtStation(stationId) {
-            for (let [lineId, ln] of gameState.lines) {
-                if (ln.stations.includes(stationId)) {
-                    const tr = new Train(lineId);
-                    gameState.trains.set(tr.id, tr);
-                    ln.trains.push(tr.id);
-                    showNotification('Train added to that line.');
-                    pendingResourceAction = null;
-                    updateUI();
-                    closeResourcePanel();
-                    return true;
-                }
-            }
-            return false;
-        }
+      GameState.previewLine = null;
+      GameState.selectedNode = null;
+    });
 
-        function tryAddCarriageToTrainAt(x, y) {
-            for (let [trainId, tr] of gameState.trains) {
-                const dx = tr.x - x, dy = tr.y - y;
-                if (Math.sqrt(dx*dx + dy*dy) <= TRAIN_SIZE + 2) {
-                    tr.capacity += 4;
-                    showNotification('Train capacity increased by 4.');
-                    pendingResourceAction = null;
-                    updateUI();
-                    closeResourcePanel();
-                    return true;
-                }
-            }
-            return false;
-        }
+    function projectOnSegment(x1,y1,x2,y2,px,py) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const len2 = dx*dx + dy*dy;
+      if (len2 === 0) return { x: x1, y: y1 };
+      let t = ((px - x1)*dx + (py - y1)*dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      return { x: x1 + t*dx, y: y1 + t*dy };
+    }
 
-        // -------------------------
-        // Handle Connecting Two Stations
-        // -------------------------
-        function handleNewConnection(stA, stB) {
-            if (stA.id === stB.id) return;
+    // ------------------------------
+    //     GAME INITIALIZATION
+    // ------------------------------
+    function initGame() {
+      GameState.stations.clear();
+      GameState.destinations.clear();
+      GameState.roadSegments.clear();
+      GameState.intersections.clear();
+      GameState.cars.clear();
+      GameState.nextStationID = 1;
+      GameState.nextDestinationID = 1;
+      GameState.nextSegmentID = 1;
+      GameState.nextIntersectionID = 1;
+      GameState.nextCarID = 1;
+      GameState.score = 0;
+      GameState.totalWaitTime = 0;
+      GameState.deliveredCount = 0;
+      GameState.week = 1;
+      GameState.month = 1;
+      GameState.isGameOver = false;
+      GameState.isPaused = false;
+      GameState.tokens = 2;
+      GameState.selectedResource = null;
+      GameState.selectedNode = null;
+      GameState.previewLine = null;
+      GameState.mousePos = { x:0, y:0 };
 
-            // 1) If either station belongs to an existing line, append the other station there
-            for (let [lnId, ln] of gameState.lines) {
-                const idxA = ln.stations.indexOf(stA.id);
-                const idxB = ln.stations.indexOf(stB.id);
-                if (idxA !== -1 && idxB === -1) {
-                    ln.stations.splice(idxA + 1, 0, stB.id);
-                    ln.updateColorMap();
-                    return;
-                }
-                if (idxB !== -1 && idxA === -1) {
-                    ln.stations.splice(idxB + 1, 0, stA.id);
-                    ln.updateColorMap();
-                    return;
-                }
-            }
+      stationSpawnTimer = 0;
+      destinationSpawnTimer = 0;
+      passengerSpawnTimer = 0;
+      weekTimer = 0;
 
-            // 2) Otherwise, if we still can create a new line, do so
-            if (gameState.usedLines < gameState.maxLines) {
-                const newLn = new Line();
-                newLn.addStation(stA.id);
-                newLn.addStation(stB.id);
-                gameState.lines.set(newLn.id, newLn);
+      // Spawn initial nodes
+      for (let i = 0; i < 3; i++) spawnStation();
+      for (let i = 0; i < 2; i++) spawnDestination();
 
-                // Spawn a train on that new line
-                const tr = new Train(newLn.id);
-                gameState.trains.set(tr.id, tr);
-                newLn.trains.push(tr.id);
-                return;
-            }
-        }
+      updateUI();
+      updateTooltip('Click a node and drag to build roads.');
+    }
 
-        // -------------------------
-        // Input & Interaction
-        // -------------------------
-        canvas.addEventListener('mousedown', e => {
-            if (gameState.isPaused || gameState.isGameOver) return;
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-
-            // If user chose “Add Train,” detect station click:
-            if (pendingResourceAction === 'addTrain') {
-                for (let [sid, st] of gameState.stations) {
-                    const dx = st.x - mouseX, dy = st.y - mouseY;
-                    if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
-                        if (tryPlaceTrainAtStation(sid)) return;
-                    }
-                }
-                return;
-            }
-            // If user chose “Add Carriage,” detect train click:
-            if (pendingResourceAction === 'addCarriage') {
-                if (tryAddCarriageToTrainAt(mouseX, mouseY)) return;
-                return;
-            }
-
-            // Otherwise, check if we clicked on a station to begin dragging:
-            for (let [_, st] of gameState.stations) {
-                const dx = st.x - mouseX, dy = st.y - mouseY;
-                if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
-                    selectedStation = st;
-                    isDragging = true;
-                    dragEndX = mouseX;
-                    dragEndY = mouseY;
-                    return;
-                }
-            }
-        });
-
-        canvas.addEventListener('mousemove', e => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-            dragEndX = mouseX;
-            dragEndY = mouseY;
-
-            if (gameState.isPaused || gameState.isGameOver) return;
-            // Tooltip logic
-            let tooltipShown = false;
-            // Station hover:
-            for (let [_, st] of gameState.stations) {
-                const dx = st.x - mouseX, dy = st.y - mouseY;
-                if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
-                    const counts = {};
-                    st.queue.forEach(pid => {
-                        const p = gameState.passengers.get(pid);
-                        if (p) counts[p.targetColor] = (counts[p.targetColor]||0) + 1;
-                    });
-                    const breakdown = Object.entries(counts)
-                        .map(([c, num]) => `${num}`)
-                        .join(', ');
-                    document.getElementById('tooltipDisplay').textContent =
-                        `Station ${st.id} • Queue: ${st.queue.length} • Destinations: ${breakdown}`;
-                    tooltipShown = true;
-                    break;
-                }
-            }
-            if (!tooltipShown) {
-                // Train hover:
-                for (let [_, tr] of gameState.trains) {
-                    const dx = tr.x - mouseX, dy = tr.y - mouseY;
-                    if (Math.sqrt(dx*dx + dy*dy) <= TRAIN_SIZE) {
-                        const ln = gameState.lines.get(tr.lineId);
-                        document.getElementById('tooltipDisplay').textContent =
-                            `Train on Line ${ln.id} • Speed: ${tr.speed}px/s • ` +
-                            `Capacity: ${tr.passengers.length}/${tr.capacity} • ` +
-                            `Next Station: ${ln.stations[tr.currentStationIndex]}`;
-                        tooltipShown = true;
-                        break;
-                    }
-                }
-            }
-            if (!tooltipShown && !pendingResourceAction) {
-                document.getElementById('tooltipDisplay').textContent =
-                    'Draw lines between stations to connect them. Trains carry passengers to matching colors.';
-            }
-        });
-
-        canvas.addEventListener('mouseup', e => {
-            if (gameState.isPaused || gameState.isGameOver) {
-                isDragging = false;
-                selectedStation = null;
-                return;
-            }
-            if (!isDragging || !selectedStation) return;
-
-            const endX = e.clientX;
-            const endY = e.clientY;
-            let targetStation = null;
-            for (let [_, st] of gameState.stations) {
-                const dx = st.x - endX, dy = st.y - endY;
-                if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
-                    targetStation = st;
-                    break;
-                }
-            }
-
-            if (targetStation) {
-                handleNewConnection(selectedStation, targetStation);
-            }
-            isDragging = false;
-            selectedStation = null;
-        });
-
-        // -------------------------
-        // Resource Panel & Buttons
-        // -------------------------
-        document.getElementById('tokensDisplay').addEventListener('click', () => {
-            toggleResourcePanel();
-        });
-        document.getElementById('closeResourcePanel').addEventListener('click', () => {
-            closeResourcePanel();
-        });
-
-        document.getElementById('addTrainBtn').addEventListener('click', () => {
-            handleResourceAction('addTrain');
-        });
-        document.getElementById('addCarriageBtn').addEventListener('click', () => {
-            handleResourceAction('addCarriage');
-        });
-        document.getElementById('addLineBtn').addEventListener('click', () => {
-            handleResourceAction('addLine');
-        });
-        document.getElementById('addTunnelBtn').addEventListener('click', () => {
-            handleResourceAction('addTunnel');
-        });
-
-        // -------------------------
-        // Pause & Tutorial Buttons
-        // -------------------------
-        document.getElementById('pauseButton').addEventListener('click', () => {
-            gameState.isPaused = true;
-            document.getElementById('pauseModal').style.display = 'flex';
-        });
-        document.getElementById('resumeButton').addEventListener('click', () => {
-            gameState.isPaused = false;
-            document.getElementById('pauseModal').style.display = 'none';
-        });
-        document.getElementById('restartFromPauseButton').addEventListener('click', () => {
-            document.getElementById('pauseModal').style.display = 'none';
-            document.getElementById('gameOverModal').style.display = 'none';
-            initGame();
-        });
-        document.getElementById('tutorialButton').addEventListener('click', () => {
-            document.getElementById('tutorialModal').style.display = 'flex';
-        });
-
-        // -------------------------
-        // Restart Game
-        // -------------------------
-        document.getElementById('restartButton').addEventListener('click', () => {
-            document.getElementById('gameOverModal').style.display = 'none';
-            initGame();
-        });
-
-        // -------------------------
-        // Tutorial Flow
-        // -------------------------
-        function nextTutorialStep() {
-            const steps = document.querySelectorAll('.tutorial-step');
-            steps[tutorialStep].classList.remove('active');
-            tutorialStep++;
-            if (tutorialStep < steps.length) {
-                steps[tutorialStep].classList.add('active');
-            }
-        }
-        function startGame() {
-            document.getElementById('tutorialModal').style.display = 'none';
-            gameState.isPaused = false;
-        }
-
-        // -------------------------
-        // Startup
-        // -------------------------
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('DOMContentLoaded', () => {
-            resizeCanvas();
-            initGame();
-            document.getElementById('tutorialModal').style.display = 'flex';
-            requestAnimationFrame(gameLoop);
-        });
-    </script>
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas();
+      initGame();
+      document.getElementById('guideModal').classList.add('show');
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    });
+  </script>
 </body>
 </html>
