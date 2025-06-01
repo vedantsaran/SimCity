@@ -19,6 +19,7 @@
       justify-content: center;
       align-items: center;
       overflow-x: hidden;
+      position: relative; /* For absolute popups */
     }
     #game-container {
       display: flex;
@@ -54,6 +55,7 @@
     #score { color: #4CFF4C; }
     #streak { color: #FF4CFF; }
     #best   { color: #FFD700; }
+
     #controls {
       display: flex;
       flex-direction: column;
@@ -84,6 +86,7 @@
     #btn-mute {
       background: linear-gradient(45deg, #ffa726, #ff7043);
     }
+
     #board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
@@ -115,6 +118,7 @@
       background: rgba(255, 76, 76, 0.3) !important;
       border: 2px solid #FF4C4C;
     }
+
     @keyframes explode {
       0%   { transform: scale(1); opacity: 1; }
       50%  { transform: scale(1.2); opacity: 0.7; }
@@ -123,6 +127,7 @@
     .cell.clearing {
       animation: explode 0.25s ease-out forwards;
     }
+
     /* Colors */
     .color-red    { background: linear-gradient(135deg, #FF4C4C, #C62828); }
     .color-green  { background: linear-gradient(135deg, #4CFF4C, #2E7D32); }
@@ -130,6 +135,7 @@
     .color-yellow { background: linear-gradient(135deg, #FFD700, #F57C00); }
     .color-purple { background: linear-gradient(135deg, #FF4CFF, #7B1FA2); }
     .color-orange { background: linear-gradient(135deg, #FF8C42, #E65100); }
+
     #preview-area {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
@@ -169,6 +175,7 @@
       opacity: 0.5;
       cursor: grabbing;
     }
+
     .preview-piece {
       display: grid;
       gap: 2px;
@@ -179,6 +186,7 @@
       border-radius: 3px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     }
+
     .combo-flash {
       position: fixed;
       top: 50%;
@@ -204,6 +212,27 @@
       0%, 100% { border-color: rgba(255, 255, 255, 0.2); }
       50%      { border-color: #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
     }
+
+    /* New: Popup for points gained */
+    .score-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: bold;
+      color: #4CFF4C;
+      text-shadow: 0 0 15px rgba(76, 255, 76, 0.7);
+      pointer-events: none;
+      animation: popupAnim 0.75s ease-out forwards;
+      z-index: 1000;
+    }
+    @keyframes popupAnim {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      50%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
     #game-over-modal {
       position: fixed;
       top: 0;
@@ -241,6 +270,7 @@
       padding: 15px 30px;
       font-size: 18px;
     }
+
     @media (max-width: 768px) {
       #game-container {
         flex-direction: column;
@@ -266,6 +296,7 @@
         margin: 5px;
       }
     }
+
     .placed-animation {
       animation: placeAnimation 0.15s ease-out;
     }
@@ -394,7 +425,6 @@
       board = Array(8).fill().map(() => Array(8).fill(null));
       renderBoard();
     }
-
     function renderBoard() {
       const boardEl = document.getElementById('board');
       boardEl.innerHTML = '';
@@ -423,7 +453,7 @@
       return src.map(row => row.slice());
     }
 
-    // Given a board state, find which rows/columns are full
+    // Find full rows/columns on a simulated board
     function findFullLinesOnBoard(boardState) {
       const fullRows = [];
       const fullCols = [];
@@ -433,17 +463,13 @@
       for (let c = 0; c < 8; c++) {
         let allFilled = true;
         for (let r = 0; r < 8; r++) {
-          if (boardState[r][c] === null) {
-            allFilled = false;
-            break;
-          }
+          if (boardState[r][c] === null) { allFilled = false; break; }
         }
         if (allFilled) fullCols.push(c);
       }
       return { fullRows, fullCols };
     }
 
-    // Clear full rows/columns on a simulated board (no animation)
     function clearLinesOnBoard(boardState) {
       const { fullRows, fullCols } = findFullLinesOnBoard(boardState);
       fullRows.forEach(r => {
@@ -458,7 +484,7 @@
       });
     }
 
-    // Check if a trio of pieces is solvable, allowing line clears between placements
+    // Check if a trio of pieces is solvable
     function isTrioSolvable(pieces, currentBoard) {
       const perms = [
         [0,1,2],[0,2,1],[1,0,2],
@@ -467,39 +493,29 @@
       for (let perm of perms) {
         let boardState = copyBoard(currentBoard);
         let solvable = true;
-
         for (let idx of perm) {
           const piece = pieces[idx];
           let placed = false;
-
-          // Try every cell on board to place this piece
+          // Try every cell
           for (let r = 0; r < 8 && !placed; r++) {
             for (let c = 0; c < 8 && !placed; c++) {
               const [sr, sc] = getAnchorPosition(piece.shape, r, c);
               if (isPlacementValidOnBoard(piece.shape, sr, sc, boardState)) {
-                // Place it in our simulated board
                 for (let [dx, dy] of piece.shape) {
                   boardState[sr + dy][sc + dx] = { color: piece.color, id: piece.id };
                 }
-                // Immediately clear any full lines
                 clearLinesOnBoard(boardState);
                 placed = true;
               }
             }
           }
-
-          if (!placed) {
-            solvable = false;
-            break;
-          }
+          if (!placed) { solvable = false; break; }
         }
-
         if (solvable) return true;
       }
       return false;
     }
 
-    // Check validity on a given board state (for simulation)
     function isPlacementValidOnBoard(shape, sr, sc, boardState) {
       for (let [dx, dy] of shape) {
         const r = sr + dy, c = sc + dx;
@@ -534,13 +550,13 @@
           const preview = createPreviewPiece(piece);
           slot.appendChild(preview);
           slot.dataset.pieceId = piece.id;
+          slot.dataset.index = idx;
         }
       });
     }
 
     function getPieceBounds(shape) {
-      const xs = shape.map(([x,y]) => x),
-            ys = shape.map(([x,y]) => y);
+      const xs = shape.map(([x,y]) => x), ys = shape.map(([x,y]) => y);
       return {
         minX: Math.min(...xs),
         maxX: Math.max(...xs),
@@ -557,14 +573,11 @@
       container.className = 'preview-piece';
       container.style.gridTemplateColumns = `repeat(${b.width}, 1fr)`;
       container.style.gridTemplateRows = `repeat(${b.height}, 1fr)`;
-
       for (let py = 0; py < b.height; py++) {
         for (let px = 0; px < b.width; px++) {
           const block = document.createElement('div');
           block.className = 'preview-block';
-          const has = piece.shape.some(
-            ([sx,sy]) => sx === px + b.minX && sy === py + b.minY
-          );
+          const has = piece.shape.some(([sx,sy]) => sx === px + b.minX && sy === py + b.minY);
           if (has) {
             block.classList.add(`color-${piece.color}`);
           } else {
@@ -576,12 +589,12 @@
       return container;
     }
 
-    // Given a target cell, compute the anchor for a shape
+    // Compute anchor for a shape given a target cell
     function getAnchorPosition(shape, targetRow, targetCol) {
       const { minX, minY, width, height } = getPieceBounds(shape);
-      const dxCenter = minX + Math.floor(width/2);
-      const dyCenter = minY + Math.floor(height/2);
-      return [ targetRow - dyCenter, targetCol - dxCenter ];
+      const dxCenter = minX + Math.floor(width / 2);
+      const dyCenter = minY + Math.floor(height / 2);
+      return [targetRow - dyCenter, targetCol - dxCenter];
     }
 
     function isPlacementValid(shape, sr, sc) {
@@ -653,31 +666,51 @@
 
     function checkAndClearLines() {
       const { fullRows, fullCols } = findFullLines();
-      const total = fullRows.length + fullCols.length;
-      if (total > 0) {
+      const totalLines = fullRows.length + fullCols.length;
+      if (totalLines > 0) {
+        // Compute base points
         const clearedBlocks = clearLines(fullRows, fullCols);
         const basePts = clearedBlocks * 10;
+
+        // Compute multiplier based on number of lines cleared
         let mul = 1;
-        if (total >= 4) mul = 2.5;
-        else if (total >= 3) mul = 2.0;
-        else if (total >= 2) mul = 1.5;
-        const pts = Math.floor(basePts * mul);
-        score += pts;
+        if (totalLines >= 4) mul = 2.5;
+        else if (totalLines >= 3) mul = 2.0;
+        else if (totalLines >= 2) mul = 1.5;
+
+        // Increase streak before calculating the final points
         streak++;
         clearGrace = 3;
-        if (streak % 5 === 0) score += 500;
-        if (total >= 2) {
-          showComboEffect(total, mul);
+
+        // Final points incorporate streak multiplier
+        const pts = Math.floor(basePts * mul) * streak;
+        score += pts;
+
+        // Bonus for every 5th streak
+        if (streak % 5 === 0) {
+          score += 500;
+        }
+
+        // Show pop-up of points gained
+        showScorePopup(pts);
+
+        // If multi-line clear, show combo effect
+        if (totalLines >= 2) {
+          showComboEffect(totalLines, mul);
           document.getElementById('board').classList.add('board-combo');
           setTimeout(() => {
             document.getElementById('board').classList.remove('board-combo');
           }, 500);
         }
-        if (total >= 3) playSound(880, 0.3, 'square');
-        else if (total >= 2) playSound(660, 0.2);
+
+        // Play different sounds depending on lines
+        if (totalLines >= 3) playSound(880, 0.3, 'square');
+        else if (totalLines >= 2) playSound(660, 0.2);
         else playSound(550, 0.15);
+
         updateUI();
       } else {
+        // If no lines cleared, decrement grace and maybe reset streak
         if (clearGrace > 0) {
           clearGrace--;
           if (clearGrace === 0) streak = 0;
@@ -690,6 +723,14 @@
       const el = document.createElement('div');
       el.className = 'combo-flash';
       el.textContent = `COMBO ×${mul}!`;
+      document.body.appendChild(el);
+      setTimeout(() => document.body.removeChild(el), 750);
+    }
+
+    function showScorePopup(pts) {
+      const el = document.createElement('div');
+      el.className = 'score-popup';
+      el.textContent = `+${pts}`;
       document.body.appendChild(el);
       setTimeout(() => document.body.removeChild(el), 750);
     }
@@ -766,8 +807,9 @@
 
     function toggleSound() {
       soundEnabled = !soundEnabled;
-      document.getElementById('btn-mute').textContent =
-        soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+      document.getElementById('btn-mute').textContent = soundEnabled
+        ? '🔊 Sound: ON'
+        : '🔇 Sound: OFF';
     }
 
     // Drag/drop state
@@ -902,7 +944,6 @@
       document.body.appendChild(floating);
       updateDragPosition(x, y);
     }
-
     function createFloatingPiece(piece) {
       const cont = createPreviewPiece(piece);
       cont.style.position = 'fixed';
@@ -911,7 +952,6 @@
       cont.style.transform = 'translate(-50%, -50%)';
       return cont;
     }
-
     function updateDragPosition(x, y) {
       const fp = document.getElementById('floating-piece');
       if (fp) {
@@ -919,7 +959,6 @@
         fp.style.top = y + 'px';
       }
     }
-
     function highlightDropZone(x, y) {
       document.querySelectorAll('.cell').forEach(cell => {
         cell.classList.remove('drop-valid','drop-invalid');
@@ -939,7 +978,6 @@
         }
       }
     }
-
     function attemptDrop(x, y) {
       const fp = document.getElementById('floating-piece');
       if (fp) fp.remove();
