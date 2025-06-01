@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Block Blast - Puzzle Game</title>
     <style>
         * {
@@ -596,7 +596,7 @@
             }
             
             for (let col = 0; col < 8; col++) {
-                if (board.every(row => row[col] !== null)) {
+                if (board.every(r => r[col] !== null)) {
                     fullCols.push(col);
                 }
             }
@@ -627,20 +627,12 @@
                 }
             });
             
-            // After 300ms, actually remove them, then generate new pieces
             setTimeout(() => {
                 cellsToClear.forEach(cellKey => {
                     const [row, col] = cellKey.split(',').map(Number);
                     board[row][col] = null;
                 });
                 renderBoard();
-
-                // Now that clearing is done, generate new pieces and check for game over
-                placedCount = 0;
-                generateNewPieces();
-                if (checkGameOver()) {
-                    endGame();
-                }
             }, 300);
             
             return cellsToClear.size;
@@ -686,12 +678,7 @@
                 
                 updateUI();
             } else {
-                // If no lines to clear, we still need to reset placedCount and spawn new pieces
-                placedCount = 0;
-                generateNewPieces();
-                if (checkGameOver()) {
-                    endGame();
-                }
+                // No lines to clear: just reset streak
                 streak = 0;
                 updateUI();
             }
@@ -932,21 +919,25 @@
                     placedCount++;
                     renderPreview();
 
-                    // As soon as the third piece is placed, clear lines immediately:
+                    // Immediately clear any newly formed lines:
+                    checkAndClearLines();
+
+                    // If that was the third placement (regardless of clears), spawn next three:
                     if (placedCount === 3) {
-                        checkAndClearLines();
+                        placedCount = 0;
+                        generateNewPieces();
+                        if (checkGameOver()) {
+                            endGame();
+                        }
                     }
                 }
             }
 
-            const previewSlots = document.querySelectorAll('.preview-slot');
-            previewSlots.forEach(slot => slot.classList.remove('dragging'));
-
+            document.querySelectorAll('.preview-slot').forEach(slot => slot.classList.remove('dragging'));
             draggedPiece = null;
             draggedPieceIndex = -1;
         }
 
-        // Start everything
         initGame();
     </script>
 </body>
