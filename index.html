@@ -3,630 +3,551 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmic Colonies</title>
+    <title>Defend the Base</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-
+        
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
             color: white;
             overflow: hidden;
-            height: 100vh;
             touch-action: manipulation;
         }
-
-        .game-container {
-            display: flex;
-            flex-direction: column;
+        
+        #gameContainer {
+            width: 100vw;
             height: 100vh;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
-
-        .header {
+        
+        #gameArea {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #0f3460, #16213e);
+            overflow: hidden;
+        }
+        
+        #ui {
+            height: 120px;
             background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
             padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .stats {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 5px;
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid #4a9eff;
+            font-size: 14px;
         }
-
-        .resource {
+        
+        .stat-item {
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 14px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: none;
+            border-radius: 25px;
+            color: white;
             font-weight: bold;
-            color: #4a9eff;
-        }
-
-        .game-area {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background: radial-gradient(circle at center, #1a1a3a 0%, #0f0f23 70%);
-        }
-
-        .stars {
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background-image: 
-                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
-                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
-                radial-gradient(1px 1px at 90px 40px, #fff, transparent),
-                radial-gradient(1px 1px at 130px 80px, #fff, transparent),
-                radial-gradient(2px 2px at 160px 30px, #fff, transparent);
-            background-repeat: repeat;
-            background-size: 200px 100px;
-            animation: twinkle 8s infinite;
-            opacity: 0.6;
-        }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 0.8; }
-        }
-
-        .planet {
-            position: absolute;
-            border-radius: 50%;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            border: 3px solid rgba(255,255,255,0.3);
-            box-shadow: 0 0 20px rgba(74, 158, 255, 0.5);
+            font-size: 12px;
+            min-width: 80px;
+            touch-action: manipulation;
         }
-
-        .planet:hover, .planet:active {
-            transform: scale(1.1);
-            box-shadow: 0 0 30px rgba(74, 158, 255, 0.8);
+        
+        .btn:hover, .btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
         }
-
-        .planet.owned {
-            border-color: #4a9eff;
-            box-shadow: 0 0 25px rgba(74, 158, 255, 0.7);
-        }
-
-        .planet.unexplored {
-            background: radial-gradient(circle, #666 0%, #333 100%);
-            color: #ccc;
-        }
-
-        .planet.colonized {
-            background: radial-gradient(circle, #4a9eff 0%, #2d5aa0 100%);
-            color: white;
-        }
-
-        .planet.mining {
-            background: radial-gradient(circle, #ff6b35 0%, #cc5500 100%);
-            color: white;
-        }
-
-        .planet.research {
-            background: radial-gradient(circle, #9b59b6 0%, #663399 100%);
-            color: white;
-        }
-
-        .planet.defense {
-            background: radial-gradient(circle, #e74c3c 0%, #b33e2f 100%);
-            color: white;
-        }
-
-        .bottom-panel {
-            background: rgba(0, 0, 0, 0.9);
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            backdrop-filter: blur(10px);
-            border-top: 2px solid #4a9eff;
-            max-height: 40vh;
-            overflow-y: auto;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-        }
-
-        .btn {
-            padding: 12px 8px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn:before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover:before, .btn:active:before {
-            left: 100%;
-        }
-
-        .btn-explore {
-            background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
-            color: white;
-        }
-
-        .btn-colonize {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            color: white;
-        }
-
-        .btn-upgrade {
-            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-            color: white;
-        }
-
+        
         .btn:disabled {
-            opacity: 0.5;
+            background: #666;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
-
-        .selected-planet {
-            background: rgba(74, 158, 255, 0.2);
-            border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 10px;
+        
+        .btn.turret { background: linear-gradient(45deg, #4ecdc4, #45b7aa); }
+        .btn.upgrade { background: linear-gradient(45deg, #ffe66d, #ffcc02); }
+        .btn.repair { background: linear-gradient(45deg, #95e1d3, #74c69d); }
+        
+        .entity {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.1s ease;
         }
-
-        .upgrade-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 8px;
-            margin-top: 10px;
+        
+        .base {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #4ecdc4, #45b7aa);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
+            animation: pulse 2s infinite;
         }
-
-        .upgrade-btn {
-            padding: 8px;
-            font-size: 12px;
-            border-radius: 6px;
+        
+        .turret {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6b6b, #ff4757);
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
         }
-
-        .info-text {
-            font-size: 12px;
-            color: #bbb;
-            text-align: center;
-            margin-top: 5px;
+        
+        .enemy {
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #ff9ff3, #f368e0);
+            box-shadow: 0 0 8px rgba(255, 159, 243, 0.5);
         }
-
-        .achievement {
-            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-            color: #333;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            position: fixed;
+        
+        .projectile {
+            width: 4px;
+            height: 4px;
+            background: #ffff00;
+            box-shadow: 0 0 5px #ffff00;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+        
+        .wave-indicator {
+            position: absolute;
             top: 20px;
-            right: 20px;
-            z-index: 1000;
-            animation: slideIn 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            backdrop-filter: blur(5px);
         }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            display: none;
         }
-
-        @keyframes fadeOut {
-            to { opacity: 0; transform: translateX(100%); }
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                font-size: 12px;
-                padding: 8px;
-            }
-            
-            .resource {
-                font-size: 12px;
+        
+        @media (max-width: 600px) {
+            .controls {
+                flex-wrap: wrap;
+                gap: 5px;
             }
             
             .btn {
-                padding: 10px 6px;
-                font-size: 12px;
+                padding: 10px 15px;
+                font-size: 11px;
+                min-width: 70px;
             }
             
-            .planet {
+            #ui {
+                height: 100px;
+                padding: 8px;
+            }
+            
+            .stats {
                 font-size: 12px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="header">
-            <div class="resource">⚡ Energy: <span id="energy">100</span></div>
-            <div class="resource">🔬 Research: <span id="research">0</span></div>
-            <div class="resource">⛏️ Materials: <span id="materials">50</span></div>
-            <div class="resource">🏛️ Colonies: <span id="colonies">0</span></div>
-            <div class="resource">📊 Level: <span id="level">1</span></div>
-        </div>
-
-        <div class="game-area">
-            <div class="stars"></div>
-            <div id="planets-container"></div>
-        </div>
-
-        <div class="bottom-panel">
-            <div id="selected-info" class="selected-planet" style="display: none;">
-                <div id="planet-name">Select a planet</div>
-                <div id="planet-details"></div>
+    <div id="gameContainer">
+        <div id="gameArea">
+            <div class="wave-indicator" id="waveIndicator">Wave 1</div>
+            <div class="entity base" id="base"></div>
+            <div class="game-over" id="gameOver">
+                <h2>Base Destroyed!</h2>
+                <p>You survived <span id="finalWave"></span> waves</p>
+                <button class="btn" onclick="restartGame()">Play Again</button>
             </div>
-
-            <div class="action-buttons">
-                <button class="btn btn-explore" onclick="explorePlanet()">🚀 Explore</button>
-                <button class="btn btn-colonize" onclick="colonizePlanet()">🏗️ Colonize</button>
-                <button class="btn btn-upgrade" onclick="showUpgrades()">⬆️ Upgrade</button>
-            </div>
-
-            <div id="upgrade-panel" style="display: none;">
-                <div class="upgrade-grid">
-                    <button class="btn upgrade-btn btn-upgrade" onclick="upgradePlanet('mining')">⛏️ Mining</button>
-                    <button class="btn upgrade-btn btn-upgrade" onclick="upgradePlanet('research')">🔬 Research</button>
-                    <button class="btn upgrade-btn btn-upgrade" onclick="upgradePlanet('defense')">🛡️ Defense</button>
-                    <button class="btn upgrade-btn btn-colonize" onclick="upgradePlanet('population')">👥 Population</button>
+        </div>
+        
+        <div id="ui">
+            <div class="stats">
+                <div class="stat-item">
+                    <span>💰</span>
+                    <span id="credits">100</span>
+                </div>
+                <div class="stat-item">
+                    <span>❤️</span>
+                    <span id="baseHealth">100</span>
+                </div>
+                <div class="stat-item">
+                    <span>🏰</span>
+                    <span id="turretCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>⚡</span>
+                    <span id="damage">10</span>
                 </div>
             </div>
-
-            <div class="info-text">
-                Tap planets to select • Explore to find new worlds • Colonize to expand your empire
+            
+            <div class="controls">
+                <button class="btn turret" onclick="buyTurret()" id="turretBtn">
+                    Turret (50💰)
+                </button>
+                <button class="btn upgrade" onclick="upgradeDamage()" id="upgradeBtn">
+                    Upgrade (75💰)
+                </button>
+                <button class="btn repair" onclick="repairBase()" id="repairBtn">
+                    Repair (30💰)
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        class Game {
-            constructor() {
-                this.energy = 100;
-                this.research = 0;
-                this.materials = 50;
-                this.colonies = 0;
-                this.level = 1;
-                this.planets = [];
-                this.selectedPlanet = null;
-                this.nextPlanetId = 1;
-                this.gameTime = 0;
-                this.achievements = [];
+        let gameState = {
+            credits: 100,
+            baseHealth: 100,
+            maxBaseHealth: 100,
+            wave: 1,
+            turrets: [],
+            enemies: [],
+            projectiles: [],
+            damage: 10,
+            gameRunning: true,
+            enemiesSpawned: 0,
+            enemiesPerWave: 5,
+            waveActive: false
+        };
 
-                this.initializeGame();
-                this.startGameLoop();
-            }
+        let gameArea = document.getElementById('gameArea');
+        let baseElement = document.getElementById('base');
+        let gameRect = gameArea.getBoundingClientRect();
 
-            initializeGame() {
-                // Create starting planets
-                this.generatePlanets(5);
-                this.render();
-                this.updateUI();
-            }
+        function updateUI() {
+            document.getElementById('credits').textContent = gameState.credits;
+            document.getElementById('baseHealth').textContent = gameState.baseHealth;
+            document.getElementById('turretCount').textContent = gameState.turrets.length;
+            document.getElementById('damage').textContent = gameState.damage;
+            document.getElementById('waveIndicator').textContent = `Wave ${gameState.wave}`;
+            
+            // Update button states
+            document.getElementById('turretBtn').disabled = gameState.credits < 50;
+            document.getElementById('upgradeBtn').disabled = gameState.credits < 75;
+            document.getElementById('repairBtn').disabled = gameState.credits < 30 || gameState.baseHealth >= gameState.maxBaseHealth;
+        }
 
-            generatePlanets(count) {
-                const container = document.getElementById('planets-container');
-                const containerRect = container.getBoundingClientRect();
+        function getBasePosition() {
+            return {
+                x: window.innerWidth / 2,
+                y: (window.innerHeight - 120) / 2
+            };
+        }
 
-                for (let i = 0; i < count; i++) {
-                    const planet = {
-                        id: this.nextPlanetId++,
-                        x: Math.random() * (window.innerWidth - 80) + 40,
-                        y: Math.random() * (window.innerHeight - 200) + 100,
-                        size: 30 + Math.random() * 40,
-                        type: 'unexplored',
-                        level: 1,
-                        name: this.generatePlanetName(),
-                        resources: {
-                            energy: Math.floor(Math.random() * 20) + 10,
-                            materials: Math.floor(Math.random() * 30) + 15,
-                            research: Math.floor(Math.random() * 15) + 5
-                        },
-                        upgrades: {
-                            mining: 0,
-                            research: 0,
-                            defense: 0,
-                            population: 0
-                        }
-                    };
-                    this.planets.push(planet);
-                }
-            }
-
-            generatePlanetName() {
-                const prefixes = ['Zeta', 'Alpha', 'Beta', 'Gamma', 'Nova', 'Stellar', 'Cosmic', 'Nebula'];
-                const suffixes = ['Prime', 'Minor', 'Major', 'One', 'Two', 'Three', 'IV', 'V'];
-                return prefixes[Math.floor(Math.random() * prefixes.length)] + '-' + 
-                       suffixes[Math.floor(Math.random() * suffixes.length)];
-            }
-
-            render() {
-                const container = document.getElementById('planets-container');
-                container.innerHTML = '';
-
-                this.planets.forEach(planet => {
-                    const planetEl = document.createElement('div');
-                    planetEl.className = `planet ${planet.type}`;
-                    planetEl.style.left = planet.x + 'px';
-                    planetEl.style.top = planet.y + 'px';
-                    planetEl.style.width = planet.size + 'px';
-                    planetEl.style.height = planet.size + 'px';
-                    planetEl.style.fontSize = Math.max(10, planet.size / 4) + 'px';
-                    
-                    if (planet.type === 'unexplored') {
-                        planetEl.textContent = '?';
-                    } else {
-                        planetEl.textContent = planet.level;
-                    }
-
-                    if (this.selectedPlanet && this.selectedPlanet.id === planet.id) {
-                        planetEl.classList.add('owned');
-                    }
-
-                    planetEl.addEventListener('click', () => this.selectPlanet(planet));
-                    container.appendChild(planetEl);
-                });
-            }
-
-            selectPlanet(planet) {
-                this.selectedPlanet = planet;
-                this.updateSelectedInfo();
-                this.render();
-            }
-
-            updateSelectedInfo() {
-                const info = document.getElementById('selected-info');
-                const name = document.getElementById('planet-name');
-                const details = document.getElementById('planet-details');
-
-                if (this.selectedPlanet) {
-                    info.style.display = 'block';
-                    name.textContent = this.selectedPlanet.name;
-                    
-                    if (this.selectedPlanet.type === 'unexplored') {
-                        details.innerHTML = `
-                            <div>Status: Unexplored</div>
-                            <div>Exploration Cost: 20 Energy</div>
-                        `;
-                    } else {
-                        details.innerHTML = `
-                            <div>Type: ${this.selectedPlanet.type.charAt(0).toUpperCase() + this.selectedPlanet.type.slice(1)}</div>
-                            <div>Level: ${this.selectedPlanet.level}</div>
-                            <div>⚡ ${this.selectedPlanet.resources.energy}/turn • ⛏️ ${this.selectedPlanet.resources.materials}/turn • 🔬 ${this.selectedPlanet.resources.research}/turn</div>
-                        `;
-                    }
-                } else {
-                    info.style.display = 'none';
-                }
-            }
-
-            explorePlanet() {
-                if (!this.selectedPlanet || this.selectedPlanet.type !== 'unexplored') {
-                    this.showMessage('Select an unexplored planet first!');
-                    return;
-                }
-
-                if (this.energy < 20) {
-                    this.showMessage('Not enough energy! Need 20 energy.');
-                    return;
-                }
-
-                this.energy -= 20;
-                this.selectedPlanet.type = 'colonized';
-                this.selectedPlanet.level = 1;
+        function buyTurret() {
+            if (gameState.credits >= 50) {
+                gameState.credits -= 50;
                 
-                this.showMessage(`Discovered ${this.selectedPlanet.name}!`);
-                this.checkAchievements();
-                this.updateSelectedInfo();
-                this.render();
-                this.updateUI();
-            }
-
-            colonizePlanet() {
-                if (!this.selectedPlanet || this.selectedPlanet.type === 'unexplored') {
-                    this.showMessage('Explore the planet first!');
-                    return;
-                }
-
-                if (this.selectedPlanet.type === 'colonized' && this.selectedPlanet.upgrades.population === 0) {
-                    if (this.materials < 30) {
-                        this.showMessage('Not enough materials! Need 30 materials.');
-                        return;
-                    }
-
-                    this.materials -= 30;
-                    this.colonies++;
-                    this.selectedPlanet.upgrades.population = 1;
-                    this.showMessage(`Colonized ${this.selectedPlanet.name}!`);
-                    this.checkAchievements();
-                } else {
-                    this.showMessage('Planet already colonized or unavailable!');
-                }
-
-                this.updateSelectedInfo();
-                this.updateUI();
-            }
-
-            showUpgrades() {
-                const panel = document.getElementById('upgrade-panel');
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            }
-
-            upgradePlanet(type) {
-                if (!this.selectedPlanet || this.selectedPlanet.type === 'unexplored') {
-                    this.showMessage('Select a discovered planet first!');
-                    return;
-                }
-
-                const cost = (this.selectedPlanet.upgrades[type] + 1) * 25;
+                // Random position around the base
+                let basePos = getBasePosition();
+                let angle = Math.random() * Math.PI * 2;
+                let distance = 60 + Math.random() * 40;
                 
-                if (this.materials < cost) {
-                    this.showMessage(`Not enough materials! Need ${cost} materials.`);
-                    return;
-                }
-
-                this.materials -= cost;
-                this.selectedPlanet.upgrades[type]++;
-                this.selectedPlanet.level++;
-
-                // Update planet type based on highest upgrade
-                const upgrades = this.selectedPlanet.upgrades;
-                if (upgrades.mining > upgrades.research && upgrades.mining > upgrades.defense) {
-                    this.selectedPlanet.type = 'mining';
-                } else if (upgrades.research >= upgrades.mining && upgrades.research > upgrades.defense) {
-                    this.selectedPlanet.type = 'research';
-                } else if (upgrades.defense >= upgrades.mining && upgrades.defense >= upgrades.research) {
-                    this.selectedPlanet.type = 'defense';
-                }
-
-                // Increase resource generation
-                this.selectedPlanet.resources.energy += 5;
-                this.selectedPlanet.resources.materials += 10;
-                this.selectedPlanet.resources.research += 3;
-
-                this.showMessage(`Upgraded ${this.selectedPlanet.name}!`);
-                this.checkLevel();
-                this.updateSelectedInfo();
-                this.render();
-                this.updateUI();
-            }
-
-            startGameLoop() {
-                setInterval(() => {
-                    this.gameTime++;
-                    
-                    // Generate resources from colonized planets
-                    this.planets.forEach(planet => {
-                        if (planet.type !== 'unexplored' && planet.upgrades.population > 0) {
-                            this.energy += planet.resources.energy;
-                            this.materials += planet.resources.materials;
-                            this.research += planet.resources.research;
-                        }
-                    });
-
-                    // Randomly generate new planets
-                    if (Math.random() < 0.02) {
-                        this.generatePlanets(1);
-                        this.render();
-                    }
-
-                    this.checkLevel();
-                    this.updateUI();
-                }, 1000);
-            }
-
-            checkLevel() {
-                const newLevel = Math.floor(this.research / 100) + 1;
-                if (newLevel > this.level) {
-                    this.level = newLevel;
-                    this.showMessage(`Level Up! Reached Level ${this.level}!`);
-                    this.checkAchievements();
-                }
-            }
-
-            checkAchievements() {
-                const achievements = [
-                    { id: 'first_colony', condition: () => this.colonies >= 1, message: '🏆 First Colony!' },
-                    { id: 'explorer', condition: () => this.planets.filter(p => p.type !== 'unexplored').length >= 5, message: '🏆 Space Explorer!' },
-                    { id: 'researcher', condition: () => this.research >= 500, message: '🏆 Research Master!' },
-                    { id: 'empire_builder', condition: () => this.colonies >= 10, message: '🏆 Empire Builder!' },
-                    { id: 'level_10', condition: () => this.level >= 10, message: '🏆 Advanced Civilization!' }
-                ];
-
-                achievements.forEach(achievement => {
-                    if (!this.achievements.includes(achievement.id) && achievement.condition()) {
-                        this.achievements.push(achievement.id);
-                        this.showAchievement(achievement.message);
-                    }
-                });
-            }
-
-            showMessage(message) {
-                // Simple alert for mobile compatibility
-                const messageEl = document.createElement('div');
-                messageEl.textContent = message;
-                messageEl.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: rgba(0,0,0,0.9);
-                    color: white;
-                    padding: 15px 25px;
-                    border-radius: 10px;
-                    z-index: 1000;
-                    font-weight: bold;
-                    border: 2px solid #4a9eff;
-                `;
-                document.body.appendChild(messageEl);
-                setTimeout(() => messageEl.remove(), 2000);
-            }
-
-            showAchievement(message) {
-                const achievementEl = document.createElement('div');
-                achievementEl.className = 'achievement';
-                achievementEl.textContent = message;
-                document.body.appendChild(achievementEl);
-                setTimeout(() => achievementEl.remove(), 3000);
-            }
-
-            updateUI() {
-                document.getElementById('energy').textContent = Math.floor(this.energy);
-                document.getElementById('research').textContent = Math.floor(this.research);
-                document.getElementById('materials').textContent = Math.floor(this.materials);
-                document.getElementById('colonies').textContent = this.colonies;
-                document.getElementById('level').textContent = this.level;
+                let turret = {
+                    x: basePos.x + Math.cos(angle) * distance,
+                    y: basePos.y + Math.sin(angle) * distance,
+                    cooldown: 0,
+                    element: document.createElement('div')
+                };
+                
+                turret.element.className = 'entity turret';
+                turret.element.style.left = turret.x + 'px';
+                turret.element.style.top = turret.y + 'px';
+                gameArea.appendChild(turret.element);
+                
+                gameState.turrets.push(turret);
+                updateUI();
             }
         }
 
-        // Start the game when page loads
-        window.addEventListener('load', () => {
-            new Game();
-        });
-
-        // Prevent zoom on mobile
-        document.addEventListener('touchstart', function(e) {
-            if (e.touches.length > 1) {
-                e.preventDefault();
+        function upgradeDamage() {
+            if (gameState.credits >= 75) {
+                gameState.credits -= 75;
+                gameState.damage += 5;
+                updateUI();
             }
-        });
+        }
 
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
+        function repairBase() {
+            if (gameState.credits >= 30 && gameState.baseHealth < gameState.maxBaseHealth) {
+                gameState.credits -= 30;
+                gameState.baseHealth = Math.min(gameState.maxBaseHealth, gameState.baseHealth + 25);
+                updateUI();
             }
-            lastTouchEnd = now;
-        }, false);
+        }
+
+        function spawnEnemy() {
+            if (!gameState.gameRunning) return;
+            
+            let side = Math.floor(Math.random() * 4);
+            let enemy = {
+                health: 20 + gameState.wave * 5,
+                maxHealth: 20 + gameState.wave * 5,
+                speed: 0.5 + gameState.wave * 0.1,
+                element: document.createElement('div')
+            };
+            
+            // Spawn from edges
+            switch(side) {
+                case 0: // top
+                    enemy.x = Math.random() * window.innerWidth;
+                    enemy.y = -20;
+                    break;
+                case 1: // right
+                    enemy.x = window.innerWidth + 20;
+                    enemy.y = Math.random() * (window.innerHeight - 120);
+                    break;
+                case 2: // bottom
+                    enemy.x = Math.random() * window.innerWidth;
+                    enemy.y = window.innerHeight - 100;
+                    break;
+                case 3: // left
+                    enemy.x = -20;
+                    enemy.y = Math.random() * (window.innerHeight - 120);
+                    break;
+            }
+            
+            enemy.element.className = 'entity enemy';
+            enemy.element.style.left = enemy.x + 'px';
+            enemy.element.style.top = enemy.y + 'px';
+            gameArea.appendChild(enemy.element);
+            
+            gameState.enemies.push(enemy);
+        }
+
+        function updateEnemies() {
+            let basePos = getBasePosition();
+            
+            gameState.enemies.forEach((enemy, index) => {
+                if (!enemy.element.parentNode) return;
+                
+                // Move towards base
+                let dx = basePos.x - enemy.x;
+                let dy = basePos.y - enemy.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 25) {
+                    enemy.x += (dx / distance) * enemy.speed;
+                    enemy.y += (dy / distance) * enemy.speed;
+                    
+                    enemy.element.style.left = enemy.x + 'px';
+                    enemy.element.style.top = enemy.y + 'px';
+                } else {
+                    // Damage base
+                    gameState.baseHealth -= 10;
+                    gameState.credits += 5; // Small reward for surviving contact
+                    
+                    enemy.element.remove();
+                    gameState.enemies.splice(index, 1);
+                    
+                    if (gameState.baseHealth <= 0) {
+                        gameOver();
+                    }
+                }
+            });
+        }
+
+        function updateTurrets() {
+            gameState.turrets.forEach(turret => {
+                if (turret.cooldown > 0) {
+                    turret.cooldown--;
+                    return;
+                }
+                
+                // Find nearest enemy
+                let nearestEnemy = null;
+                let nearestDistance = 150; // Turret range
+                
+                gameState.enemies.forEach(enemy => {
+                    let dx = enemy.x - turret.x;
+                    let dy = enemy.y - turret.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < nearestDistance) {
+                        nearestEnemy = enemy;
+                        nearestDistance = distance;
+                    }
+                });
+                
+                if (nearestEnemy) {
+                    // Create projectile
+                    let projectile = {
+                        x: turret.x,
+                        y: turret.y,
+                        targetX: nearestEnemy.x,
+                        targetY: nearestEnemy.y,
+                        speed: 5,
+                        element: document.createElement('div')
+                    };
+                    
+                    projectile.element.className = 'entity projectile';
+                    projectile.element.style.left = projectile.x + 'px';
+                    projectile.element.style.top = projectile.y + 'px';
+                    gameArea.appendChild(projectile.element);
+                    
+                    gameState.projectiles.push(projectile);
+                    turret.cooldown = 30; // Fire rate
+                }
+            });
+        }
+
+        function updateProjectiles() {
+            gameState.projectiles.forEach((projectile, pIndex) => {
+                let dx = projectile.targetX - projectile.x;
+                let dy = projectile.targetY - projectile.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 5) {
+                    projectile.x += (dx / distance) * projectile.speed;
+                    projectile.y += (dy / distance) * projectile.speed;
+                    
+                    projectile.element.style.left = projectile.x + 'px';
+                    projectile.element.style.top = projectile.y + 'px';
+                } else {
+                    // Check for enemy hits
+                    gameState.enemies.forEach((enemy, eIndex) => {
+                        let edx = enemy.x - projectile.x;
+                        let edy = enemy.y - projectile.y;
+                        let edistance = Math.sqrt(edx * edx + edy * edy);
+                        
+                        if (edistance < 15) {
+                            enemy.health -= gameState.damage;
+                            
+                            if (enemy.health <= 0) {
+                                enemy.element.remove();
+                                gameState.enemies.splice(eIndex, 1);
+                                gameState.credits += 10 + gameState.wave;
+                            }
+                        }
+                    });
+                    
+                    projectile.element.remove();
+                    gameState.projectiles.splice(pIndex, 1);
+                }
+            });
+        }
+
+        function startWave() {
+            if (gameState.waveActive) return;
+            
+            gameState.waveActive = true;
+            gameState.enemiesSpawned = 0;
+            gameState.enemiesPerWave = 5 + gameState.wave * 2;
+            
+            let spawnInterval = setInterval(() => {
+                if (gameState.enemiesSpawned < gameState.enemiesPerWave && gameState.gameRunning) {
+                    spawnEnemy();
+                    gameState.enemiesSpawned++;
+                } else {
+                    clearInterval(spawnInterval);
+                }
+            }, 1000 - Math.min(gameState.wave * 50, 800));
+            
+            // Check for wave completion
+            let waveCheckInterval = setInterval(() => {
+                if (gameState.enemies.length === 0 && gameState.enemiesSpawned >= gameState.enemiesPerWave) {
+                    gameState.wave++;
+                    gameState.waveActive = false;
+                    gameState.credits += 20; // Wave bonus
+                    clearInterval(waveCheckInterval);
+                    
+                    setTimeout(() => {
+                        if (gameState.gameRunning) startWave();
+                    }, 2000);
+                }
+            }, 100);
+        }
+
+        function gameOver() {
+            gameState.gameRunning = false;
+            document.getElementById('finalWave').textContent = gameState.wave;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function restartGame() {
+            // Reset game state
+            gameState = {
+                credits: 100,
+                baseHealth: 100,
+                maxBaseHealth: 100,
+                wave: 1,
+                turrets: [],
+                enemies: [],
+                projectiles: [],
+                damage: 10,
+                gameRunning: true,
+                enemiesSpawned: 0,
+                enemiesPerWave: 5,
+                waveActive: false
+            };
+            
+            // Clear entities
+            document.querySelectorAll('.entity:not(.base)').forEach(el => el.remove());
+            document.getElementById('gameOver').style.display = 'none';
+            
+            updateUI();
+            startWave();
+        }
+
+        function gameLoop() {
+            if (!gameState.gameRunning) return;
+            
+            updateEnemies();
+            updateTurrets();
+            updateProjectiles();
+            updateUI();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize game
+        updateUI();
+        startWave();
+        gameLoop();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            gameRect = gameArea.getBoundingClientRect();
+        });
     </script>
 </body>
 </html>
