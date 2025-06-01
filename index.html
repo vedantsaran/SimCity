@@ -476,12 +476,6 @@
             }
         }
 
-        function generateRandomPiece() {
-            const key = SHAPE_KEYS[Math.floor(Math.random()*SHAPE_KEYS.length)];
-            const color = COLORS[Math.floor(Math.random()*COLORS.length)];
-            return { shape: SHAPES[key], color: color, id: Date.now()+Math.random() };
-        }
-
         // Deep copy board
         function copyBoard(src) {
             return src.map(row => row.slice());
@@ -489,7 +483,6 @@
 
         // Try to find placements for a trio of pieces in any order
         function isTrioSolvable(pieces, currentBoard) {
-            // Generate all permutations of indices [0,1,2]
             const perms = [
                 [0,1,2],
                 [0,2,1],
@@ -505,12 +498,10 @@
                 for (let idx of perm) {
                     const piece = pieces[idx];
                     let placed = false;
-                    // Try every anchor position (center alignment) on board
                     for (let r=0; r<8 && !placed; r++) {
                         for (let c=0; c<8 && !placed; c++) {
                             const [sr, sc] = getAnchorPosition(piece.shape, r, c);
                             if (isPlacementValidOnBoard(piece.shape, sr, sc, boardState)) {
-                                // place on boardState
                                 for (let [dx,dy] of piece.shape) {
                                     boardState[sr+dy][sc+dx] = { color: piece.color, id: piece.id };
                                 }
@@ -538,8 +529,13 @@
             return true;
         }
 
+        function generateRandomPiece() {
+            const key = SHAPE_KEYS[Math.floor(Math.random()*SHAPE_KEYS.length)];
+            const color = COLORS[Math.floor(Math.random()*COLORS.length)];
+            return { shape: SHAPES[key], color: color, id: Date.now()+Math.random() };
+        }
+
         function generateNewPieces() {
-            // Keep trying random trios until a solvable set is found
             let trio;
             do {
                 trio = [ generateRandomPiece(), generateRandomPiece(), generateRandomPiece() ];
@@ -607,6 +603,21 @@
             const dxCenter = minX + Math.floor(width / 2);
             const dyCenter = minY + Math.floor(height / 2);
             return [ targetRow - dyCenter, targetCol - dxCenter ];
+        }
+
+        // Try small offsets around anchor to be more forgiving
+        function findValidAnchor(shape, targetRow, targetCol) {
+            const [baseSr, baseSc] = getAnchorPosition(shape, targetRow, targetCol);
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const sr = baseSr + dr;
+                    const sc = baseSc + dc;
+                    if (isPlacementValid(shape, sr, sc)) {
+                        return [sr, sc];
+                    }
+                }
+            }
+            return null;
         }
 
         function isPlacementValid(shape, sr, sc) {
@@ -833,15 +844,15 @@
                 const cell = e.target.closest('.cell');
                 if (!cell) return;
                 const r = parseInt(cell.dataset.row), c = parseInt(cell.dataset.col);
-                const [sr, sc] = getAnchorPosition(selectedPiece.shape, r, c);
-                if (isPlacementValid(selectedPiece.shape, sr, sc)) {
+                const validAnchor = findValidAnchor(selectedPiece.shape, r, c);
+                if (validAnchor) {
+                    const [sr, sc] = validAnchor;
                     placePiece(selectedPiece, sr, sc);
                     upcomingPieces[selectedPieceIndex] = null;
                     placedCount++;
                     renderPreview();
                     checkAndClearLines();
 
-                    // Only check remaining if placements left
                     if (placedCount < 3 && checkGameOverForRemaining()) {
                         endGame();
                         return;
@@ -954,19 +965,12 @@
             const target = document.elementFromPoint(x,y);
             if (target && target.classList.contains('cell') && draggedPiece) {
                 const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
-                const [sr, sc] = getAnchorPosition(draggedPiece.shape, r, c);
-                let valid=true;
-                const toHL=[];
-                for (let [dx,dy] of draggedPiece.shape){
-                    const nr = sr+dy, nc = sc+dx;
-                    if (nr<0||nr>=8||nc<0||nc>=8||board[nr][nc]!==null){
-                        valid=false; break;
-                    }
-                    toHL.push([nr,nc]);
-                }
-                if (valid){
-                    toHL.forEach(([rr,cc])=>{
-                        const cellEl=document.querySelector(`[data-row="${rr}"][data-col="${cc}"]`);
+                const validAnchor = findValidAnchor(draggedPiece.shape, r, c);
+                if (validAnchor) {
+                    const [sr, sc] = validAnchor;
+                    draggedPiece.shape.forEach(([dx,dy])=>{
+                        const rr = sr + dy, cc = sc + dx;
+                        const cellEl = document.querySelector(`[data-row="${rr}"][data-col="${cc}"]`);
                         if (cellEl) cellEl.classList.add('drop-valid');
                     });
                 } else {
@@ -982,14 +986,15 @@
             const target = document.elementFromPoint(x,y);
             if (target && target.classList.contains('cell') && draggedPiece) {
                 const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
-                const [sr, sc] = getAnchorPosition(draggedPiece.shape, r, c);
-                if (placePiece(draggedPiece, sr, sc)) {
+                const validAnchor = findValidAnchor(draggedPiece.shape, r, c);
+                if (validAnchor) {
+                    const [sr, sc] = validAnchor;
+                    placePiece(draggedPiece, sr, sc);
                     upcomingPieces[draggedPieceIndex] = null;
                     placedCount++;
                     renderPreview();
                     checkAndClearLines();
 
-                    // Only check remaining if placements left
                     if (placedCount < 3 && checkGameOverForRemaining()) {
                         endGame();
                         return;
