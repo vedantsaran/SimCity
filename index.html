@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Block Blast - Puzzle Game</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Arial', sans-serif;
@@ -151,9 +147,9 @@
         }
 
         /* Colors */
-        .color-red { background: linear-gradient(135deg, #FF4C4C, #C62828); }
-        .color-green { background: linear-gradient(135deg, #4CFF4C, #2E7D32); }
-        .color-blue { background: linear-gradient(135deg, #4C4CFF, #1565C0); }
+        .color-red    { background: linear-gradient(135deg, #FF4C4C, #C62828); }
+        .color-green  { background: linear-gradient(135deg, #4CFF4C, #2E7D32); }
+        .color-blue   { background: linear-gradient(135deg, #4C4CFF, #1565C0); }
         .color-yellow { background: linear-gradient(135deg, #FFD700, #F57C00); }
         .color-purple { background: linear-gradient(135deg, #FF4CFF, #7B1FA2); }
         .color-orange { background: linear-gradient(135deg, #FF8C42, #E65100); }
@@ -290,7 +286,6 @@
             font-size: 18px;
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             #game-container {
                 flex-direction: column;
@@ -379,29 +374,49 @@
         let placedCount = 0;
         let gameRunning = true;
 
-        // For tap-to-place on mobile
         let selectedPiece = null;
         let selectedPieceIndex = -1;
 
-        // Shape definitions
+        // Expanded Shape definitions (including length-4 straights, longer L's, Z/S, etc.)
         const SHAPES = {
             single: [[0,0]],
+
+            // Domino
             dominoH: [[0,0],[1,0]],
             dominoV: [[0,0],[0,1]],
+
+            // Square 2×2
             square: [[0,0],[1,0],[0,1],[1,1]],
+
+            // 3-block shapes
             lShape: [[0,0],[0,1],[1,1]],
+            lShapeFlip: [[0,1],[1,0],[1,1]],
             line3H: [[0,0],[1,0],[2,0]],
             line3V: [[0,0],[0,1],[0,2]],
-            tShape: [[0,1],[1,0],[1,1],[1,2]],
-            lShapeFlip: [[0,1],[1,0],[1,1]]
+            tShape3: [[0,1],[1,0],[1,1],[1,2]],  // T tetromino truncated
+
+            // 4-block tetrominoes
+            line4H: [[0,0],[1,0],[2,0],[3,0]],
+            line4V: [[0,0],[0,1],[0,2],[0,3]],
+            square2x2: [[0,0],[1,0],[0,1],[1,1]],
+            tShape: [[1,0],[0,1],[1,1],[2,1]],
+            zShape: [[0,0],[1,0],[1,1],[2,1]],
+            sShape: [[1,0],[2,0],[0,1],[1,1]],
+            l4Up: [[0,0],[0,1],[0,2],[1,2]],
+            l4Right: [[0,0],[1,0],[2,0],[2,1]],
+            l4Down: [[1,0],[1,1],[1,2],[0,2]],
+            l4Left: [[0,1],[1,1],[2,1],[0,0]],
+
+            // 3×2 rectangle (6 cells) – rare, but “big block”
+            rect3x2: [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],
+            rect2x3: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]]
         };
 
-        const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+        const COLORS = ['red','green','blue','yellow','purple','orange'];
         const SHAPE_KEYS = Object.keys(SHAPES);
 
         // Audio context for sound effects
         let audioContext;
-        
         function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -412,19 +427,14 @@
 
         function playSound(frequency, duration, type = 'sine') {
             if (!soundEnabled || !audioContext) return;
-            
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
             oscillator.frequency.value = frequency;
             oscillator.type = type;
-            
             gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-            
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + duration);
         }
@@ -445,93 +455,50 @@
         }
 
         function renderBoard() {
-            const boardElement = document.getElementById('board');
-            boardElement.innerHTML = '';
-            
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.dataset.row = row;
-                    cell.dataset.col = col;
-                    
-                    if (board[row][col]) {
-                        cell.classList.add('occupied', `color-${board[row][col].color}`);
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    if (board[r][c]) {
+                        cell.classList.add('occupied', `color-${board[r][c].color}`);
                     }
-                    
-                    boardElement.appendChild(cell);
+                    boardEl.appendChild(cell);
                 }
             }
         }
 
         function generateRandomPiece() {
-            const shapeKey = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
+            const key = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
             const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-            
-            return {
-                shape: SHAPES[shapeKey],
-                color: color,
-                id: Date.now() + Math.random()
-            };
+            return { shape: SHAPES[key], color: color, id: Date.now() + Math.random() };
         }
 
         function generateNewPieces() {
-            upcomingPieces = [
-                generateRandomPiece(),
-                generateRandomPiece(),
-                generateRandomPiece()
-            ];
+            upcomingPieces = [ generateRandomPiece(), generateRandomPiece(), generateRandomPiece() ];
+            placedCount = 0;
             renderPreview();
         }
 
         function renderPreview() {
-            const previewSlots = document.querySelectorAll('.preview-slot');
-            
-            previewSlots.forEach((slot, index) => {
+            const slots = document.querySelectorAll('.preview-slot');
+            slots.forEach((slot, idx) => {
                 slot.innerHTML = '';
                 slot.removeAttribute('data-piece-id');
-                if (upcomingPieces[index]) {
-                    const piece = upcomingPieces[index];
-                    const previewPiece = createPreviewPiece(piece);
-                    slot.appendChild(previewPiece);
+                if (upcomingPieces[idx]) {
+                    const piece = upcomingPieces[idx];
+                    const preview = createPreviewPiece(piece);
+                    slot.appendChild(preview);
                     slot.dataset.pieceId = piece.id;
                 }
             });
         }
 
-        function createPreviewPiece(piece) {
-            const bounds = getPieceBounds(piece.shape);
-            const container = document.createElement('div');
-            container.className = 'preview-piece';
-            container.style.gridTemplateColumns = `repeat(${bounds.width}, 1fr)`;
-            container.style.gridTemplateRows = `repeat(${bounds.height}, 1fr)`;
-            
-            for (let row = 0; row < bounds.height; row++) {
-                for (let col = 0; col < bounds.width; col++) {
-                    const block = document.createElement('div');
-                    block.className = 'preview-block';
-                    
-                    const hasBlock = piece.shape.some(([x, y]) => 
-                        x === col + bounds.minX && y === row + bounds.minY
-                    );
-                    
-                    if (hasBlock) {
-                        block.classList.add(`color-${piece.color}`);
-                    } else {
-                        block.style.opacity = '0';
-                    }
-                    
-                    container.appendChild(block);
-                }
-            }
-            
-            return container;
-        }
-
         function getPieceBounds(shape) {
-            const xs = shape.map(([x, y]) => x);
-            const ys = shape.map(([x, y]) => y);
-            
+            const xs = shape.map(([x,y])=>x), ys = shape.map(([x,y])=>y);
             return {
                 minX: Math.min(...xs),
                 maxX: Math.max(...xs),
@@ -542,144 +509,119 @@
             };
         }
 
-        function isPlacementValid(shape, startRow, startCol) {
-            for (const [x, y] of shape) {
-                const newRow = startRow + y;
-                const newCol = startCol + x;
-                
-                if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) {
-                    return false;
-                }
-                
-                if (board[newRow][newCol] !== null) {
-                    return false;
+        function createPreviewPiece(piece) {
+            const bounds = getPieceBounds(piece.shape);
+            const container = document.createElement('div');
+            container.className = 'preview-piece';
+            container.style.gridTemplateColumns = `repeat(${bounds.width}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${bounds.height}, 1fr)`;
+            for (let y=0; y<bounds.height; y++) {
+                for (let x=0; x<bounds.width; x++) {
+                    const block = document.createElement('div');
+                    block.className = 'preview-block';
+                    const has = piece.shape.some(([sx,sy]) => 
+                        sx === x + bounds.minX && sy === y + bounds.minY
+                    );
+                    if (has) {
+                        block.classList.add(`color-${piece.color}`);
+                    } else {
+                        block.style.opacity = '0';
+                    }
+                    container.appendChild(block);
                 }
             }
-            
+            return container;
+        }
+
+        function isPlacementValid(shape, startRow, startCol) {
+            for (let [dx,dy] of shape) {
+                const r = startRow + dy, c = startCol + dx;
+                if (r<0||r>=8||c<0||c>=8|| board[r][c] !== null) return false;
+            }
             return true;
         }
 
         function placePiece(piece, startRow, startCol) {
-            if (!isPlacementValid(piece.shape, startRow, startCol)) {
-                return false;
+            if (!isPlacementValid(piece.shape, startRow, startCol)) return false;
+            for (let [dx,dy] of piece.shape) {
+                const r = startRow + dy, c = startCol + dx;
+                board[r][c] = { color: piece.color, id: piece.id };
             }
-            
-            for (const [x, y] of piece.shape) {
-                const newRow = startRow + y;
-                const newCol = startCol + x;
-                board[newRow][newCol] = { color: piece.color, id: piece.id };
-            }
-            
             renderBoard();
             addPlacementAnimation(piece.shape, startRow, startCol);
             playSound(440, 0.1);
-            
             return true;
         }
 
-        function addPlacementAnimation(shape, startRow, startCol) {
-            shape.forEach(([x, y]) => {
-                const row = startRow + y;
-                const col = startCol + x;
-                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        function addPlacementAnimation(shape, sr, sc) {
+            for (let [dx,dy] of shape) {
+                const r = sr + dy, c = sc + dx;
+                const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
                 if (cell) {
                     cell.classList.add('placed-animation');
-                    setTimeout(() => cell.classList.remove('placed-animation'), 200);
+                    setTimeout(()=> cell.classList.remove('placed-animation'), 200);
                 }
-            });
+            }
         }
 
         function findFullLines() {
-            const fullRows = [];
-            const fullCols = [];
-            
-            for (let row = 0; row < 8; row++) {
-                if (board[row].every(cell => cell !== null)) {
-                    fullRows.push(row);
-                }
+            const fullRows = [], fullCols = [];
+            for (let r=0; r<8; r++) {
+                if (board[r].every(cell=>cell !== null)) fullRows.push(r);
             }
-            
-            for (let col = 0; col < 8; col++) {
-                if (board.every(r => r[col] !== null)) {
-                    fullCols.push(col);
-                }
+            for (let c=0; c<8; c++) {
+                if (board.every(row=>row[c] !== null)) fullCols.push(c);
             }
-            
             return { fullRows, fullCols };
         }
 
         function clearLines(fullRows, fullCols) {
-            const cellsToClear = new Set();
-            
-            fullRows.forEach(row => {
-                for (let col = 0; col < 8; col++) {
-                    cellsToClear.add(`${row},${col}`);
-                }
+            const toClear = new Set();
+            fullRows.forEach(r => {
+                for (let c=0; c<8; c++) toClear.add(`${r},${c}`);
             });
-            
-            fullCols.forEach(col => {
-                for (let row = 0; row < 8; row++) {
-                    cellsToClear.add(`${row},${col}`);
-                }
+            fullCols.forEach(c => {
+                for (let r=0; r<8; r++) toClear.add(`${r},${c}`);
             });
-            
-            cellsToClear.forEach(cellKey => {
-                const [row, col] = cellKey.split(',').map(Number);
-                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-                if (cell) {
-                    cell.classList.add('clearing');
-                }
+            toClear.forEach(key=> {
+                const [r,c] = key.split(',').map(Number);
+                const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                if (cell) cell.classList.add('clearing');
             });
-            
-            setTimeout(() => {
-                cellsToClear.forEach(cellKey => {
-                    const [row, col] = cellKey.split(',').map(Number);
-                    board[row][col] = null;
+            setTimeout(()=>{
+                toClear.forEach(key=> {
+                    const [r,c] = key.split(',').map(Number);
+                    board[r][c] = null;
                 });
                 renderBoard();
             }, 300);
-            
-            return cellsToClear.size;
+            return toClear.size;
         }
 
         function checkAndClearLines() {
             const { fullRows, fullCols } = findFullLines();
-            const totalLines = fullRows.length + fullCols.length;
-            
-            if (totalLines > 0) {
+            const total = fullRows.length + fullCols.length;
+            if (total>0) {
                 const clearedBlocks = clearLines(fullRows, fullCols);
-                
-                const basePoints = clearedBlocks * 10;
-                let multiplier = 1;
-                
-                if (totalLines >= 4) multiplier = 2.5;
-                else if (totalLines >= 3) multiplier = 2.0;
-                else if (totalLines >= 2) multiplier = 1.5;
-                
-                const points = Math.floor(basePoints * multiplier);
-                score += points;
+                const basePts = clearedBlocks * 10;
+                let mul = 1;
+                if (total>=4) mul=2.5;
+                else if (total>=3) mul=2.0;
+                else if (total>=2) mul=1.5;
+                const pts = Math.floor(basePts*mul);
+                score += pts;
                 streak++;
-                
-                if (streak % 5 === 0) {
-                    score += 500;
-                }
-                
-                if (totalLines >= 2) {
-                    showComboEffect(totalLines, multiplier);
+                if (streak%5 === 0) score += 500;
+                if (total>=2) {
+                    showComboEffect(total, mul);
                     document.getElementById('board').classList.add('board-combo');
-                    setTimeout(() => {
+                    setTimeout(()=> {
                         document.getElementById('board').classList.remove('board-combo');
                     }, 500);
                 }
-                
-                if (totalLines >= 3) {
-                    playSound(880, 0.3, 'square');
-                } else if (totalLines >= 2) {
-                    playSound(660, 0.2);
-                } else {
-                    playSound(550, 0.15);
-                }
-                
+                if (total>=3) playSound(880,0.3,'square');
+                else if (total>=2) playSound(660,0.2);
+                else playSound(550,0.15);
                 updateUI();
             } else {
                 streak = 0;
@@ -687,32 +629,25 @@
             }
         }
 
-        function showComboEffect(lines, multiplier) {
-            const comboElement = document.createElement('div');
-            comboElement.className = 'combo-flash';
-            comboElement.textContent = `COMBO ×${multiplier}!`;
-            document.body.appendChild(comboElement);
-            
-            setTimeout(() => {
-                document.body.removeChild(comboElement);
-            }, 1000);
+        function showComboEffect(lines, mul) {
+            const el = document.createElement('div');
+            el.className = 'combo-flash';
+            el.textContent = `COMBO ×${mul}!`;
+            document.body.appendChild(el);
+            setTimeout(()=> document.body.removeChild(el), 1000);
         }
 
         function checkGameOver() {
-            for (const piece of upcomingPieces) {
-                if (piece && canPieceBePlaced(piece)) {
-                    return false;
-                }
+            for (let piece of upcomingPieces) {
+                if (piece && canPieceBePlaced(piece)) return false;
             }
             return true;
         }
 
         function canPieceBePlaced(piece) {
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    if (isPlacementValid(piece.shape, row, col)) {
-                        return true;
-                    }
+            for (let r=0; r<8; r++){
+                for (let c=0; c<8; c++){
+                    if (isPlacementValid(piece.shape, r, c)) return true;
                 }
             }
             return false;
@@ -720,20 +655,17 @@
 
         function endGame() {
             gameRunning = false;
-            
-            const isNewBest = score > bestScore;
-            if (isNewBest) {
+            const isNew = score > bestScore;
+            if (isNew) {
                 bestScore = score;
                 saveBestScore();
                 document.getElementById('new-best').style.display = 'block';
             } else {
                 document.getElementById('new-best').style.display = 'none';
             }
-            
             document.getElementById('final-score').textContent = score;
             document.getElementById('game-over-modal').style.display = 'flex';
-            
-            playSound(220, 0.5, 'sawtooth');
+            playSound(220,0.5,'sawtooth');
         }
 
         function updateUI() {
@@ -747,8 +679,8 @@
         }
 
         function loadBestScore() {
-            const saved = localStorage.getItem('blockBlastBest');
-            bestScore = saved ? parseInt(saved) : 0;
+            const s = localStorage.getItem('blockBlastBest');
+            bestScore = s ? parseInt(s) : 0;
         }
 
         function restartGame() {
@@ -770,24 +702,22 @@
                 soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
         }
 
-        // Highlight all valid cells for selectedPiece (tap-to-place)
         function highlightAllValidCells(piece) {
-            document.querySelectorAll('.cell').forEach(cell => {
-                const row = parseInt(cell.dataset.row);
-                const col = parseInt(cell.dataset.col);
-                if (isPlacementValid(piece.shape, row, col)) {
+            document.querySelectorAll('.cell').forEach(cell=>{
+                const r = parseInt(cell.dataset.row), c = parseInt(cell.dataset.col);
+                if (isPlacementValid(piece.shape, r, c)) {
                     cell.classList.add('drop-valid');
                 }
             });
         }
 
         function clearHighlights() {
-            document.querySelectorAll('.cell').forEach(cell => {
-                cell.classList.remove('drop-valid', 'drop-invalid');
+            document.querySelectorAll('.cell').forEach(cell=>{
+                cell.classList.remove('drop-valid','drop-invalid');
             });
         }
 
-        // Drag and Drop functionality
+        // Drag/drop variables
         let draggedPiece = null;
         let draggedPieceIndex = -1;
 
@@ -801,14 +731,14 @@
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
 
-            // Touch for drag/drop
+            // Touch drag/drop
             document.addEventListener('touchstart', handleTouchStart, { passive: false });
             document.addEventListener('touchmove', handleTouchMove, { passive: false });
             document.addEventListener('touchend', handleTouchEnd, { passive: false });
 
-            // Tap-to-place: click on preview
+            // Tap-to-place on mobile/tablet
             document.querySelectorAll('.preview-slot').forEach(slot => {
-                slot.addEventListener('click', e => {
+                slot.addEventListener('click', () => {
                     if (!gameRunning) return;
                     const idx = parseInt(slot.dataset.index);
                     if (upcomingPieces[idx]) {
@@ -820,15 +750,12 @@
                 });
             });
 
-            // Tap-to-place: click on board
             document.getElementById('board').addEventListener('click', e => {
                 if (!gameRunning || !selectedPiece) return;
                 const cell = e.target.closest('.cell');
                 if (!cell) return;
-                const row = parseInt(cell.dataset.row);
-                const col = parseInt(cell.dataset.col);
-                // Attempt to place
-                if (placePiece(selectedPiece, row, col)) {
+                const r = parseInt(cell.dataset.row), c = parseInt(cell.dataset.col);
+                if (placePiece(selectedPiece, r, c)) {
                     upcomingPieces[selectedPieceIndex] = null;
                     placedCount++;
                     renderPreview();
@@ -840,7 +767,6 @@
                         if (checkGameOver()) endGame();
                     }
                 }
-                // Clear selection
                 selectedPiece = null;
                 selectedPieceIndex = -1;
             });
@@ -848,41 +774,37 @@
 
         function handleMouseDown(e) {
             if (!gameRunning) return;
-            const previewSlot = e.target.closest('.preview-slot');
-            if (previewSlot && previewSlot.dataset.pieceId) {
-                startDrag(previewSlot, e.clientX, e.clientY);
+            const slot = e.target.closest('.preview-slot');
+            if (slot && slot.dataset.pieceId) {
+                startDrag(slot, e.clientX, e.clientY);
                 clearHighlights();
                 selectedPiece = null;
                 selectedPieceIndex = -1;
             }
         }
-
         function handleMouseMove(e) {
             if (draggedPiece) {
                 updateDragPosition(e.clientX, e.clientY);
                 highlightDropZone(e.clientX, e.clientY);
             }
         }
-
         function handleMouseUp(e) {
             if (draggedPiece) {
                 attemptDrop(e.clientX, e.clientY);
             }
         }
-
         function handleTouchStart(e) {
             if (!gameRunning) return;
             const touch = e.touches[0];
-            const previewSlot = touch.target.closest('.preview-slot');
-            if (previewSlot && previewSlot.dataset.pieceId) {
+            const slot = touch.target.closest('.preview-slot');
+            if (slot && slot.dataset.pieceId) {
                 e.preventDefault();
-                startDrag(previewSlot, touch.clientX, touch.clientY);
+                startDrag(slot, touch.clientX, touch.clientY);
                 clearHighlights();
                 selectedPiece = null;
                 selectedPieceIndex = -1;
             }
         }
-
         function handleTouchMove(e) {
             if (draggedPiece) {
                 e.preventDefault();
@@ -891,7 +813,6 @@
                 highlightDropZone(touch.clientX, touch.clientY);
             }
         }
-
         function handleTouchEnd(e) {
             if (draggedPiece) {
                 e.preventDefault();
@@ -900,105 +821,81 @@
             }
         }
 
-        function startDrag(previewSlot, x, y) {
-            draggedPieceIndex = parseInt(previewSlot.dataset.index);
+        function startDrag(slot, x, y) {
+            draggedPieceIndex = parseInt(slot.dataset.index);
             draggedPiece = upcomingPieces[draggedPieceIndex];
-
-            previewSlot.classList.add('dragging');
-
-            const floatingPiece = createFloatingPiece(draggedPiece);
-            floatingPiece.id = 'floating-piece';
-            document.body.appendChild(floatingPiece);
-
+            slot.classList.add('dragging');
+            const floating = createFloatingPiece(draggedPiece);
+            floating.id = 'floating-piece';
+            document.body.appendChild(floating);
             updateDragPosition(x, y);
         }
 
         function createFloatingPiece(piece) {
-            const container = createPreviewPiece(piece);
-            container.style.position = 'fixed';
-            container.style.pointerEvents = 'none';
-            container.style.zIndex = '1000';
-            container.style.transform = 'translate(-50%, -50%)';
-            return container;
+            const cont = createPreviewPiece(piece);
+            cont.style.position = 'fixed';
+            cont.style.pointerEvents = 'none';
+            cont.style.zIndex = '1000';
+            cont.style.transform = 'translate(-50%, -50%)';
+            return cont;
         }
 
         function updateDragPosition(x, y) {
-            const floatingPiece = document.getElementById('floating-piece');
-            if (floatingPiece) {
-                floatingPiece.style.left = x + 'px';
-                floatingPiece.style.top = y + 'px';
+            const fp = document.getElementById('floating-piece');
+            if (fp) {
+                fp.style.left = x + 'px';
+                fp.style.top = y + 'px';
             }
         }
 
         function highlightDropZone(x, y) {
             document.querySelectorAll('.cell').forEach(cell => {
-                cell.classList.remove('drop-valid', 'drop-invalid');
+                cell.classList.remove('drop-valid','drop-invalid');
             });
-
-            const targetCell = document.elementFromPoint(x, y);
-            if (targetCell && targetCell.classList.contains('cell') && draggedPiece) {
-                const row = parseInt(targetCell.dataset.row);
-                const col = parseInt(targetCell.dataset.col);
-
+            const target = document.elementFromPoint(x, y);
+            if (target && target.classList.contains('cell') && draggedPiece) {
+                const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
                 let valid = true;
-                const toHighlight = [];
-
-                for (const [dx, dy] of draggedPiece.shape) {
-                    const newRow = row + dy;
-                    const newCol = col + dx;
-
-                    if (
-                        newRow < 0 || newRow >= 8 ||
-                        newCol < 0 || newCol >= 8 ||
-                        board[newRow][newCol] !== null
-                    ) {
-                        valid = false;
-                        break;
+                const toHL = [];
+                for (let [dx,dy] of draggedPiece.shape) {
+                    const nr = r + dy, nc = c + dx;
+                    if (nr<0||nr>=8||nc<0||nc>=8||board[nr][nc]!==null) {
+                        valid = false; break;
                     }
-                    toHighlight.push([newRow, newCol]);
+                    toHL.push([nr,nc]);
                 }
-
                 if (valid) {
-                    toHighlight.forEach(([r, c]) => {
-                        const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    toHL.forEach(([rr,cc]) => {
+                        const cell = document.querySelector(`[data-row="${rr}"][data-col="${cc}"]`);
                         if (cell) cell.classList.add('drop-valid');
                     });
                 } else {
-                    targetCell.classList.add('drop-invalid');
+                    target.classList.add('drop-invalid');
                 }
             }
         }
 
         function attemptDrop(x, y) {
-            const floatingPiece = document.getElementById('floating-piece');
-            if (floatingPiece) {
-                floatingPiece.remove();
-            }
-
+            const fp = document.getElementById('floating-piece');
+            if (fp) fp.remove();
             document.querySelectorAll('.cell').forEach(cell => {
-                cell.classList.remove('drop-valid', 'drop-invalid');
+                cell.classList.remove('drop-valid','drop-invalid');
             });
-
-            const targetCell = document.elementFromPoint(x, y);
-            if (targetCell && targetCell.classList.contains('cell') && draggedPiece) {
-                const row = parseInt(targetCell.dataset.row);
-                const col = parseInt(targetCell.dataset.col);
-
-                if (placePiece(draggedPiece, row, col)) {
+            const target = document.elementFromPoint(x, y);
+            if (target && target.classList.contains('cell') && draggedPiece) {
+                const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
+                if (placePiece(draggedPiece, r, c)) {
                     upcomingPieces[draggedPieceIndex] = null;
                     placedCount++;
                     renderPreview();
                     checkAndClearLines();
-                    if (placedCount === 3) {
-                        placedCount = 0;
+                    if (placedCount===3) {
+                        placedCount=0;
                         generateNewPieces();
-                        if (checkGameOver()) {
-                            endGame();
-                        }
+                        if (checkGameOver()) endGame();
                     }
                 }
             }
-
             document.querySelectorAll('.preview-slot').forEach(slot => slot.classList.remove('dragging'));
             draggedPiece = null;
             draggedPieceIndex = -1;
