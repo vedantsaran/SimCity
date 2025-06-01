@@ -479,7 +479,7 @@
             const rateDiv = document.createElement('div');
             rateDiv.style.cssText = 'margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 8px;';
             rateDiv.innerHTML = `
-              ${resource}: <span style="color: ${rate > 0 ? '#4caf50' : '#f44336'};">${rate > 0 ? '+' : ''}${rate.toFixed(1)}/s</span>
+              ${resource}: <span style="color: ${rate > 0 ? '#4caf50' : '#f44336'};">${rate > 0 ? '+' : ''}${rate.toFixed(1)}/min</span>
             `;
             productionContainer.appendChild(rateDiv);
           }
@@ -495,7 +495,7 @@
       }
 
       calculateProductionRates() {
-        // Rates are per second
+        // Rates are per minute
         const rates = {
           energy: 0,
           minerals: 0,
@@ -508,18 +508,16 @@
         Object.entries(this.buildings).forEach(([name, building]) => {
           if (building.count > 0 && building.production) {
             Object.entries(building.production).forEach(([resource, amountPerMinute]) => {
-              // Convert per‐minute to per‐second: divide by 60
-              const perSecond = (amountPerMinute / 60) * building.count * this.productionMultipliers[resource] * (this.gameStats.efficiency / 100);
-              rates[resource] += perSecond;
+              const perMinute = amountPerMinute * building.count * this.productionMultipliers[resource] * (this.gameStats.efficiency / 100);
+              rates[resource] += perMinute;
             });
           }
         });
 
-        // Population consumes food and water, energy
-        // Assume original numbers are per minute: energy consumption 0.5 per pop per minute
-        rates.energy -= (this.resources.population * 0.5) / 60;
-        rates.food   -= (this.resources.population * 0.3) / 60;
-        rates.water  -= (this.resources.population * 0.2) / 60;
+        // Consumption per minute
+        rates.energy -= this.resources.population * 0.5;
+        rates.food -= this.resources.population * 0.3;
+        rates.water -= this.resources.population * 0.2;
 
         return rates;
       }
@@ -561,7 +559,6 @@
           const researchDiv = document.createElement('div');
           researchDiv.className = `research-item ${tech.completed ? 'completed' : ''} ${tech.researching ? 'researching' : ''}`;
 
-          // Determine if player can start research: enough accumulated research points and not already researching or completed
           const canResearch = this.resources.research >= tech.cost && !tech.completed && !tech.researching && !this.currentResearch;
 
           researchDiv.innerHTML = `
@@ -671,32 +668,35 @@
       gameLoop() {
         const rates = this.calculateProductionRates();
         Object.entries(rates).forEach(([resource, rate]) => {
-          this.resources[resource] += rate; // per-second update
+          if (resource === 'population') {
+            this.resources[resource] += rate / 60; // population per-minute → per-second
+          } else {
+            this.resources[resource] += rate / 6; // per-minute → per-second
+          }
         });
 
-        // Clamp non-energy resources to >= 0
+        // Clamp non-energy resources to ≥ 0
         ['minerals', 'food', 'water', 'research', 'population'].forEach(r => {
           if (this.resources[r] < 0) this.resources[r] = 0;
         });
 
-        // Research progress
+        // Research progress (per second)
         if (this.currentResearch) {
           const tech = this.research[this.currentResearch];
-          tech.progress += rates.research; // accumulate at research-rate per second
+          tech.progress += rates.research / 6;
           if (tech.progress >= tech.cost) {
             tech.completed = true;
             tech.researching = false;
             tech.progress = tech.cost;
-            // Deduct cost at completion
             this.resources.research -= tech.cost;
+            this.showNotification(`Research completed: ${this.currentResearch}!`);
             this.currentResearch = null;
-            this.showNotification(`Research completed: ${tech.unlocks ? this.currentResearch : tech.effect || this.currentResearch}!`);
             this.applyResearchEffects();
             this.renderBuildings();
           }
         }
 
-        // Update day every real 60 seconds, so increment by 1/60 per second
+        // Advance day every 60 real seconds
         this.gameStats.day += 1 / 60;
         this.updateGameStats();
         this.updateDisplay();
