@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -249,7 +248,9 @@
     </div>
 
     <div class="hud bottom-bar">
-        <span id="tooltipDisplay">Draw lines between stations to connect them. Trains will carry passengers to matching colored stations.</span>
+        <span id="tooltipDisplay">
+            Draw lines between stations to connect them. Trains will carry passengers to matching colored stations.
+        </span>
     </div>
 
     <!-- Resource Panel -->
@@ -331,17 +332,23 @@
     <div class="notification" id="notification"></div>
 
     <script>
+        // -------------------------
         // Game Constants
-        const STATION_COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b'];
-        const LINE_COLORS = ['#666', '#777', '#888', '#999', '#aaa', '#bbb'];
+        // -------------------------
+        const STATION_COLORS = [
+            '#ff6b6b',' #4ecdc4',' #45b7d1',' #f9ca24',' #f0932b',' #eb4d4b'
+        ];
+        const LINE_COLORS = ['#666','#777','#888','#999','#aaa','#bbb'];
         const STATION_RADIUS = 15;
         const TRAIN_SIZE = 8;
         const MAX_QUEUE_LENGTH = 20;
-        const REAL_SECONDS_PER_WEEK = 20; // Faster for demo
-        const DEFAULT_TRAIN_SPEED = 80;
+        const REAL_SECONDS_PER_WEEK = 20; // 20s = 1 “week” (sped up for testing)
+        const DEFAULT_TRAIN_SPEED = 80;  // px/sec
         const DEFAULT_TRAIN_CAPACITY = 4;
 
+        // -------------------------
         // Game State
+        // -------------------------
         let gameState = {
             stations: new Map(),
             lines: new Map(),
@@ -357,22 +364,26 @@
             week: 1,
             month: 1,
             isGameOver: false,
-            isPaused: false,
-            tokens: 1, // Start with 1 token
+            isPaused: true,    // start paused until tutorial closes
+            tokens: 1,
             maxLines: 2,
             usedLines: 0,
             tunnelsAvailable: 0
         };
 
-        // Timing variables
+        // -------------------------
+        // Timing Variables
+        // -------------------------
         let lastTime = 0;
         let stationSpawnTimer = 0;
         let passengerSpawnTimer = 0;
         let weekTimer = 0;
-        let stationSpawnInterval = 8;
-        let passengerSpawnInterval = 1.2;
+        let stationSpawnInterval = 8;    // spawn a station every 8s initially
+        let passengerSpawnInterval = 1.2; // spawn a passenger every 1.2s
 
-        // UI state
+        // -------------------------
+        // UI State
+        // -------------------------
         let selectedStation = null;
         let isDragging = false;
         let dragEndX = 0;
@@ -380,13 +391,15 @@
         let mouseX = 0;
         let mouseY = 0;
         let showingResourcePanel = false;
-        let pendingResourceAction = null; // 'addTrain', 'addCarriage'
+        let pendingResourceAction = null; // 'addTrain' or 'addCarriage'
         let tutorialStep = 0;
 
-        // Canvas setup
+        // -------------------------
+        // Canvas Setup
+        // -------------------------
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
+
         function resizeCanvas() {
             const dpr = window.devicePixelRatio || 1;
             const width = window.innerWidth;
@@ -399,14 +412,16 @@
             ctx.scale(dpr, dpr);
         }
 
-        // Classes
+        // -------------------------
+        // Station Class
+        // -------------------------
         class Station {
             constructor(x, y, color) {
                 this.id = gameState.nextStationID++;
                 this.x = x;
                 this.y = y;
                 this.color = color;
-                this.queue = [];
+                this.queue = [];    // array of passenger IDs
                 this.isOverloaded = false;
             }
 
@@ -419,9 +434,9 @@
             }
 
             removePassenger(passengerId) {
-                const index = this.queue.indexOf(passengerId);
-                if (index > -1) {
-                    this.queue.splice(index, 1);
+                const idx = this.queue.indexOf(passengerId);
+                if (idx > -1) {
+                    this.queue.splice(idx, 1);
                 }
             }
 
@@ -429,8 +444,8 @@
                 const pulseTime = performance.now() * 0.005;
                 const isWarning = this.queue.length >= 15;
                 const radius = STATION_RADIUS + (isWarning ? Math.sin(pulseTime) * 3 : 0);
-                
-                // Station circle
+
+                // Draw station circle
                 ctx.fillStyle = this.color;
                 ctx.strokeStyle = isWarning ? '#ff0000' : '#ffffff';
                 ctx.lineWidth = 2;
@@ -439,7 +454,7 @@
                 ctx.fill();
                 ctx.stroke();
 
-                // Queue visualization
+                // Draw up to 4 passenger‐color dots inside
                 if (this.queue.length > 0) {
                     const displayCount = Math.min(4, this.queue.length);
                     for (let i = 0; i < displayCount; i++) {
@@ -448,14 +463,12 @@
                             const angle = (i / displayCount) * Math.PI * 2;
                             const qx = this.x + Math.cos(angle) * (radius - 6);
                             const qy = this.y + Math.sin(angle) * (radius - 6);
-                            
                             ctx.fillStyle = passenger.targetColor;
                             ctx.beginPath();
                             ctx.arc(qx, qy, 3, 0, Math.PI * 2);
                             ctx.fill();
                         }
                     }
-
                     if (this.queue.length > 4) {
                         ctx.fillStyle = 'white';
                         ctx.font = '12px Arial';
@@ -466,14 +479,17 @@
             }
         }
 
+        // -------------------------
+        // Line Class
+        // -------------------------
         class Line {
             constructor() {
                 this.id = gameState.nextLineID++;
-                this.stations = [];
-                this.trains = [];
+                this.stations = [];     // array of station IDs, in order
+                this.trains = [];       // array of train IDs on this line
                 this.color = LINE_COLORS[gameState.usedLines % LINE_COLORS.length];
                 gameState.usedLines++;
-                this.colorStationsMap = {};
+                this.colorStationsMap = {};  // maps station‐color→[indexes]
             }
 
             addStation(stationId) {
@@ -485,47 +501,48 @@
 
             updateColorMap() {
                 this.colorStationsMap = {};
-                this.stations.forEach((stationId, index) => {
-                    const station = gameState.stations.get(stationId);
-                    if (station) {
-                        if (!this.colorStationsMap[station.color]) {
-                            this.colorStationsMap[station.color] = [];
+                this.stations.forEach((sid, idx) => {
+                    const st = gameState.stations.get(sid);
+                    if (st) {
+                        if (!this.colorStationsMap[st.color]) {
+                            this.colorStationsMap[st.color] = [];
                         }
-                        this.colorStationsMap[station.color].push(index);
+                        this.colorStationsMap[st.color].push(idx);
                     }
                 });
             }
 
-            canReachColor(fromIndex, targetColor, direction) {
-                const colorIndices = this.colorStationsMap[targetColor] || [];
-                return colorIndices.some(index => {
-                    if (direction === 'forward') return index > fromIndex;
-                    if (direction === 'backward') return index < fromIndex;
+            canReachColor(fromIdx, targetColor, direction) {
+                const arr = this.colorStationsMap[targetColor] || [];
+                return arr.some(idx => {
+                    if (direction === 'forward') return idx > fromIdx;
+                    if (direction === 'backward') return idx < fromIdx;
                     return false;
                 });
             }
 
             draw() {
                 if (this.stations.length < 2) return;
-
                 ctx.strokeStyle = this.color;
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
-
                 ctx.beginPath();
                 for (let i = 0; i < this.stations.length - 1; i++) {
-                    const station1 = gameState.stations.get(this.stations[i]);
-                    const station2 = gameState.stations.get(this.stations[i + 1]);
-                    if (station1 && station2) {
-                        if (i === 0) ctx.moveTo(station1.x, station1.y);
-                        ctx.lineTo(station2.x, station2.y);
+                    const s1 = gameState.stations.get(this.stations[i]);
+                    const s2 = gameState.stations.get(this.stations[i + 1]);
+                    if (s1 && s2) {
+                        if (i === 0) ctx.moveTo(s1.x, s1.y);
+                        ctx.lineTo(s2.x, s2.y);
                     }
                 }
                 ctx.stroke();
             }
         }
 
+        // -------------------------
+        // Train Class
+        // -------------------------
         class Train {
             constructor(lineId) {
                 this.id = gameState.nextTrainID++;
@@ -534,120 +551,119 @@
                 this.direction = 'forward';
                 this.speed = DEFAULT_TRAIN_SPEED;
                 this.capacity = DEFAULT_TRAIN_CAPACITY;
-                this.passengers = [];
+                this.passengers = [];  // array of passenger IDs
                 this.x = 0;
                 this.y = 0;
                 this.targetX = 0;
                 this.targetY = 0;
-                
-                const line = gameState.lines.get(lineId);
-                if (line && line.stations.length > 0) {
-                    const firstStation = gameState.stations.get(line.stations[0]);
-                    if (firstStation) {
-                        this.x = firstStation.x;
-                        this.y = firstStation.y;
+
+                const ln = gameState.lines.get(lineId);
+                if (ln && ln.stations.length > 0) {
+                    const firstSt = gameState.stations.get(ln.stations[0]);
+                    if (firstSt) {
+                        this.x = firstSt.x;
+                        this.y = firstSt.y;
                         this.updateTarget();
                     }
                 }
             }
 
             updateTarget() {
-                const line = gameState.lines.get(this.lineId);
-                if (!line || line.stations.length < 2) return;
+                const ln = gameState.lines.get(this.lineId);
+                if (!ln || ln.stations.length < 2) return;
 
-                let nextIndex = this.direction === 'forward'
+                let nextIdx = this.direction === 'forward'
                     ? this.currentStationIndex + 1
                     : this.currentStationIndex - 1;
 
-                if (nextIndex >= line.stations.length) {
+                if (nextIdx >= ln.stations.length) {
                     this.direction = 'backward';
-                    this.currentStationIndex = line.stations.length - 1;
-                    nextIndex = this.currentStationIndex - 1;
-                } else if (nextIndex < 0) {
+                    this.currentStationIndex = ln.stations.length - 1;
+                    nextIdx = this.currentStationIndex - 1;
+                } else if (nextIdx < 0) {
                     this.direction = 'forward';
                     this.currentStationIndex = 0;
-                    nextIndex = this.currentStationIndex + 1;
+                    nextIdx = this.currentStationIndex + 1;
                 }
 
-                const targetStation = gameState.stations.get(line.stations[nextIndex]);
-                if (targetStation) {
-                    this.targetX = targetStation.x;
-                    this.targetY = targetStation.y;
+                const tgtSt = gameState.stations.get(ln.stations[nextIdx]);
+                if (tgtSt) {
+                    this.targetX = tgtSt.x;
+                    this.targetY = tgtSt.y;
                 }
             }
 
             update(deltaTime) {
                 if (gameState.isPaused || gameState.isGameOver) return;
-
                 const dx = this.targetX - this.x;
                 const dy = this.targetY - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const dist = Math.sqrt(dx*dx + dy*dy);
 
-                if (distance < 2) {
+                if (dist < 2) {
                     this.arriveAtStation();
                 } else {
-                    const moveDistance = this.speed * deltaTime;
-                    this.x += (dx / distance) * moveDistance;
-                    this.y += (dy / distance) * moveDistance;
+                    const moveDist = this.speed * deltaTime;
+                    this.x += (dx/dist) * moveDist;
+                    this.y += (dy/dist) * moveDist;
                 }
             }
 
             arriveAtStation() {
-                const line = gameState.lines.get(this.lineId);
-                if (!line) return;
-
-                let nextIndex = this.direction === 'forward'
+                const ln = gameState.lines.get(this.lineId);
+                if (!ln) return;
+                let nextIdx = this.direction === 'forward'
                     ? this.currentStationIndex + 1
                     : this.currentStationIndex - 1;
+                this.currentStationIndex = nextIdx;
 
-                this.currentStationIndex = nextIndex;
-                const currentStation = gameState.stations.get(line.stations[nextIndex]);
-                
-                if (currentStation) {
-                    this.x = currentStation.x;
-                    this.y = currentStation.y;
-                    
-                    // Deboard passengers
-                    this.passengers = this.passengers.filter(passengerId => {
-                        const passenger = gameState.passengers.get(passengerId);
-                        if (passenger && passenger.targetColor === currentStation.color) {
+                const curSt = gameState.stations.get(ln.stations[nextIdx]);
+                if (curSt) {
+                    this.x = curSt.x;
+                    this.y = curSt.y;
+
+                    // Deboard
+                    this.passengers = this.passengers.filter(pid => {
+                        const p = gameState.passengers.get(pid);
+                        if (p && p.targetColor === curSt.color) {
                             gameState.score++;
                             gameState.deliveredCount++;
-                            gameState.totalWaitTime += passenger.waitDuration;
-                            gameState.passengers.delete(passengerId);
+                            gameState.totalWaitTime += p.waitDuration;
+                            gameState.passengers.delete(pid);
                             updateUI();
-                            return false; // Remove from train
+                            return false;
                         }
-                        return true; // Keep on train
+                        return true;
                     });
 
-                    // Board new passengers
-                    const availableCapacity = this.capacity - this.passengers.length;
+                    // Board
+                    const spaceLeft = this.capacity - this.passengers.length;
                     let boarded = 0;
-                    
-                    for (let i = 0; i < currentStation.queue.length && boarded < availableCapacity; i++) {
-                        const passengerId = currentStation.queue[i];
-                        const passenger = gameState.passengers.get(passengerId);
-                        
-                        if (passenger && this.canReachColor(passenger.targetColor)) {
-                            this.passengers.push(passengerId);
-                            currentStation.removePassenger(passengerId);
+                    for (let i = 0; i < curSt.queue.length && boarded < spaceLeft; i++) {
+                        const pid = curSt.queue[i];
+                        const p = gameState.passengers.get(pid);
+                        if (p && this.canReachColor(p.targetColor)) {
+                            this.passengers.push(pid);
+                            curSt.removePassenger(pid);
                             boarded++;
-                            i--; // Adjust index since we removed an element
+                            i--; // because array shortened
                         }
                     }
                 }
-
                 this.updateTarget();
             }
 
             canReachColor(targetColor) {
-                const line = gameState.lines.get(this.lineId);
-                if (!line) return false;
-                
-                return line.canReachColor(this.currentStationIndex, targetColor, this.direction) ||
-                       line.canReachColor(this.currentStationIndex, targetColor, 
-                           this.direction === 'forward' ? 'backward' : 'forward');
+                const ln = gameState.lines.get(this.lineId);
+                if (!ln) return false;
+                return ln.canReachColor(
+                    this.currentStationIndex, 
+                    targetColor, 
+                    this.direction
+                ) || ln.canReachColor(
+                    this.currentStationIndex,
+                    targetColor,
+                    this.direction === 'forward' ? 'backward' : 'forward'
+                );
             }
 
             draw() {
@@ -659,14 +675,21 @@
                 ctx.fill();
                 ctx.stroke();
 
-                // Capacity indicator
+                // Show capacity text above train
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(`${this.passengers.length}/${this.capacity}`, this.x, this.y - TRAIN_SIZE - 5);
+                ctx.fillText(
+                    `${this.passengers.length}/${this.capacity}`, 
+                    this.x, 
+                    this.y - TRAIN_SIZE - 5
+                );
             }
         }
 
+        // -------------------------
+        // Passenger Class
+        // -------------------------
         class Passenger {
             constructor(originStationId, targetColor) {
                 this.id = gameState.nextPassengerID++;
@@ -681,9 +704,10 @@
             }
         }
 
-        // Game Functions
+        // -------------------------
+        // Initialize / Reset Game
+        // -------------------------
         function initGame() {
-            // Reset game state
             gameState = {
                 stations: new Map(),
                 lines: new Map(),
@@ -699,21 +723,20 @@
                 week: 1,
                 month: 1,
                 isGameOver: false,
-                isPaused: true, // start paused until tutorial closes
+                isPaused: true, // remain paused until tutorial closes
                 tokens: 1,
                 maxLines: 2,
                 usedLines: 0,
                 tunnelsAvailable: 0
             };
 
-            // Reset timers
             stationSpawnTimer = 0;
             passengerSpawnTimer = 0;
             weekTimer = 0;
             stationSpawnInterval = 8;
             passengerSpawnInterval = 1.2;
 
-            // Spawn initial stations
+            // Spawn 2 stations right away, and a third after 2s
             spawnStation();
             spawnStation();
             setTimeout(spawnStation, 2000);
@@ -721,76 +744,79 @@
             updateUI();
         }
 
+        // -------------------------
+        // Spawn a New Station
+        // -------------------------
         function spawnStation() {
             if (gameState.isGameOver) return;
-
-            let attempts = 0;
+            let tries = 0;
             let x, y;
-            const minDistance = 80;
-            const maxAttempts = 20;
-            
+            const minDist = 80;
             do {
                 x = Math.random() * (window.innerWidth - 100) + 50;
                 y = Math.random() * (window.innerHeight - 160) + 80;
-                attempts++;
+                tries++;
             } while (
-                attempts < maxAttempts &&
-                Array.from(gameState.stations.values()).some(station => {
-                    const dx = station.x - x;
-                    const dy = station.y - y;
-                    return Math.sqrt(dx * dx + dy * dy) < minDistance;
+                tries < 20 &&
+                Array.from(gameState.stations.values()).some(st => {
+                    const dx = st.x - x;
+                    const dy = st.y - y;
+                    return Math.sqrt(dx*dx + dy*dy) < minDist;
                 })
             );
-
-            const color = STATION_COLORS[Math.floor(Math.random() * STATION_COLORS.length)];
+            const color = STATION_COLORS[
+                Math.floor(Math.random() * STATION_COLORS.length)
+            ];
             const station = new Station(x, y, color);
             gameState.stations.set(station.id, station);
         }
 
+        // -------------------------
+        // Spawn a New Passenger
+        // -------------------------
         function spawnPassenger() {
             if (gameState.isGameOver || gameState.stations.size === 0) return;
-
-            const stations = Array.from(gameState.stations.values());
-            const randomStation = stations[Math.floor(Math.random() * stations.length)];
-            
-            // Get available colors (excluding the station's own color)
-            const availableColors = STATION_COLORS.filter(color => color !== randomStation.color);
+            const allStations = Array.from(gameState.stations.values());
+            const randomSt = allStations[
+                Math.floor(Math.random() * allStations.length)
+            ];
+            const availableColors = STATION_COLORS.filter(
+                c => c !== randomSt.color
+            );
             if (availableColors.length === 0) return;
-
-            const targetColor = availableColors[Math.floor(Math.random() * availableColors.length)];
-            const passenger = new Passenger(randomStation.id, targetColor);
-            
-            gameState.passengers.set(passenger.id, passenger);
-            randomStation.addPassenger(passenger);
+            const targetColor = availableColors[
+                Math.floor(Math.random() * availableColors.length)
+            ];
+            const p = new Passenger(randomSt.id, targetColor);
+            gameState.passengers.set(p.id, p);
+            randomSt.addPassenger(p);
         }
 
+        // -------------------------
+        // Main Game Logic Update
+        // -------------------------
         function updateGameLogic(deltaTime) {
             if (gameState.isPaused || gameState.isGameOver) return;
 
-            // Update timers
             stationSpawnTimer += deltaTime;
             passengerSpawnTimer += deltaTime;
             weekTimer += deltaTime;
 
-            // Spawn stations
             if (stationSpawnTimer >= stationSpawnInterval) {
                 spawnStation();
                 stationSpawnTimer = 0;
             }
 
-            // Spawn passengers
             if (passengerSpawnTimer >= passengerSpawnInterval) {
                 spawnPassenger();
                 passengerSpawnTimer = 0;
             }
 
-            // Week progression
             if (weekTimer >= REAL_SECONDS_PER_WEEK) {
                 gameState.week++;
                 if (gameState.week > 4) {
                     gameState.week = 1;
                     gameState.month++;
-                    // Increase difficulty
                     stationSpawnInterval = Math.max(3, stationSpawnInterval - 0.5);
                     passengerSpawnInterval = Math.max(0.5, passengerSpawnInterval - 0.1);
                 }
@@ -800,28 +826,27 @@
                 updateUI();
             }
 
-            // Update trains
-            gameState.trains.forEach(train => train.update(deltaTime));
-            
-            // Update passengers
-            gameState.passengers.forEach(passenger => passenger.update(deltaTime));
+            gameState.trains.forEach(tr => tr.update(deltaTime));
+            gameState.passengers.forEach(p => p.update(deltaTime));
         }
 
+        // -------------------------
+        // Render Everything
+        // -------------------------
         function render() {
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-            // Draw background grid (subtle)
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
             ctx.lineWidth = 1;
-            const gridSize = 50;
-            for (let x = 0; x < window.innerWidth; x += gridSize) {
+            const grid = 50;
+            for (let x = 0; x < window.innerWidth; x += grid) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, window.innerHeight);
                 ctx.stroke();
             }
-            for (let y = 0; y < window.innerHeight; y += gridSize) {
+            for (let y = 0; y < window.innerHeight; y += grid) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
                 ctx.lineTo(window.innerWidth, y);
@@ -829,11 +854,11 @@
             }
 
             // Draw lines
-            gameState.lines.forEach(line => line.draw());
+            gameState.lines.forEach(ln => ln.draw());
 
-            // Draw drag preview
+            // Draw preview if dragging
             if (isDragging && selectedStation) {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
                 ctx.lineWidth = 4;
                 ctx.setLineDash([5, 5]);
                 ctx.beginPath();
@@ -844,29 +869,32 @@
             }
 
             // Draw stations
-            gameState.stations.forEach(station => station.draw());
+            gameState.stations.forEach(st => st.draw());
 
             // Draw trains
-            gameState.trains.forEach(train => train.draw());
+            gameState.trains.forEach(tr => tr.draw());
         }
 
+        // -------------------------
+        // Main Loop
+        // -------------------------
         function gameLoop(timestamp) {
-            const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.05);
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
             lastTime = timestamp;
-
-            updateGameLogic(deltaTime);
+            updateGameLogic(dt);
             render();
-
             requestAnimationFrame(gameLoop);
         }
 
+        // -------------------------
+        // UI Updates
+        // -------------------------
         function updateUI() {
             document.getElementById('weekDisplay').textContent = gameState.week;
             document.getElementById('monthDisplay').textContent = gameState.month;
             document.getElementById('scoreDisplay').textContent = gameState.score;
             document.getElementById('tokensDisplay').textContent = `Tokens: ${gameState.tokens}`;
 
-            // Update resource buttons
             const hasTokens = gameState.tokens > 0;
             document.getElementById('addTrainBtn').disabled = !hasTokens || gameState.lines.size === 0;
             document.getElementById('addCarriageBtn').disabled = !hasTokens || gameState.trains.size === 0;
@@ -874,40 +902,45 @@
             document.getElementById('addTunnelBtn').disabled = !hasTokens;
         }
 
+        // -------------------------
+        // End Game
+        // -------------------------
         function endGame(reason) {
             gameState.isGameOver = true;
             document.getElementById('gameOverReason').textContent = reason;
-            const totalWeeks = (gameState.month - 1) * 4 + gameState.week;
-            document.getElementById('finalWeek').textContent = totalWeeks;
+            const weeksSurvived = (gameState.month - 1) * 4 + gameState.week;
+            document.getElementById('finalWeek').textContent = weeksSurvived;
             document.getElementById('finalScore').textContent = gameState.score;
-            const avgWait = gameState.deliveredCount > 0
+            const avg = gameState.deliveredCount > 0
                 ? (gameState.totalWaitTime / gameState.deliveredCount).toFixed(1)
                 : '0.0';
-            document.getElementById('avgWaitTime').textContent = `${avgWait}s`;
+            document.getElementById('avgWaitTime').textContent = `${avg}s`;
             document.getElementById('gameOverModal').style.display = 'flex';
         }
 
-        // Resource & UI Handlers
+        // -------------------------
+        // Show Notification
+        // -------------------------
+        function showNotification(txt) {
+            const n = document.getElementById('notification');
+            n.textContent = txt;
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 2000);
+        }
+
+        // -------------------------
+        // Handle Resource Actions
+        // -------------------------
         function toggleResourcePanel() {
             showingResourcePanel = !showingResourcePanel;
             document.getElementById('resourcePanel').classList.toggle('open', showingResourcePanel);
         }
-
         function closeResourcePanel() {
             showingResourcePanel = false;
             document.getElementById('resourcePanel').classList.remove('open');
             pendingResourceAction = null;
             document.getElementById('tooltipDisplay').textContent =
                 'Draw lines between stations to connect them. Trains carry passengers to matching colors.';
-        }
-
-        function showNotification(text) {
-            const notif = document.getElementById('notification');
-            notif.textContent = text;
-            notif.classList.add('show');
-            setTimeout(() => {
-                notif.classList.remove('show');
-            }, 2000);
         }
 
         function handleResourceAction(action) {
@@ -917,35 +950,33 @@
 
             if (action === 'addTrain') {
                 pendingResourceAction = 'addTrain';
-                document.getElementById('tooltipDisplay').textContent = 'Click a station on a line to add a new train.';
+                document.getElementById('tooltipDisplay').textContent = 
+                    'Click a station on a line to add a new train to that line.';
             }
             if (action === 'addCarriage') {
                 pendingResourceAction = 'addCarriage';
-                document.getElementById('tooltipDisplay').textContent = 'Click a train to add +4 capacity.';
+                document.getElementById('tooltipDisplay').textContent =
+                    'Click a train to increase its capacity by 4.';
             }
             if (action === 'addLine') {
                 gameState.maxLines++;
                 showNotification('New line unlocked!');
+                setTimeout(closeResourcePanel, 200);
             }
             if (action === 'addTunnel') {
                 gameState.tunnelsAvailable++;
                 showNotification('Tunnel token acquired! (No barriers implemented)');
-            }
-
-            // Auto-close panel if not pending line or tunnel
-            if (action !== 'addTrain' && action !== 'addCarriage') {
                 setTimeout(closeResourcePanel, 200);
             }
         }
 
         function tryPlaceTrainAtStation(stationId) {
-            // Find a line containing this station
-            for (let [lineId, line] of gameState.lines) {
-                if (line.stations.includes(stationId)) {
-                    const train = new Train(lineId);
-                    gameState.trains.set(train.id, train);
-                    line.trains.push(train.id);
-                    showNotification('Train added to line.');
+            for (let [lineId, ln] of gameState.lines) {
+                if (ln.stations.includes(stationId)) {
+                    const tr = new Train(lineId);
+                    gameState.trains.set(tr.id, tr);
+                    ln.trains.push(tr.id);
+                    showNotification('Train added to that line.');
                     pendingResourceAction = null;
                     updateUI();
                     closeResourcePanel();
@@ -956,11 +987,10 @@
         }
 
         function tryAddCarriageToTrainAt(x, y) {
-            for (let [trainId, train] of gameState.trains) {
-                const dx = train.x - x;
-                const dy = train.y - y;
-                if (Math.sqrt(dx * dx + dy * dy) <= TRAIN_SIZE + 2) {
-                    train.capacity += 4;
+            for (let [trainId, tr] of gameState.trains) {
+                const dx = tr.x - x, dy = tr.y - y;
+                if (Math.sqrt(dx*dx + dy*dy) <= TRAIN_SIZE + 2) {
+                    tr.capacity += 4;
                     showNotification('Train capacity increased by 4.');
                     pendingResourceAction = null;
                     updateUI();
@@ -971,79 +1001,72 @@
             return false;
         }
 
-        function handleNewConnection(stationA, stationB) {
-            if (stationA.id === stationB.id) return;
+        // -------------------------
+        // Handle Connecting Two Stations
+        // -------------------------
+        function handleNewConnection(stA, stB) {
+            if (stA.id === stB.id) return;
 
-            // Check if already connected directly in some line
-            for (let [lineId, line] of gameState.lines) {
-                const idxA = line.stations.indexOf(stationA.id);
-                const idxB = line.stations.indexOf(stationB.id);
-                if (idxA !== -1 && idxB !== -1 && Math.abs(idxA - idxB) === 1) {
-                    return; // Already adjacent in this line
+            // 1) If either station belongs to an existing line, append the other station there
+            for (let [lnId, ln] of gameState.lines) {
+                const idxA = ln.stations.indexOf(stA.id);
+                const idxB = ln.stations.indexOf(stB.id);
+                if (idxA !== -1 && idxB === -1) {
+                    ln.stations.splice(idxA + 1, 0, stB.id);
+                    ln.updateColorMap();
+                    return;
                 }
-            }
-
-            // Find a line that contains either station
-            for (let [lineId, line] of gameState.lines) {
-                if (line.stations.includes(stationA.id) || line.stations.includes(stationB.id)) {
-                    // Insert the other station next to the existing one
-                    if (line.stations.includes(stationA.id) && !line.stations.includes(stationB.id)) {
-                        const pos = line.stations.indexOf(stationA.id);
-                        line.stations.splice(pos + 1, 0, stationB.id);
-                        line.updateColorMap();
-                    } else if (line.stations.includes(stationB.id) && !line.stations.includes(stationA.id)) {
-                        const pos = line.stations.indexOf(stationB.id);
-                        line.stations.splice(pos + 1, 0, stationA.id);
-                        line.updateColorMap();
-                    }
+                if (idxB !== -1 && idxA === -1) {
+                    ln.stations.splice(idxB + 1, 0, stA.id);
+                    ln.updateColorMap();
                     return;
                 }
             }
 
-            // Neither station is in an existing line
+            // 2) Otherwise, if we still can create a new line, do so
             if (gameState.usedLines < gameState.maxLines) {
-                const newLine = new Line();
-                newLine.addStation(stationA.id);
-                newLine.addStation(stationB.id);
-                gameState.lines.set(newLine.id, newLine);
-                // Spawn an initial train on this new line
-                const train = new Train(newLine.id);
-                gameState.trains.set(train.id, train);
-                newLine.trains.push(train.id);
+                const newLn = new Line();
+                newLn.addStation(stA.id);
+                newLn.addStation(stB.id);
+                gameState.lines.set(newLn.id, newLn);
+
+                // Spawn a train on that new line
+                const tr = new Train(newLn.id);
+                gameState.trains.set(tr.id, tr);
+                newLn.trains.push(tr.id);
+                return;
             }
         }
 
+        // -------------------------
         // Input & Interaction
-        canvas.addEventListener('mousedown', (e) => {
+        // -------------------------
+        canvas.addEventListener('mousedown', e => {
             if (gameState.isPaused || gameState.isGameOver) return;
-
             mouseX = e.clientX;
             mouseY = e.clientY;
 
-            // If pending resource action, handle that first
+            // If user chose “Add Train,” detect station click:
             if (pendingResourceAction === 'addTrain') {
-                // Check if clicked station belongs to a line
-                for (let [stationId, station] of gameState.stations) {
-                    const dx = station.x - mouseX;
-                    const dy = station.y - mouseY;
-                    if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
-                        if (tryPlaceTrainAtStation(stationId)) return;
+                for (let [sid, st] of gameState.stations) {
+                    const dx = st.x - mouseX, dy = st.y - mouseY;
+                    if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
+                        if (tryPlaceTrainAtStation(sid)) return;
                     }
                 }
                 return;
             }
-
+            // If user chose “Add Carriage,” detect train click:
             if (pendingResourceAction === 'addCarriage') {
                 if (tryAddCarriageToTrainAt(mouseX, mouseY)) return;
                 return;
             }
 
-            // Normal line drawing: check if clicked on station
-            for (let [stationId, station] of gameState.stations) {
-                const dx = station.x - mouseX;
-                const dy = station.y - mouseY;
-                if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
-                    selectedStation = station;
+            // Otherwise, check if we clicked on a station to begin dragging:
+            for (let [_, st] of gameState.stations) {
+                const dx = st.x - mouseX, dy = st.y - mouseY;
+                if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
+                    selectedStation = st;
                     isDragging = true;
                     dragEndX = mouseX;
                     dragEndY = mouseY;
@@ -1052,77 +1075,69 @@
             }
         });
 
-        canvas.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousemove', e => {
             mouseX = e.clientX;
             mouseY = e.clientY;
             dragEndX = mouseX;
             dragEndY = mouseY;
 
-            // Update tooltip
             if (gameState.isPaused || gameState.isGameOver) return;
-
-            let foundTooltip = false;
-            // Check station hover
-            for (let [_, station] of gameState.stations) {
-                const dx = station.x - mouseX;
-                const dy = station.y - mouseY;
-                if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
+            // Tooltip logic
+            let tooltipShown = false;
+            // Station hover:
+            for (let [_, st] of gameState.stations) {
+                const dx = st.x - mouseX, dy = st.y - mouseY;
+                if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
                     const counts = {};
-                    station.queue.forEach(pid => {
+                    st.queue.forEach(pid => {
                         const p = gameState.passengers.get(pid);
-                        if (p) {
-                            counts[p.targetColor] = (counts[p.targetColor] || 0) + 1;
-                        }
+                        if (p) counts[p.targetColor] = (counts[p.targetColor]||0) + 1;
                     });
                     const breakdown = Object.entries(counts)
-                        .map(([color, num]) => `${num}`)
+                        .map(([c, num]) => `${num}`)
                         .join(', ');
                     document.getElementById('tooltipDisplay').textContent =
-                        `Station ${station.id} • Queue: ${station.queue.length} • Destinations: ${breakdown}`;
-                    foundTooltip = true;
+                        `Station ${st.id} • Queue: ${st.queue.length} • Destinations: ${breakdown}`;
+                    tooltipShown = true;
                     break;
                 }
             }
-            if (!foundTooltip) {
-                // Check train hover
-                for (let [_, train] of gameState.trains) {
-                    const dx = train.x - mouseX;
-                    const dy = train.y - mouseY;
-                    if (Math.sqrt(dx * dx + dy * dy) <= TRAIN_SIZE) {
-                        const line = gameState.lines.get(train.lineId);
+            if (!tooltipShown) {
+                // Train hover:
+                for (let [_, tr] of gameState.trains) {
+                    const dx = tr.x - mouseX, dy = tr.y - mouseY;
+                    if (Math.sqrt(dx*dx + dy*dy) <= TRAIN_SIZE) {
+                        const ln = gameState.lines.get(tr.lineId);
                         document.getElementById('tooltipDisplay').textContent =
-                            `Train on Line ${line.id} • Speed: ${train.speed}px/s • ` +
-                            `Capacity: ${train.passengers.length}/${train.capacity} • ` +
-                            `Next Station: ${line.stations[train.currentStationIndex]}`;
-                        foundTooltip = true;
+                            `Train on Line ${ln.id} • Speed: ${tr.speed}px/s • ` +
+                            `Capacity: ${tr.passengers.length}/${tr.capacity} • ` +
+                            `Next Station: ${ln.stations[tr.currentStationIndex]}`;
+                        tooltipShown = true;
                         break;
                     }
                 }
             }
-            if (!foundTooltip && !pendingResourceAction) {
+            if (!tooltipShown && !pendingResourceAction) {
                 document.getElementById('tooltipDisplay').textContent =
                     'Draw lines between stations to connect them. Trains carry passengers to matching colors.';
             }
         });
 
-        canvas.addEventListener('mouseup', (e) => {
+        canvas.addEventListener('mouseup', e => {
             if (gameState.isPaused || gameState.isGameOver) {
                 isDragging = false;
                 selectedStation = null;
                 return;
             }
-
             if (!isDragging || !selectedStation) return;
 
             const endX = e.clientX;
             const endY = e.clientY;
             let targetStation = null;
-
-            for (let [_, station] of gameState.stations) {
-                const dx = station.x - endX;
-                const dy = station.y - endY;
-                if (Math.sqrt(dx * dx + dy * dy) <= STATION_RADIUS) {
-                    targetStation = station;
+            for (let [_, st] of gameState.stations) {
+                const dx = st.x - endX, dy = st.y - endY;
+                if (Math.sqrt(dx*dx + dy*dy) <= STATION_RADIUS) {
+                    targetStation = st;
                     break;
                 }
             }
@@ -1130,16 +1145,19 @@
             if (targetStation) {
                 handleNewConnection(selectedStation, targetStation);
             }
-
             isDragging = false;
             selectedStation = null;
         });
 
-        // Resource panel & buttons
+        // -------------------------
+        // Resource Panel & Buttons
+        // -------------------------
         document.getElementById('tokensDisplay').addEventListener('click', () => {
             toggleResourcePanel();
         });
-        document.getElementById('closeResourcePanel').addEventListener('click', closeResourcePanel);
+        document.getElementById('closeResourcePanel').addEventListener('click', () => {
+            closeResourcePanel();
+        });
 
         document.getElementById('addTrainBtn').addEventListener('click', () => {
             handleResourceAction('addTrain');
@@ -1154,7 +1172,9 @@
             handleResourceAction('addTunnel');
         });
 
-        // Pause & tutorial buttons
+        // -------------------------
+        // Pause & Tutorial Buttons
+        // -------------------------
         document.getElementById('pauseButton').addEventListener('click', () => {
             gameState.isPaused = true;
             document.getElementById('pauseModal').style.display = 'flex';
@@ -1172,13 +1192,17 @@
             document.getElementById('tutorialModal').style.display = 'flex';
         });
 
-        // Restart game
+        // -------------------------
+        // Restart Game
+        // -------------------------
         document.getElementById('restartButton').addEventListener('click', () => {
             document.getElementById('gameOverModal').style.display = 'none';
             initGame();
         });
 
-        // Tutorial flow
+        // -------------------------
+        // Tutorial Flow
+        // -------------------------
         function nextTutorialStep() {
             const steps = document.querySelectorAll('.tutorial-step');
             steps[tutorialStep].classList.remove('active');
@@ -1192,7 +1216,9 @@
             gameState.isPaused = false;
         }
 
-        // Setup
+        // -------------------------
+        // Startup
+        // -------------------------
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('DOMContentLoaded', () => {
             resizeCanvas();
@@ -1203,4 +1229,3 @@
     </script>
 </body>
 </html>
-```
