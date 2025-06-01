@@ -959,7 +959,7 @@
             fullRows.forEach(rowIdx => {
               for (let colIdx = 0; colIdx < 8; colIdx++) {
                 const cellEl = document.querySelector(`[data-row="${rowIdx}"][data-col="${colIdx}"]`);
-                if (cellEl && !cellEl.classList.contains('occupied')) {
+                if (cellEl) {
                   cellEl.classList.add('drop-clear');
                 }
               }
@@ -967,7 +967,7 @@
             fullCols.forEach(colIdx => {
               for (let rowIdx = 0; rowIdx < 8; rowIdx++) {
                 const cellEl = document.querySelector(`[data-row="${rowIdx}"][data-col="${colIdx}"]`);
-                if (cellEl && !cellEl.classList.contains('occupied')) {
+                if (cellEl) {
                   cellEl.classList.add('drop-clear');
                 }
               }
