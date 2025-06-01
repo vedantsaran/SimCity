@@ -2,774 +2,945 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Scale Clone with Dragged Shapes</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #0c0c0c, #1a1a2e);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      font-family: 'Arial', sans-serif;
-    }
-    #palette {
-      margin: 10px;
-      display: flex;
-      gap: 10px;
-    }
-    .shape-button {
-      width: 60px;
-      height: 60px;
-      background: #222;
-      border: 2px solid #444;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    .shape-button.selected {
-      border-color: #0ff;
-      box-shadow: 0 0 10px rgba(0,255,255,0.5);
-    }
-    .shape-button canvas {
-      pointer-events: none;
-    }
-    #gameCanvas {
-      background: #000;
-      border: 3px solid #333;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-      touch-action: none;
-    }
-    .overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-      border: 2px solid #0ff;
-      display: none;
-      z-index: 10;
-    }
-    .overlay h2 {
-      margin: 0 0 15px 0;
-      color: #ff6b6b;
-    }
-    .overlay.level-complete h2 {
-      color: #51cf66;
-    }
-    button {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      border: none;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 25px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 10px;
-      transition: all 0.3s ease;
-    }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Blast - Puzzle Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        #game-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        #left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 200px;
+        }
+
+        #score-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #score-panel h2 {
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .score-item {
+            margin: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #score { color: #4CFF4C; }
+        #streak { color: #FF4CFF; }
+        #best { color: #FFD700; }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #btn-restart {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        #btn-mute {
+            background: linear-gradient(45deg, #ffa726, #ff7043);
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 15px;
+            width: 400px;
+            height: 400px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cell.occupied {
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .cell.drop-valid {
+            background: rgba(76, 255, 76, 0.3) !important;
+            border: 2px solid #4CFF4C;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        .cell.drop-invalid {
+            background: rgba(255, 76, 76, 0.3) !important;
+            border: 2px solid #FF4C4C;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .cell.clearing {
+            animation: explode 0.3s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Colors */
+        .color-red { background: linear-gradient(135deg, #FF4C4C, #C62828); }
+        .color-green { background: linear-gradient(135deg, #4CFF4C, #2E7D32); }
+        .color-blue { background: linear-gradient(135deg, #4C4CFF, #1565C0); }
+        .color-yellow { background: linear-gradient(135deg, #FFD700, #F57C00); }
+        .color-purple { background: linear-gradient(135deg, #FF4CFF, #7B1FA2); }
+        .color-orange { background: linear-gradient(135deg, #FF8C42, #E65100); }
+
+        #preview-area {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 200px;
+        }
+
+        #preview-area h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #FFD700;
+            font-size: 18px;
+        }
+
+        .preview-slot {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            min-height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+        }
+
+        .preview-slot:hover {
+            transform: scale(1.05);
+            border-color: #FFD700;
+        }
+
+        .preview-slot.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .preview-piece {
+            display: grid;
+            gap: 2px;
+        }
+
+        .preview-block {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .combo-flash {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            pointer-events: none;
+            animation: comboFlash 1s ease-out forwards;
+            z-index: 1000;
+        }
+
+        @keyframes comboFlash {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.5); 
+            }
+            50% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.2); 
+            }
+            100% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(1); 
+            }
+        }
+
+        .board-combo {
+            animation: boardFlash 0.5s ease-out;
+        }
+
+        @keyframes boardFlash {
+            0%, 100% { border-color: rgba(255, 255, 255, 0.2); }
+            50% { border-color: #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
+        }
+
+        #game-over-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 2px solid #FFD700;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            max-width: 400px;
+        }
+
+        .modal-content h2 {
+            color: #FF4C4C;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 76, 76, 0.5);
+        }
+
+        .modal-content .final-score {
+            font-size: 24px;
+            color: #4CFF4C;
+            margin: 20px 0;
+        }
+
+        .modal-content button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            #game-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+                padding: 10px;
+            }
+
+            #board {
+                width: 320px;
+                height: 320px;
+            }
+
+            #left-panel {
+                width: 100%;
+                max-width: 320px;
+            }
+
+            #preview-area {
+                width: 100%;
+                max-width: 320px;
+            }
+
+            .preview-slot {
+                display: inline-block;
+                width: 30%;
+                margin: 5px;
+            }
+        }
+
+        .placed-animation {
+            animation: placeAnimation 0.2s ease-out;
+        }
+
+        @keyframes placeAnimation {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
-  <div id="palette">
-    <div id="rectShapeBtn" class="shape-button" title="Straight Rectangle">
-      <canvas id="rectPreview" width="60" height="60"></canvas>
+    <div id="game-container">
+        <div id="left-panel">
+            <div id="score-panel">
+                <h2>BLOCK BLAST</h2>
+                <div class="score-item">Score: <span id="score">0</span></div>
+                <div class="score-item">Streak: <span id="streak">0</span></div>
+                <div class="score-item">Best: <span id="best">0</span></div>
+            </div>
+            <div id="controls">
+                <button id="btn-restart">🔄 Restart</button>
+                <button id="btn-mute">🔊 Sound: ON</button>
+            </div>
+        </div>
+
+        <div id="board"></div>
+
+        <div id="preview-area">
+            <h3>Next Pieces</h3>
+            <div class="preview-slot" data-index="0"></div>
+            <div class="preview-slot" data-index="1"></div>
+            <div class="preview-slot" data-index="2"></div>
+        </div>
     </div>
-    <div id="lShapeBtn" class="shape-button" title="L-Shape">
-      <canvas id="lPreview" width="60" height="60"></canvas>
+
+    <div id="game-over-modal">
+        <div class="modal-content">
+            <h2>Game Over!</h2>
+            <div class="final-score">Final Score: <span id="final-score">0</span></div>
+            <div id="new-best" style="color: #FFD700; font-size: 18px; margin: 10px 0; display: none;">
+                🎉 New Best Score! 🎉
+            </div>
+            <button id="btn-play-again">Play Again</button>
+        </div>
     </div>
-  </div>
 
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        // Game State
+        let board = [];
+        let upcomingPieces = [];
+        let score = 0;
+        let streak = 0;
+        let bestScore = 0;
+        let soundEnabled = true;
+        let placedCount = 0;
+        let gameRunning = true;
 
-  <div id="gameOver" class="overlay">
-    <h2>Game Over!</h2>
-    <p>Final Level: <span id="finalLevel"></span></p>
-    <button onclick="restartGame()">Restart Game</button>
-  </div>
-  <div id="levelComplete" class="overlay level-complete">
-    <h2>Level Complete!</h2>
-    <p>Preparing next level...</p>
-  </div>
-
-  <script>
-    // -------------------------------------------------------------------
-    // ClipperLib: Minimalistic polygon-clipping stub (difference only)
-    // -------------------------------------------------------------------
-    const ClipperLib = {
-      PolyType: { ptSubject: 0, ptClip: 1 },
-      ClipType: { ctDifference: 3 },
-      PolyFillType: { pftNonZero: 1 },
-      Clipper: function() {
-        this.subjPaths = [];
-        this.clipPaths = [];
-        this.AddPaths = function(paths, polyType, closed) {
-          if (polyType === ClipperLib.PolyType.ptSubject) {
-            this.subjPaths = paths;
-          } else {
-            this.clipPaths = paths;
-          }
+        // Shape definitions
+        const SHAPES = {
+            single: [[0,0]],
+            dominoH: [[0,0],[1,0]],
+            dominoV: [[0,0],[0,1]],
+            square: [[0,0],[1,0],[0,1],[1,1]],
+            lShape: [[0,0],[0,1],[1,1]],
+            line3H: [[0,0],[1,0],[2,0]],
+            line3V: [[0,0],[0,1],[0,2]],
+            tShape: [[0,1],[1,0],[1,1],[1,2]],
+            lShapeFlip: [[0,1],[1,0],[1,1]]
         };
-        this.Execute = function(clipType, solution) {
-          if (clipType === ClipperLib.ClipType.ctDifference) {
-            const result = this.performDifference(this.subjPaths[0], this.clipPaths[0]);
-            solution.length = 0;
-            if (result.length > 0) {
-              for (let poly of result) solution.push(poly);
+
+        const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+        const SHAPE_KEYS = Object.keys(SHAPES);
+
+        // Audio context for sound effects
+        let audioContext;
+        
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch(e) {
+                console.log('Audio not supported');
             }
-          }
-          return true;
-        };
-        this.getEdges = function(poly) {
-          const edges = [];
-          for (let i = 0; i < poly.length; i++) {
-            edges.push({ a: poly[i], b: poly[(i + 1) % poly.length] });
-          }
-          return edges;
-        };
-        this.lineIntersection = function(p1, p2, p3, p4) {
-          const denom = (p1.X - p2.X)*(p3.Y - p4.Y) - (p1.Y - p2.Y)*(p3.X - p4.X);
-          if (Math.abs(denom) < 1e-10) return null;
-          const t = ((p1.X - p3.X)*(p3.Y - p4.Y) - (p1.Y - p3.Y)*(p3.X - p4.X)) / denom;
-          const u = -((p1.X - p2.X)*(p1.Y - p3.Y) - (p1.Y - p2.Y)*(p1.X - p3.X)) / denom;
-          if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-            return { X: Math.round(p1.X + t*(p2.X - p1.X)), Y: Math.round(p1.Y + t*(p2.Y - p1.Y)) };
-          }
-          return null;
-        };
-        this.findIntersections = function(poly, rect) {
-          const inters = [];
-          const rectEdges = this.getEdges(rect);
-          for (let i = 0; i < poly.length; i++) {
-            const edge1 = { a: poly[i], b: poly[(i + 1) % poly.length] };
-            for (let edge2 of rectEdges) {
-              const ip = this.lineIntersection(edge1.a, edge1.b, edge2.a, edge2.b);
-              if (ip) inters.push(ip);
+        }
+
+        function playSound(frequency, duration, type = 'sine') {
+            if (!soundEnabled || !audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        // Initialize game
+        function initGame() {
+            initAudio();
+            loadBestScore();
+            createBoard();
+            generateNewPieces();
+            updateUI();
+            setupEventListeners();
+        }
+
+        function createBoard() {
+            board = Array(8).fill().map(() => Array(8).fill(null));
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    if (board[row][col]) {
+                        cell.classList.add('occupied', `color-${board[row][col].color}`);
+                    }
+                    
+                    boardElement.appendChild(cell);
+                }
             }
-          }
-          return inters;
-        };
-        this.pointToLineDistance = function(pt, ls, le) {
-          const A = le.Y - ls.Y, B = ls.X - le.X, C = le.X*ls.Y - ls.X*le.Y;
-          return A*pt.X + B*pt.Y + C;
-        };
-        this.splitPolygonByLine = function(poly, cutRect) {
-          const lineA = cutRect[0], lineC = cutRect[2];
-          const side1 = [], side2 = [];
-          for (let v of poly) {
-            const d = this.pointToLineDistance({ X: Math.round(v.x*1000), Y: Math.round(v.y*1000) }, lineA, lineC);
-            if (d > 0) side1.push(v);
-            else side2.push(v);
-          }
-          const result = [];
-          if (side1.length >= 3) result.push(side1);
-          if (side2.length >= 3) result.push(side2);
-          return result.length ? result : [poly];
-        };
-        this.performDifference = function(subject, clip) {
-          const subjPts = subject.map(p => ({ x: p.X/1000, y: p.Y/1000 }));
-          const clipPts = clip.map(p => ({ x: p.X/1000, y: p.Y/1000 }));
-          const intersections = this.findIntersections(subject, clip);
-          if (intersections.length === 0) return [subjPts];
-          return this.splitPolygonByLine(subjPts, clip);
-        };
-      },
-      Paths: function() { return []; }
-    };
-
-    // -------------------------------------------------------------------
-    // Global Game Variables & State
-    // -------------------------------------------------------------------
-    let canvas, ctx;
-    let lastTimestamp = 0;
-    let gameState = 'playing'; // 'playing', 'gameOver', 'levelComplete', 'scaling'
-
-    const GAME = {
-      width: 800,
-      height: 600,
-      playfield: null,
-      balls: [],
-      activeShape: null,      // { vertices: [...], offsetX, offsetY }
-      mousePos: { x: 0, y: 0 },
-      level: 0,
-      lives: 3,
-      targetPercent: 70,
-      remainingArea: 1.0,
-      initialArea: 0,
-      animationData: null
-    };
-
-    // Base shape definitions (centered at (0,0))
-    const SHAPES = {
-      rect: {
-        vertices: [
-          { x: -75, y: -10 },
-          { x:  75, y: -10 },
-          { x:  75, y:  10 },
-          { x: -75, y:  10 }
-        ]
-      },
-      L: {
-        vertices: [
-          { x: -30, y: -30 },
-          { x:  10, y: -30 },
-          { x:  10, y:  10 },
-          { x:  30, y:  10 },
-          { x:  30, y:  30 },
-          { x: -30, y:  30 }
-        ]
-      }
-    };
-
-    // -------------------------------------------------------------------
-    // Utility & Geometry Functions
-    // -------------------------------------------------------------------
-    function toClipper(polygons) {
-      return polygons.map(poly =>
-        poly.map(pt => ({ X: Math.round(pt.x * 1000), Y: Math.round(pt.y * 1000) }))
-      );
-    }
-
-    function fromClipper(clipperPolygons) {
-      return clipperPolygons.map(poly =>
-        poly.map(pt => ({ x: pt.X / 1000, y: pt.Y / 1000 }))
-      );
-    }
-
-    function polygonArea(poly) {
-      let area = 0;
-      for (let i = 0; i < poly.length; i++) {
-        const a = poly[i], b = poly[(i + 1) % poly.length];
-        area += a.x * b.y - b.x * a.y;
-      }
-      return Math.abs(area) / 2;
-    }
-
-    function keepLargest(polygons) {
-      let maxArea = -Infinity, idx = 0;
-      for (let i = 0; i < polygons.length; i++) {
-        const a = polygonArea(polygons[i]);
-        if (a > maxArea) { maxArea = a; idx = i; }
-      }
-      return polygons[idx];
-    }
-
-    function orient(a, b, c) {
-      return (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x);
-    }
-
-    function segmentsIntersect(p1, p2, p3, p4) {
-      const o1 = orient(p1, p2, p3);
-      const o2 = orient(p1, p2, p4);
-      const o3 = orient(p3, p4, p1);
-      const o4 = orient(p3, p4, p2);
-      if ((o1 > 0 && o2 < 0 || o1 < 0 && o2 > 0) &&
-          (o3 > 0 && o4 < 0 || o3 < 0 && o4 > 0)) {
-        return true;
-      }
-      return false;
-    }
-
-    function pointInPolygon(pt, poly) {
-      let inside = false;
-      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const xi = poly[i].x, yi = poly[i].y;
-        const xj = poly[j].x, yj = poly[j].y;
-        const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
-          (pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    }
-
-    function circleSegmentCollision(ball, edge) {
-      const { a, b } = edge;
-      const vx = b.x - a.x, vy = b.y - a.y;
-      const wx = ball.x - a.x, wy = ball.y - a.y;
-      const dot = wx*vx + wy*vy, len = vx*vx + vy*vy;
-      const proj = Math.max(0, Math.min(1, dot / len));
-      const closestX = a.x + proj*vx, closestY = a.y + proj*vy;
-      const dx = ball.x - closestX, dy = ball.y - closestY;
-      return (dx*dx + dy*dy) <= ball.radius * ball.radius;
-    }
-
-    function reflectBall(ball, edge) {
-      const { a, b } = edge;
-      const ex = b.x - a.x, ey = b.y - a.y;
-      const len = Math.hypot(ex, ey);
-      if (len === 0) return;
-      const ux = ex / len, uy = ey / len;
-      const nx = -uy, ny = ux;
-      const dot = ball.vx * nx + ball.vy * ny;
-      ball.vx = ball.vx - 2 * dot * nx;
-      ball.vy = ball.vy - 2 * dot * ny;
-      // Nudge out
-      ball.x += nx * 2;
-      ball.y += ny * 2;
-    }
-
-    function getEdges(polygon) {
-      const edges = [];
-      for (let i = 0; i < polygon.length; i++) {
-        edges.push({ a: polygon[i], b: polygon[(i + 1) % polygon.length] });
-      }
-      return edges;
-    }
-
-    function cutWithPolygon(playfield, shapePoly) {
-      const subj = toClipper([playfield]);
-      const clip = toClipper([shapePoly]);
-      const cpr = new ClipperLib.Clipper();
-      cpr.AddPaths(subj, ClipperLib.PolyType.ptSubject, true);
-      cpr.AddPaths(clip, ClipperLib.PolyType.ptClip, true);
-      const solution = new ClipperLib.Paths();
-      cpr.Execute(ClipperLib.ClipType.ctDifference, solution);
-      if (!solution.length) return [];
-      return fromClipper(solution);
-    }
-
-    // -------------------------------------------------------------------
-    // Core Game Logic: Setup, Update, Rendering, Input, Level Progression
-    // -------------------------------------------------------------------
-    function generateRandomPolygon() {
-      const cx = GAME.width / 2, cy = GAME.height / 2;
-      const maxR = Math.min(GAME.width, GAME.height) / 2 - 60;
-      const verts = 6 + Math.min(GAME.level, 4); // 6 to 10 vertices
-      const angles = [];
-      for (let i = 0; i < verts; i++) {
-        const base = (Math.PI * 2 / verts) * i;
-        const jitter = (Math.random() - 0.5) * (Math.PI / verts) * 0.5;
-        angles.push(base + jitter);
-      }
-      angles.sort((a, b) => a - b);
-      const poly = [];
-      for (let ang of angles) {
-        const rf = 0.7 + 0.3 * Math.random();
-        const r = maxR * rf;
-        poly.push({ x: cx + Math.cos(ang)*r, y: cy + Math.sin(ang)*r });
-      }
-      return poly;
-    }
-
-    function setupLevel(idx) {
-      GAME.level = idx;
-      GAME.playfield = generateRandomPolygon();
-      GAME.initialArea = polygonArea(GAME.playfield);
-      GAME.remainingArea = 1.0;
-      GAME.targetPercent = Math.min(90, 70 + idx*2);
-      GAME.balls = [];
-      const count = Math.min(5, 1 + Math.floor(idx/2));
-      for (let i = 0; i < count; i++) {
-        const radius = 8 + Math.random()*4;
-        const margin = 80;
-        const x = margin + Math.random()*(GAME.width - 2*margin);
-        const y = margin + Math.random()*(GAME.height - 2*margin);
-        const speed = 80 + idx*15 + Math.random()*40;
-        const ang = Math.random()*Math.PI*2;
-        GAME.balls.push({
-          x, y,
-          vx: Math.cos(ang)*speed,
-          vy: Math.sin(ang)*speed,
-          radius,
-          color: `hsl(${Math.random()*360},70%,60%)`
-        });
-      }
-    }
-
-    function updateBalls(delta) {
-      for (let ball of GAME.balls) {
-        ball.x += ball.vx * delta;
-        ball.y += ball.vy * delta;
-        const edges = getEdges(GAME.playfield);
-        for (let edge of edges) {
-          if (circleSegmentCollision(ball, edge)) {
-            reflectBall(ball, edge);
-            break;
-          }
         }
-      }
-    }
 
-    function attemptShapeCut() {
-      if (!GAME.activeShape) return;
-      // Build translated polygon
-      const shapeBase = GAME.activeShape.vertices;
-      const px = GAME.mousePos.x, py = GAME.mousePos.y;
-      const translated = shapeBase.map(v => ({ x: px + v.x, y: py + v.y }));
-      const result = cutWithPolygon(GAME.playfield, translated);
-      if (result.length === 0) return;
-      GAME.playfield = keepLargest(result);
-      const newArea = polygonArea(GAME.playfield);
-      GAME.remainingArea = newArea / GAME.initialArea;
-      const cutPct = (1 - GAME.remainingArea)*100;
-      if (cutPct >= GAME.targetPercent) {
-        onLevelComplete();
-      }
-      GAME.activeShape = null;
-      clearShapeSelection();
-    }
-
-    function onLevelComplete() {
-      gameState = 'scaling';
-      document.getElementById('levelComplete').style.display = 'block';
-      const pf = GAME.playfield;
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (let p of pf) {
-        minX = Math.min(minX, p.x);
-        maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y);
-        maxY = Math.max(maxY, p.y);
-      }
-      const boxW = maxX - minX, boxH = maxY - minY;
-      const scaleX = (GAME.width - 100)/boxW;
-      const scaleY = (GAME.height - 100)/boxH;
-      const finalScale = Math.min(scaleX, scaleY);
-      const cx = (minX + maxX)/2, cy = (minY + maxY)/2;
-      const tx = GAME.width/2 - cx*finalScale;
-      const ty = GAME.height/2 - cy*finalScale;
-      GAME.animationData = {
-        startTime: null,
-        duration: 1.0,
-        startScale: 1,
-        finalScale,
-        startTx: 0,
-        startTy: 0,
-        tx,
-        ty
-      };
-      setTimeout(() => {
-        document.getElementById('levelComplete').style.display = 'none';
-        setupLevel(GAME.level + 1);
-        gameState = 'playing';
-        GAME.animationData = null;
-      }, 2000);
-    }
-
-    function loseLife() {
-      GAME.lives--;
-      if (GAME.lives <= 0) {
-        gameState = 'gameOver';
-        document.getElementById('finalLevel').textContent = GAME.level + 1;
-        document.getElementById('gameOver').style.display = 'block';
-      }
-    }
-
-    function restartGame() {
-      GAME.lives = 3;
-      gameState = 'playing';
-      document.getElementById('gameOver').style.display = 'none';
-      setupLevel(0);
-    }
-
-    // -------------------------------------------------------------------
-    // Rendering
-    // -------------------------------------------------------------------
-    function render() {
-      ctx.clearRect(0, 0, GAME.width, GAME.height);
-
-      // Starfield background
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      for (let i = 0; i < 50; i++) {
-        const x = (Date.now()*0.01 + i*127) % GAME.width;
-        const y = (Date.now()*0.007 + i*433) % GAME.height;
-        ctx.fillRect(x, y, 1, 1);
-      }
-
-      if (gameState === 'scaling' && GAME.animationData) {
-        renderScalingAnimation();
-        return;
-      }
-
-      // Draw playfield polygon
-      ctx.fillStyle = 'rgba(0,50,100,0.3)';
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      const pf = GAME.playfield;
-      ctx.moveTo(pf[0].x, pf[0].y);
-      for (let i = 1; i < pf.length; i++) {
-        ctx.lineTo(pf[i].x, pf[i].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Draw balls with glow
-      for (let ball of GAME.balls) {
-        ctx.save();
-        ctx.shadowColor = ball.color;
-        ctx.shadowBlur = 15;
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
-        ctx.fillStyle = ball.color;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // Draw preview of active shape
-      if (GAME.activeShape) {
-        const base = GAME.activeShape.vertices;
-        const px = GAME.mousePos.x, py = GAME.mousePos.y;
-        const verts = base.map(v => ({ x: px + v.x, y: py + v.y }));
-        ctx.fillStyle = 'rgba(255,0,0,0.3)';
-        ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(verts[0].x, verts[0].y);
-        for (let i = 1; i < verts.length; i++) {
-          ctx.lineTo(verts[i].x, verts[i].y);
+        function generateRandomPiece() {
+            const shapeKey = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            
+            return {
+                shape: SHAPES[shapeKey],
+                color: color,
+                id: Date.now() + Math.random()
+            };
         }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-      }
 
-      drawUI();
-    }
-
-    function renderScalingAnimation() {
-      const anim = GAME.animationData;
-      const now = performance.now();
-      if (!anim.startTime) anim.startTime = now;
-      const t = (now - anim.startTime) / 1000;
-      const frac = Math.min(1, t / anim.duration);
-      const eased = 1 - Math.pow(1 - frac, 3);
-
-      const curScale = anim.startScale + (anim.finalScale - anim.startScale) * eased;
-      const curTx = anim.startTx + (anim.tx - anim.startTx) * eased;
-      const curTy = anim.startTy + (anim.ty - anim.startTy) * eased;
-
-      ctx.save();
-      ctx.setTransform(curScale, 0, 0, curScale, curTx, curTy);
-
-      // Playfield scaled
-      ctx.fillStyle = `rgba(0,255,255,${0.2 + 0.3*frac})`;
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 3 / curScale;
-      ctx.beginPath();
-      const pf = GAME.playfield;
-      ctx.moveTo(pf[0].x, pf[0].y);
-      for (let i = 1; i < pf.length; i++) {
-        ctx.lineTo(pf[i].x, pf[i].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Balls scaled
-      for (let ball of GAME.balls) {
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = ball.color;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2 / curScale;
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-
-    function drawUI() {
-      ctx.font = 'bold 20px Arial';
-      ctx.fillStyle = '#00ffff';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-
-      // Lives
-      const livesText = `Lives: ${GAME.lives}`;
-      ctx.strokeText(livesText, 20, 35);
-      ctx.fillText(livesText, 20, 35);
-
-      // Level
-      const levelText = `Level: ${GAME.level + 1}`;
-      ctx.strokeText(levelText, 20, 65);
-      ctx.fillText(levelText, 20, 65);
-
-      // Percentage
-      const pct = Math.round((1 - GAME.remainingArea) * 100);
-      const pctText = `${pct}% / ${GAME.targetPercent}%`;
-      const pctWidth = ctx.measureText(pctText).width;
-      ctx.strokeText(pctText, GAME.width - pctWidth - 20, 35);
-      ctx.fillText(pctText, GAME.width - pctWidth - 20, 35);
-
-      // Progress bar
-      const barW = 200, barH = 20;
-      const barX = GAME.width - barW - 20, barY = 45;
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(barX, barY, barW, barH);
-      const progW = (pct / GAME.targetPercent) * barW;
-      const grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-      grad.addColorStop(0, '#ff6b6b');
-      grad.addColorStop(0.5, '#feca57');
-      grad.addColorStop(1, '#48dbfb');
-      ctx.fillStyle = grad;
-      ctx.fillRect(barX, barY, Math.min(progW, barW), barH);
-    }
-
-    // -------------------------------------------------------------------
-    // Main Loop
-    // -------------------------------------------------------------------
-    function update(delta) {
-      if (gameState !== 'playing') return;
-      updateBalls(delta);
-      // No ball-slice collision: shape placement is instantaneous
-    }
-
-    function loop(timestamp) {
-      if (!lastTimestamp) lastTimestamp = timestamp;
-      const delta = (timestamp - lastTimestamp) / 1000;
-      lastTimestamp = timestamp;
-      update(delta);
-      render();
-      requestAnimationFrame(loop);
-    }
-
-    // -------------------------------------------------------------------
-    // Input Handling & Shape Palette
-    // -------------------------------------------------------------------
-    function getCanvasCoords(evt) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      let clientX, clientY;
-      if (evt.touches && evt.touches.length) {
-        clientX = evt.touches[0].clientX;
-        clientY = evt.touches[0].clientY;
-      } else {
-        clientX = evt.clientX;
-        clientY = evt.clientY;
-      }
-      return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-      };
-    }
-
-    function onCanvasMove(evt) {
-      const pos = getCanvasCoords(evt);
-      GAME.mousePos = pos;
-    }
-
-    function onCanvasClick(evt) {
-      if (gameState !== 'playing') return;
-      if (GAME.activeShape) {
-        attemptShapeCut();
-      }
-    }
-
-    function clearShapeSelection() {
-      GAME.activeShape = null;
-      document.getElementById('rectShapeBtn').classList.remove('selected');
-      document.getElementById('lShapeBtn').classList.remove('selected');
-    }
-
-    document.getElementById('rectShapeBtn').addEventListener('click', () => {
-      clearShapeSelection();
-      GAME.activeShape = { vertices: SHAPES.rect.vertices };
-      document.getElementById('rectShapeBtn').classList.add('selected');
-    });
-    document.getElementById('lShapeBtn').addEventListener('click', () => {
-      clearShapeSelection();
-      GAME.activeShape = { vertices: SHAPES.L.vertices };
-      document.getElementById('lShapeBtn').classList.add('selected');
-    });
-
-    // -------------------------------------------------------------------
-    // Draw palette previews
-    // -------------------------------------------------------------------
-    function drawPalette() {
-      const rectCv = document.getElementById('rectPreview').getContext('2d');
-      rectCv.clearRect(0, 0, 60, 60);
-      rectCv.fillStyle = '#ff0000';
-      rectCv.strokeStyle = '#fff';
-      rectCv.lineWidth = 2;
-      rectCv.translate(30, 30);
-      rectCv.beginPath();
-      const r = SHAPES.rect.vertices;
-      rectCv.moveTo(r[0].x * 0.3, r[0].y * 0.3);
-      for (let i = 1; i < r.length; i++) {
-        rectCv.lineTo(r[i].x * 0.3, r[i].y * 0.3);
-      }
-      rectCv.closePath();
-      rectCv.fill();
-      rectCv.stroke();
-      rectCv.resetTransform();
-
-      const lCv = document.getElementById('lPreview').getContext('2d');
-      lCv.clearRect(0, 0, 60, 60);
-      lCv.fillStyle = '#ff0000';
-      lCv.strokeStyle = '#fff';
-      lCv.lineWidth = 2;
-      lCv.translate(30, 30);
-      const l = SHAPES.L.vertices;
-      lCv.beginPath();
-      lCv.moveTo(l[0].x * 0.3, l[0].y * 0.3);
-      for (let i = 1; i < l.length; i++) {
-        lCv.lineTo(l[i].x * 0.3, l[i].y * 0.3);
-      }
-      lCv.closePath();
-      lCv.fill();
-      lCv.stroke();
-      lCv.resetTransform();
-    }
-
-    // -------------------------------------------------------------------
-    // Initialization
-    // -------------------------------------------------------------------
-    function init() {
-      canvas = document.getElementById('gameCanvas');
-      ctx = canvas.getContext('2d');
-
-      canvas.width = GAME.width;
-      canvas.height = GAME.height;
-
-      // Responsive sizing
-      function resizeCanvas() {
-        const ar = GAME.width / GAME.height;
-        const wr = window.innerWidth / window.innerHeight;
-        if (wr > ar) {
-          canvas.style.height = '80vh';
-          canvas.style.width = (80 * ar) + 'vh';
-        } else {
-          canvas.style.width = '80vw';
-          canvas.style.height = (80 / ar) + 'vw';
+        function generateNewPieces() {
+            upcomingPieces = [
+                generateRandomPiece(),
+                generateRandomPiece(),
+                generateRandomPiece()
+            ];
+            renderPreview();
         }
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
 
-      setupLevel(0);
-      drawPalette();
+        function renderPreview() {
+            const previewSlots = document.querySelectorAll('.preview-slot');
+            
+            previewSlots.forEach((slot, index) => {
+                slot.innerHTML = '';
+                slot.removeAttribute('data-piece-id');
+                if (upcomingPieces[index]) {
+                    const piece = upcomingPieces[index];
+                    const previewPiece = createPreviewPiece(piece);
+                    slot.appendChild(previewPiece);
+                    slot.dataset.pieceId = piece.id;
+                }
+            });
+        }
 
-      canvas.addEventListener('mousemove', onCanvasMove);
-      canvas.addEventListener('click', onCanvasClick);
+        function createPreviewPiece(piece) {
+            const bounds = getPieceBounds(piece.shape);
+            const container = document.createElement('div');
+            container.className = 'preview-piece';
+            container.style.gridTemplateColumns = `repeat(${bounds.width}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${bounds.height}, 1fr)`;
+            
+            for (let row = 0; row < bounds.height; row++) {
+                for (let col = 0; col < bounds.width; col++) {
+                    const block = document.createElement('div');
+                    block.className = 'preview-block';
+                    
+                    const hasBlock = piece.shape.some(([x, y]) => 
+                        x === col + bounds.minX && y === row + bounds.minY
+                    );
+                    
+                    if (hasBlock) {
+                        block.classList.add(`color-${piece.color}`);
+                    } else {
+                        block.style.opacity = '0';
+                    }
+                    
+                    container.appendChild(block);
+                }
+            }
+            
+            return container;
+        }
 
-      requestAnimationFrame(loop);
-    }
+        function getPieceBounds(shape) {
+            const xs = shape.map(([x, y]) => x);
+            const ys = shape.map(([x, y]) => y);
+            
+            return {
+                minX: Math.min(...xs),
+                maxX: Math.max(...xs),
+                minY: Math.min(...ys),
+                maxY: Math.max(...ys),
+                width: Math.max(...xs) - Math.min(...xs) + 1,
+                height: Math.max(...ys) - Math.min(...ys) + 1
+            };
+        }
 
-    window.addEventListener('load', init);
-  </script>
+        function isPlacementValid(shape, startRow, startCol) {
+            for (const [x, y] of shape) {
+                const newRow = startRow + y;
+                const newCol = startCol + x;
+                
+                if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) {
+                    return false;
+                }
+                
+                if (board[newRow][newCol] !== null) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        function placePiece(piece, startRow, startCol) {
+            if (!isPlacementValid(piece.shape, startRow, startCol)) {
+                return false;
+            }
+            
+            for (const [x, y] of piece.shape) {
+                const newRow = startRow + y;
+                const newCol = startCol + x;
+                board[newRow][newCol] = { color: piece.color, id: piece.id };
+            }
+            
+            renderBoard();
+            addPlacementAnimation(piece.shape, startRow, startCol);
+            playSound(440, 0.1);
+            
+            return true;
+        }
+
+        function addPlacementAnimation(shape, startRow, startCol) {
+            shape.forEach(([x, y]) => {
+                const row = startRow + y;
+                const col = startCol + x;
+                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    cell.classList.add('placed-animation');
+                    setTimeout(() => cell.classList.remove('placed-animation'), 200);
+                }
+            });
+        }
+
+        function findFullLines() {
+            const fullRows = [];
+            const fullCols = [];
+            
+            for (let row = 0; row < 8; row++) {
+                if (board[row].every(cell => cell !== null)) {
+                    fullRows.push(row);
+                }
+            }
+            
+            for (let col = 0; col < 8; col++) {
+                if (board.every(row => row[col] !== null)) {
+                    fullCols.push(col);
+                }
+            }
+            
+            return { fullRows, fullCols };
+        }
+
+        function clearLines(fullRows, fullCols) {
+            const cellsToClear = new Set();
+            
+            fullRows.forEach(row => {
+                for (let col = 0; col < 8; col++) {
+                    cellsToClear.add(`${row},${col}`);
+                }
+            });
+            
+            fullCols.forEach(col => {
+                for (let row = 0; row < 8; row++) {
+                    cellsToClear.add(`${row},${col}`);
+                }
+            });
+            
+            cellsToClear.forEach(cellKey => {
+                const [row, col] = cellKey.split(',').map(Number);
+                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    cell.classList.add('clearing');
+                }
+            });
+            
+            setTimeout(() => {
+                cellsToClear.forEach(cellKey => {
+                    const [row, col] = cellKey.split(',').map(Number);
+                    board[row][col] = null;
+                });
+                renderBoard();
+            }, 300);
+            
+            return cellsToClear.size;
+        }
+
+        function checkAndClearLines() {
+            const { fullRows, fullCols } = findFullLines();
+            const totalLines = fullRows.length + fullCols.length;
+            
+            if (totalLines > 0) {
+                const clearedBlocks = clearLines(fullRows, fullCols);
+                
+                const basePoints = clearedBlocks * 10;
+                let multiplier = 1;
+                
+                if (totalLines >= 4) multiplier = 2.5;
+                else if (totalLines >= 3) multiplier = 2.0;
+                else if (totalLines >= 2) multiplier = 1.5;
+                
+                const points = Math.floor(basePoints * multiplier);
+                score += points;
+                streak++;
+                
+                if (streak % 5 === 0) {
+                    score += 500;
+                }
+                
+                if (totalLines >= 2) {
+                    showComboEffect(totalLines, multiplier);
+                    document.getElementById('board').classList.add('board-combo');
+                    setTimeout(() => {
+                        document.getElementById('board').classList.remove('board-combo');
+                    }, 500);
+                }
+                
+                if (totalLines >= 3) {
+                    playSound(880, 0.3, 'square');
+                } else if (totalLines >= 2) {
+                    playSound(660, 0.2);
+                } else {
+                    playSound(550, 0.15);
+                }
+                
+                updateUI();
+            } else {
+                streak = 0;
+                updateUI();
+            }
+        }
+
+        function showComboEffect(lines, multiplier) {
+            const comboElement = document.createElement('div');
+            comboElement.className = 'combo-flash';
+            comboElement.textContent = `COMBO ×${multiplier}!`;
+            document.body.appendChild(comboElement);
+            
+            setTimeout(() => {
+                document.body.removeChild(comboElement);
+            }, 1000);
+        }
+
+        function checkGameOver() {
+            for (const piece of upcomingPieces) {
+                if (piece && canPieceBePlaced(piece)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function canPieceBePlaced(piece) {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (isPlacementValid(piece.shape, row, col)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function endGame() {
+            gameRunning = false;
+            
+            const isNewBest = score > bestScore;
+            if (isNewBest) {
+                bestScore = score;
+                saveBestScore();
+                document.getElementById('new-best').style.display = 'block';
+            } else {
+                document.getElementById('new-best').style.display = 'none';
+            }
+            
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('game-over-modal').style.display = 'flex';
+            
+            playSound(220, 0.5, 'sawtooth');
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+            document.getElementById('best').textContent = bestScore;
+        }
+
+        function saveBestScore() {
+            localStorage.setItem('blockBlastBest', bestScore.toString());
+        }
+
+        function loadBestScore() {
+            const saved = localStorage.getItem('blockBlastBest');
+            bestScore = saved ? parseInt(saved) : 0;
+        }
+
+        function restartGame() {
+            score = 0;
+            streak = 0;
+            placedCount = 0;
+            gameRunning = true;
+            createBoard();
+            generateNewPieces();
+            updateUI();
+            document.getElementById('game-over-modal').style.display = 'none';
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('btn-mute').textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+        }
+
+        // Drag and Drop functionality
+        let draggedPiece = null;
+        let draggedPieceIndex = -1;
+
+        function setupEventListeners() {
+            document.getElementById('btn-restart').addEventListener('click', restartGame);
+            document.getElementById('btn-mute').addEventListener('click', toggleSound);
+            document.getElementById('btn-play-again').addEventListener('click', restartGame);
+
+            document.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            document.addEventListener('touchstart', handleTouchStart, { passive: false });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd, { passive: false });
+        }
+
+        function handleMouseDown(e) {
+            if (!gameRunning) return;
+            const previewSlot = e.target.closest('.preview-slot');
+            if (previewSlot && previewSlot.dataset.pieceId) {
+                startDrag(previewSlot, e.clientX, e.clientY);
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (draggedPiece) {
+                updateDragPosition(e.clientX, e.clientY);
+                highlightDropZone(e.clientX, e.clientY);
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (draggedPiece) {
+                attemptDrop(e.clientX, e.clientY);
+            }
+        }
+
+        function handleTouchStart(e) {
+            if (!gameRunning) return;
+            const touch = e.touches[0];
+            const previewSlot = touch.target.closest('.preview-slot');
+            if (previewSlot && previewSlot.dataset.pieceId) {
+                e.preventDefault();
+                startDrag(previewSlot, touch.clientX, touch.clientY);
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (draggedPiece) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                updateDragPosition(touch.clientX, touch.clientY);
+                highlightDropZone(touch.clientX, touch.clientY);
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (draggedPiece) {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                attemptDrop(touch.clientX, touch.clientY);
+            }
+        }
+
+        function startDrag(previewSlot, x, y) {
+            const pieceId = previewSlot.dataset.pieceId;
+            draggedPieceIndex = parseInt(previewSlot.dataset.index);
+            draggedPiece = upcomingPieces[draggedPieceIndex];
+
+            previewSlot.classList.add('dragging');
+
+            const floatingPiece = createFloatingPiece(draggedPiece);
+            floatingPiece.id = 'floating-piece';
+            document.body.appendChild(floatingPiece);
+
+            updateDragPosition(x, y);
+        }
+
+        function createFloatingPiece(piece) {
+            const container = createPreviewPiece(piece);
+            container.style.position = 'fixed';
+            container.style.pointerEvents = 'none';
+            container.style.zIndex = '1000';
+            container.style.transform = 'translate(-50%, -50%)';
+            return container;
+        }
+
+        function updateDragPosition(x, y) {
+            const floatingPiece = document.getElementById('floating-piece');
+            if (floatingPiece) {
+                floatingPiece.style.left = x + 'px';
+                floatingPiece.style.top = y + 'px';
+            }
+        }
+
+        function highlightDropZone(x, y) {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('drop-valid', 'drop-invalid');
+            });
+
+            const targetCell = document.elementFromPoint(x, y);
+            if (targetCell && targetCell.classList.contains('cell') && draggedPiece) {
+                const row = parseInt(targetCell.dataset.row);
+                const col = parseInt(targetCell.dataset.col);
+
+                let valid = true;
+                const toHighlight = [];
+
+                for (const [dx, dy] of draggedPiece.shape) {
+                    const newRow = row + dy;
+                    const newCol = col + dx;
+
+                    if (
+                        newRow < 0 || newRow >= 8 ||
+                        newCol < 0 || newCol >= 8 ||
+                        board[newRow][newCol] !== null
+                    ) {
+                        valid = false;
+                        break;
+                    }
+                    toHighlight.push([newRow, newCol]);
+                }
+
+                if (valid) {
+                    toHighlight.forEach(([r, c]) => {
+                        const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                        if (cell) cell.classList.add('drop-valid');
+                    });
+                } else {
+                    targetCell.classList.add('drop-invalid');
+                }
+            }
+        }
+
+        function attemptDrop(x, y) {
+            const floatingPiece = document.getElementById('floating-piece');
+            if (floatingPiece) {
+                floatingPiece.remove();
+            }
+
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('drop-valid', 'drop-invalid');
+            });
+
+            const targetCell = document.elementFromPoint(x, y);
+            if (targetCell && targetCell.classList.contains('cell') && draggedPiece) {
+                const row = parseInt(targetCell.dataset.row);
+                const col = parseInt(targetCell.dataset.col);
+
+                if (placePiece(draggedPiece, row, col)) {
+                    upcomingPieces[draggedPieceIndex] = null;
+                    placedCount++;
+                    renderPreview();
+
+                    if (placedCount === 3) {
+                        checkAndClearLines();
+                        placedCount = 0;
+                        generateNewPieces();
+                        if (checkGameOver()) {
+                            endGame();
+                        }
+                    }
+                }
+            }
+
+            const previewSlots = document.querySelectorAll('.preview-slot');
+            previewSlots.forEach(slot => slot.classList.remove('dragging'));
+
+            draggedPiece = null;
+            draggedPieceIndex = -1;
+        }
+
+        // Start everything
+        initGame();
+    </script>
 </body>
 </html>
 ```
