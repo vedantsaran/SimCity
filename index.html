@@ -1,1000 +1,632 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Stellar Colony</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0a0f1c 0%, #1a1f3a 50%, #2d1b69 100%);
-      color: #e0e6ed;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    .header {
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-      padding: 1rem;
-      border-bottom: 2px solid #4a90e2;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header h1 {
-      text-align: center;
-      font-size: 2rem;
-      background: linear-gradient(45deg, #4a90e2, #7b68ee, #ff6b9d);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
-    }
-    .game-container {
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 1rem;
-      padding: 1rem;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    .main-panel {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(15px);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 1.5rem;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-    .side-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .panel {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(15px);
-      border-radius: 15px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
-    }
-    .panel:hover {
-      border-color: rgba(74, 144, 226, 0.5);
-      box-shadow: 0 12px 40px rgba(74, 144, 226, 0.1);
-    }
-    .panel h3 {
-      color: #4a90e2;
-      margin-bottom: 0.75rem;
-      font-size: 1.2rem;
-      text-align: center;
-    }
-    .resources {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.5rem;
-    }
-    .resource {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 0.6rem;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: center;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .resource::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.1), transparent);
-      transition: left 0.5s ease;
-    }
-    .resource:hover::before {
-      left: 100%;
-    }
-    .resource-name {
-      font-size: 0.8rem;
-      color: #b0b8c1;
-      margin-bottom: 0.25rem;
-    }
-    .resource-value {
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #4a90e2;
-    }
-    .colony-view {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    .colony-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-    .stat-card {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 1rem;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: center;
-      transition: all 0.3s ease;
-    }
-    .stat-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(74, 144, 226, 0.5);
-      box-shadow: 0 12px 28px rgba(74, 144, 226, 0.1);
-    }
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #4a90e2;
-      display: block;
-    }
-    .stat-label {
-      color: #b0b8c1;
-      font-size: 0.8rem;
-      margin-top: 0.4rem;
-    }
-    .buildings {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 0.75rem;
-    }
-    .building-wrapper {
-      position: relative;
-    }
-    .building {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 1.2rem;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: center;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-    .building:hover {
-      transform: translateY(-4px);
-      border-color: rgba(74, 144, 226, 0.5);
-      box-shadow: 0 12px 28px rgba(74, 144, 226, 0.2);
-    }
-    .building::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #4a90e2, #7b68ee);
-      transform: scaleX(0);
-      transition: transform 0.3s ease;
-    }
-    .building:hover::before {
-      transform: scaleX(1);
-    }
-    .building h4 {
-      color: #4a90e2;
-      margin-bottom: 0.4rem;
-      font-size: 1rem;
-    }
-    .building-count {
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #7b68ee;
-      margin: 0.4rem 0;
-    }
-    .building-cost {
-      font-size: 0.75rem;
-      color: #b0b8c1;
-      margin-bottom: 0.6rem;
-    }
-    .tooltip {
-      position: absolute;
-      bottom: 110%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
-      color: #fff;
-      padding: 0.6rem;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      text-align: left;
-      width: 220px;
-      z-index: 10;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.2s ease, visibility 0.2s ease;
-    }
-    .building-wrapper:hover .tooltip {
-      opacity: 1;
-      visibility: visible;
-    }
-    .btn {
-      background: linear-gradient(45deg, #4a90e2, #7b68ee);
-      color: white;
-      border: none;
-      padding: 0.6rem 1rem;
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      width: 100%;
-      max-width: 140px;
-    }
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      transition: left 0.5s ease;
-    }
-    .btn:hover::before {
-      left: 100%;
-    }
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(74, 144, 226, 0.3);
-    }
-    .btn:disabled {
-      background: #555;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .research-tree {
-      max-height: 350px;
-      overflow-y: auto;
-    }
-    .research-wrapper {
-      position: relative;
-    }
-    .research-item {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 0.8rem;
-      margin-bottom: 0.4rem;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
-      position: relative;
-    }
-    .research-item:hover {
-      border-color: rgba(74, 144, 226, 0.5);
-    }
-    .research-item.completed {
-      border-color: #4caf50;
-      background: rgba(76, 175, 80, 0.1);
-    }
-    .research-item.researching {
-      border-color: #ff9800;
-      background: rgba(255, 152, 0, 0.1);
-    }
-    .research-wrapper:hover .tooltip {
-      opacity: 1;
-      visibility: visible;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: 0.4rem;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #4a90e2, #7b68ee);
-      transition: width 0.4s ease;
-    }
-    .notification {
-      position: fixed;
-      top: 80px;
-      right: 10px;
-      background: rgba(74, 144, 226, 0.9);
-      padding: 0.8rem;
-      border-radius: 8px;
-      color: white;
-      font-weight: bold;
-      font-size: 0.9rem;
-      transform: translateX(300px);
-      transition: transform 0.4s ease;
-      z-index: 1000;
-      max-width: 200px;
-    }
-    .notification.show {
-      transform: translateX(0);
-    }
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.7;
-      }
-    }
-    .pulsing {
-      animation: pulse 2s infinite;
-    }
-    .tabs {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .tab {
-      flex: 1;
-      padding: 0.5rem 0.5rem;
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      border-radius: 10px;
-      color: #b0b8c1;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-align: center;
-    }
-    .tab.active {
-      background: linear-gradient(45deg, #4a90e2, #7b68ee);
-      color: white;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(45deg, #4a90e2, #7b68ee);
-      border-radius: 4px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Colonies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    @media (max-width: 768px) {
-      .game-container {
-        grid-template-columns: 1fr;
-        padding: 0.5rem;
-      }
-      .main-panel {
-        padding: 1rem;
-      }
-      .side-panel {
-        flex-direction: column;
-      }
-      .panel {
-        padding: 0.8rem;
-      }
-      .colony-view h2 {
-        font-size: 1.5rem;
-      }
-      .colony-stats {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-      }
-      .stat-card {
-        padding: 0.8rem;
-      }
-      .stat-value {
-        font-size: 1.2rem;
-      }
-      .stat-label {
-        font-size: 0.7rem;
-      }
-      .tabs {
-        flex-wrap: wrap;
-      }
-      .tab {
-        font-size: 0.85rem;
-        padding: 0.4rem;
-      }
-      .buildings {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-      }
-      .building {
-        padding: 0.8rem;
-      }
-      .building h4 {
-        font-size: 0.95rem;
-      }
-      .building-count {
-        font-size: 1.1rem;
-      }
-      .building-cost {
-        font-size: 0.7rem;
-      }
-      .btn {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.85rem;
-        max-width: 100%;
-      }
-      .resources {
-        grid-template-columns: 1fr;
-        gap: 0.4rem;
-      }
-      .resource {
-        padding: 0.5rem;
-      }
-      .resource-name {
-        font-size: 0.75rem;
-      }
-      .resource-value {
-        font-size: 1rem;
-      }
-      .research-tree {
-        max-height: 300px;
-      }
-      .research-item {
-        padding: 0.6rem;
-        font-size: 0.85rem;
-      }
-      .progress-bar {
-        height: 4px;
-      }
-      .notification {
-        top: 60px;
-        right: 5px;
-        font-size: 0.85rem;
-        max-width: 180px;
-      }
-    }
-  </style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #4a9eff;
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4a9eff;
+        }
+
+        .game-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #1a1a3a 0%, #0f0f23 70%);
+        }
+
+        .stars {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+                radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+                radial-gradient(2px 2px at 160px 30px, #fff, transparent);
+            background-repeat: repeat;
+            background-size: 200px 100px;
+            animation: twinkle 8s infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.8; }
+        }
+
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            border: 3px solid rgba(255,255,255,0.3);
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.5);
+        }
+
+        .planet:hover, .planet:active {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(74, 158, 255, 0.8);
+        }
+
+        .planet.owned {
+            border-color: #4a9eff;
+            box-shadow: 0 0 25px rgba(74, 158, 255, 0.7);
+        }
+
+        .planet.unexplored {
+            background: radial-gradient(circle, #666 0%, #333 100%);
+            color: #ccc;
+        }
+
+        .planet.colonized {
+            background: radial-gradient(circle, #4a9eff 0%, #2d5aa0 100%);
+            color: white;
+        }
+
+        .planet.mining {
+            background: radial-gradient(circle, #ff6b35 0%, #cc5500 100%);
+            color: white;
+        }
+
+        .planet.research {
+            background: radial-gradient(circle, #9b59b6 0%, #663399 100%);
+            color: white;
+        }
+
+        .planet.defense {
+            background: radial-gradient(circle, #e74c3c 0%, #b33e2f 100%);
+            color: white;
+        }
+
+        .bottom-panel {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            border-top: 2px solid #4a9eff;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 8px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover:before, .btn:active:before {
+            left: 100%;
+        }
+
+        .btn-explore {
+            background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
+            color: white;
+        }
+
+        .btn-colonize {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+
+        .btn-upgrade {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .selected-planet {
+            background: rgba(74, 158, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .upgrade-btn {
+            padding: 8px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #bbb;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .achievement {
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideIn 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateX(100%); }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                font-size: 12px;
+                padding: 8px;
+            }
+            
+            .resource {
+                font-size: 12px;
+            }
+            
+            .btn {
+                padding: 10px 6px;
+                font-size: 12px;
+            }
+            
+            .planet {
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🚀 STELLAR COLONY 🌟</h1>
-  </div>
-
-  <div class="game-container">
-    <div class="main-panel">
-      <div class="colony-view">
-        <h2>Colony Overview</h2>
-        <div class="colony-stats">
-          <div class="stat-card">
-            <span class="stat-value" id="population">5</span>
-            <div class="stat-label">Population</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" id="happiness">100</span>
-            <div class="stat-label">Happiness %</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" id="efficiency">100</span>
-            <div class="stat-label">Efficiency %</div>
-          </div>
+    <div class="game-container">
+        <div class="header">
+            <div class="resource">⚡ Energy: <span id="energy">100</span></div>
+            <div class="resource">🔬 Research: <span id="research">0</span></div>
+            <div class="resource">⛏️ Materials: <span id="materials">50</span></div>
+            <div class="resource">🏛️ Colonies: <span id="colonies">0</span></div>
+            <div class="resource">📊 Level: <span id="level">1</span></div>
         </div>
-      </div>
 
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab.call(this, 'buildings')">Buildings</button>
-        <button class="tab" onclick="switchTab.call(this, 'research')">Research</button>
-      </div>
+        <div class="game-area">
+            <div class="stars"></div>
+            <div id="planets-container"></div>
+        </div>
 
-      <div id="buildings-tab" class="tab-content active">
-        <h3>Colony Buildings</h3>
-        <div class="buildings" id="buildings-container"></div>
-      </div>
+        <div class="bottom-panel">
+            <div id="selected-info" class="selected-planet" style="display: none;">
+                <div id="planet-name">Select a planet</div>
+                <div id="planet-details"></div>
+            </div>
 
-      <div id="research-tab" class="tab-content">
-        <h3>Research Tree</h3>
-        <div class="research-tree" id="research-container"></div>
-      </div>
+            <div class="action-buttons">
+                <button class="btn btn-explore" onclick="explorePlanet()">🚀 Explore</button>
+                <button class="btn btn-colonize" onclick="colonizePlanet()">🏗️ Colonize</button>
+                <button class="btn btn-upgrade" onclick="showUpgrades()">⬆️ Upgrade</button>
+            </div>
+
+            <div id="upgrade-panel" style="display: none;">
+                <div class="upgrade-grid">
+                    <button class="btn upgrade-btn btn-upgrade" onclick="upgradePlanet('mining')">⛏️ Mining</button>
+                    <button class="btn upgrade-btn btn-upgrade" onclick="upgradePlanet('research')">🔬 Research</button>
+                    <button class="btn upgrade-btn btn-upgrade" onclick="upgradePlanet('defense')">🛡️ Defense</button>
+                    <button class="btn upgrade-btn btn-colonize" onclick="upgradePlanet('population')">👥 Population</button>
+                </div>
+            </div>
+
+            <div class="info-text">
+                Tap planets to select • Explore to find new worlds • Colonize to expand your empire
+            </div>
+        </div>
     </div>
 
-    <div class="side-panel">
-      <div class="panel">
-        <h3>Resources</h3>
-        <div class="resources" id="resources-container"></div>
-      </div>
-      <div class="panel">
-        <h3>Production Rate</h3>
-        <div id="production-rates"></div>
-      </div>
-      <div class="panel">
-        <h3>Colony Status</h3>
-        <div id="colony-status">
-          <p>Day: <span id="day-counter">1</span></p>
-          <p>Colony Level: <span id="colony-level">1</span></p>
-          <p>Total Buildings: <span id="total-buildings">0</span></p>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script>
+        class Game {
+            constructor() {
+                this.energy = 100;
+                this.research = 0;
+                this.materials = 50;
+                this.colonies = 0;
+                this.level = 1;
+                this.planets = [];
+                this.selectedPlanet = null;
+                this.nextPlanetId = 1;
+                this.gameTime = 0;
+                this.achievements = [];
 
-  <div class="notification" id="notification"></div>
+                this.initializeGame();
+                this.startGameLoop();
+            }
 
-  <script>
-    class StellarColony {
-      constructor() {
-        this.resources = {
-          energy: 100,
-          minerals: 50,
-          population: 5,
-          research: 0,
-          food: 20,
-          water: 30
-        };
+            initializeGame() {
+                // Create starting planets
+                this.generatePlanets(5);
+                this.render();
+                this.updateUI();
+            }
 
-        this.buildings = {
-          'Solar Panel': {
-            count: 0,
-            cost: { energy: 0, minerals: 10 },
-            production: { energy: 5 },
-            requires: null,
-            description: 'Generates 5 energy per minute. Cost: 10 minerals.'
-          },
-          'Mining Station': {
-            count: 0,
-            cost: { energy: 15, minerals: 0 },
-            production: { minerals: 3 },
-            requires: null,
-            description: 'Produces 3 minerals per minute. Cost: 15 energy.'
-          },
-          'Hydroponic Farm': {
-            count: 0,
-            cost: { energy: 20, minerals: 15 },
-            production: { food: 8 },
-            requires: null,
-            description: 'Yields 8 food per minute. Cost: 20 energy, 15 minerals.'
-          },
-          'Water Recycler': {
-            count: 0,
-            cost: { energy: 25, minerals: 20 },
-            production: { water: 6 },
-            requires: null,
-            description: 'Generates 6 water per minute. Cost: 25 energy, 20 minerals.'
-          },
-          'Residential Pod': {
-            count: 0,
-            cost: { energy: 30, minerals: 25, food: 10 },
-            production: { population: 2 },
-            requires: null,
-            description: 'Increases population by 2 per minute. Cost: 30 energy, 25 minerals, 10 food.'
-          },
-          'Research Lab': {
-            count: 0,
-            cost: { energy: 40, minerals: 30, water: 15 },
-            production: { research: 2 },
-            requires: null,
-            description: 'Produces 2 research points per minute. Cost: 40 energy, 30 minerals, 15 water.'
-          },
-          'Fusion Reactor': {
-            count: 0,
-            cost: { energy: 0, minerals: 100, research: 50 },
-            production: { energy: 25 },
-            requires: 'Advanced Energy',
-            description: 'Generates 25 energy per minute. Cost: 100 minerals, 50 research. Requires Advanced Energy.'
-          },
-          'Quantum Computer': {
-            count: 0,
-            cost: { energy: 60, minerals: 80, research: 100 },
-            production: { research: 10 },
-            requires: 'Quantum Physics',
-            description: 'Produces 10 research per minute. Cost: 60 energy, 80 minerals, 100 research. Requires Quantum Physics.'
-          },
-          'Biodome': {
-            count: 0,
-            cost: { energy: 80, minerals: 60, water: 40, food: 20 },
-            production: { food: 20, population: 3 },
-            requires: 'Ecosystem Management',
-            description: 'Yields 20 food and +3 population per minute. Cost: 80 energy, 60 minerals, 40 water, 20 food. Requires Ecosystem Management.'
-          }
-        };
+            generatePlanets(count) {
+                const container = document.getElementById('planets-container');
+                const containerRect = container.getBoundingClientRect();
 
-        this.research = {
-          'Advanced Energy': {
-            cost: 25,
-            completed: false,
-            researching: false,
-            progress: 0,
-            unlocks: ['Fusion Reactor'],
-            effect: null,
-            description: 'Unlocks Fusion Reactor. Cost: 25 research points.'
-          },
-          'Quantum Physics': {
-            cost: 75,
-            completed: false,
-            researching: false,
-            progress: 0,
-            unlocks: ['Quantum Computer'],
-            effect: null,
-            description: 'Unlocks Quantum Computer. Cost: 75 research points.'
-          },
-          'Ecosystem Management': {
-            cost: 50,
-            completed: false,
-            researching: false,
-            progress: 0,
-            unlocks: ['Biodome'],
-            effect: null,
-            description: 'Unlocks Biodome. Cost: 50 research points.'
-          },
-          'Space Mining': {
-            cost: 40,
-            completed: false,
-            researching: false,
-            progress: 0,
-            unlocks: null,
-            effect: 'Double mineral production',
-            description: 'Doubles all mineral production. Cost: 40 research points.'
-          },
-          'Hydroponics Tech': {
-            cost: 35,
-            completed: false,
-            researching: false,
-            progress: 0,
-            unlocks: null,
-            effect: 'Food production +50%',
-            description: 'Increases food production by 50%. Cost: 35 research points.'
-          },
-          'Population Growth': {
-            cost: 60,
-            completed: false,
-            researching: false,
-            progress: 0,
-            unlocks: null,
-            effect: 'Population growth +100%',
-            description: 'Doubles population generation. Cost: 60 research points.'
-          }
-        };
+                for (let i = 0; i < count; i++) {
+                    const planet = {
+                        id: this.nextPlanetId++,
+                        x: Math.random() * (window.innerWidth - 80) + 40,
+                        y: Math.random() * (window.innerHeight - 200) + 100,
+                        size: 30 + Math.random() * 40,
+                        type: 'unexplored',
+                        level: 1,
+                        name: this.generatePlanetName(),
+                        resources: {
+                            energy: Math.floor(Math.random() * 20) + 10,
+                            materials: Math.floor(Math.random() * 30) + 15,
+                            research: Math.floor(Math.random() * 15) + 5
+                        },
+                        upgrades: {
+                            mining: 0,
+                            research: 0,
+                            defense: 0,
+                            population: 0
+                        }
+                    };
+                    this.planets.push(planet);
+                }
+            }
 
-        this.gameStats = {
-          day: 1,
-          happiness: 100,
-          efficiency: 100,
-          colonyLevel: 1,
-          totalBuildings: 0
-        };
+            generatePlanetName() {
+                const prefixes = ['Zeta', 'Alpha', 'Beta', 'Gamma', 'Nova', 'Stellar', 'Cosmic', 'Nebula'];
+                const suffixes = ['Prime', 'Minor', 'Major', 'One', 'Two', 'Three', 'IV', 'V'];
+                return prefixes[Math.floor(Math.random() * prefixes.length)] + '-' + 
+                       suffixes[Math.floor(Math.random() * suffixes.length)];
+            }
 
-        this.productionMultipliers = {
-          energy: 1,
-          minerals: 1,
-          food: 1,
-          water: 1,
-          research: 1,
-          population: 1
-        };
+            render() {
+                const container = document.getElementById('planets-container');
+                container.innerHTML = '';
 
-        this.currentResearch = null;
-        this.init();
-      }
+                this.planets.forEach(planet => {
+                    const planetEl = document.createElement('div');
+                    planetEl.className = `planet ${planet.type}`;
+                    planetEl.style.left = planet.x + 'px';
+                    planetEl.style.top = planet.y + 'px';
+                    planetEl.style.width = planet.size + 'px';
+                    planetEl.style.height = planet.size + 'px';
+                    planetEl.style.fontSize = Math.max(10, planet.size / 4) + 'px';
+                    
+                    if (planet.type === 'unexplored') {
+                        planetEl.textContent = '?';
+                    } else {
+                        planetEl.textContent = planet.level;
+                    }
 
-      init() {
-        this.updateDisplay();
-        this.renderBuildings();
-        this.renderResearch();
-        this.startGameLoop();
-      }
+                    if (this.selectedPlanet && this.selectedPlanet.id === planet.id) {
+                        planetEl.classList.add('owned');
+                    }
 
-      updateDisplay() {
-        // Update resources
-        const resourcesContainer = document.getElementById('resources-container');
-        resourcesContainer.innerHTML = '';
-        Object.entries(this.resources).forEach(([resource, amount]) => {
-          const resourceDiv = document.createElement('div');
-          resourceDiv.className = 'resource';
-          resourceDiv.innerHTML = `
-            <div class="resource-name">${resource.charAt(0).toUpperCase() + resource.slice(1)}</div>
-            <div class="resource-value">${Math.floor(amount)}</div>
-          `;
-          resourcesContainer.appendChild(resourceDiv);
-        });
+                    planetEl.addEventListener('click', () => this.selectPlanet(planet));
+                    container.appendChild(planetEl);
+                });
+            }
 
-        // Update production rates
-        const productionContainer = document.getElementById('production-rates');
-        productionContainer.innerHTML = '';
-        const productionRates = this.calculateProductionRates();
-        Object.entries(productionRates).forEach(([resource, rate]) => {
-          if (Math.abs(rate) > 0.001) {
-            const rateDiv = document.createElement('div');
-            rateDiv.style.cssText = 'margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 8px;';
-            rateDiv.innerHTML = `
-              ${resource}: <span style="color: ${rate > 0 ? '#4caf50' : '#f44336'};">${rate > 0 ? '+' : ''}${rate.toFixed(1)}/min</span>
-            `;
-            productionContainer.appendChild(rateDiv);
-          }
-        });
+            selectPlanet(planet) {
+                this.selectedPlanet = planet;
+                this.updateSelectedInfo();
+                this.render();
+            }
 
-        // Update colony stats
-        document.getElementById('population').textContent = Math.floor(this.resources.population);
-        document.getElementById('happiness').textContent = Math.floor(this.gameStats.happiness);
-        document.getElementById('efficiency').textContent = Math.floor(this.gameStats.efficiency);
-        document.getElementById('day-counter').textContent = Math.floor(this.gameStats.day);
-        document.getElementById('colony-level').textContent = this.gameStats.colonyLevel;
-        document.getElementById('total-buildings').textContent = this.gameStats.totalBuildings;
-      }
+            updateSelectedInfo() {
+                const info = document.getElementById('selected-info');
+                const name = document.getElementById('planet-name');
+                const details = document.getElementById('planet-details');
 
-      calculateProductionRates() {
-        // Rates are per minute
-        const rates = {
-          energy: 0,
-          minerals: 0,
-          food: 0,
-          water: 0,
-          research: 0,
-          population: 0
-        };
+                if (this.selectedPlanet) {
+                    info.style.display = 'block';
+                    name.textContent = this.selectedPlanet.name;
+                    
+                    if (this.selectedPlanet.type === 'unexplored') {
+                        details.innerHTML = `
+                            <div>Status: Unexplored</div>
+                            <div>Exploration Cost: 20 Energy</div>
+                        `;
+                    } else {
+                        details.innerHTML = `
+                            <div>Type: ${this.selectedPlanet.type.charAt(0).toUpperCase() + this.selectedPlanet.type.slice(1)}</div>
+                            <div>Level: ${this.selectedPlanet.level}</div>
+                            <div>⚡ ${this.selectedPlanet.resources.energy}/turn • ⛏️ ${this.selectedPlanet.resources.materials}/turn • 🔬 ${this.selectedPlanet.resources.research}/turn</div>
+                        `;
+                    }
+                } else {
+                    info.style.display = 'none';
+                }
+            }
 
-        Object.entries(this.buildings).forEach(([name, building]) => {
-          if (building.count > 0 && building.production) {
-            Object.entries(building.production).forEach(([resource, amountPerMinute]) => {
-              const perMinute = amountPerMinute * building.count * this.productionMultipliers[resource] * (this.gameStats.efficiency / 100);
-              rates[resource] += perMinute;
-            });
-          }
-        });
+            explorePlanet() {
+                if (!this.selectedPlanet || this.selectedPlanet.type !== 'unexplored') {
+                    this.showMessage('Select an unexplored planet first!');
+                    return;
+                }
 
-        // Consumption per minute
-        rates.energy -= this.resources.population * 0.5;
-        rates.food -= this.resources.population * 0.3;
-        rates.water -= this.resources.population * 0.2;
+                if (this.energy < 20) {
+                    this.showMessage('Not enough energy! Need 20 energy.');
+                    return;
+                }
 
-        return rates;
-      }
+                this.energy -= 20;
+                this.selectedPlanet.type = 'colonized';
+                this.selectedPlanet.level = 1;
+                
+                this.showMessage(`Discovered ${this.selectedPlanet.name}!`);
+                this.checkAchievements();
+                this.updateSelectedInfo();
+                this.render();
+                this.updateUI();
+            }
 
-      renderBuildings() {
-        const container = document.getElementById('buildings-container');
-        container.innerHTML = '';
-        Object.entries(this.buildings).forEach(([name, building]) => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'building-wrapper';
+            colonizePlanet() {
+                if (!this.selectedPlanet || this.selectedPlanet.type === 'unexplored') {
+                    this.showMessage('Explore the planet first!');
+                    return;
+                }
 
-          const buildingDiv = document.createElement('div');
-          buildingDiv.className = 'building';
+                if (this.selectedPlanet.type === 'colonized' && this.selectedPlanet.upgrades.population === 0) {
+                    if (this.materials < 30) {
+                        this.showMessage('Not enough materials! Need 30 materials.');
+                        return;
+                    }
 
-          const isUnlocked = !building.requires || this.research[building.requires]?.completed;
-          const canAfford = this.canAffordBuilding(name);
+                    this.materials -= 30;
+                    this.colonies++;
+                    this.selectedPlanet.upgrades.population = 1;
+                    this.showMessage(`Colonized ${this.selectedPlanet.name}!`);
+                    this.checkAchievements();
+                } else {
+                    this.showMessage('Planet already colonized or unavailable!');
+                }
 
-          let innerHTML = `
-            <h4>${name}</h4>
-            <div class="building-count">${building.count}</div>
-            <div class="building-cost">${this.formatCost(building.cost)}</div>
-          `;
+                this.updateSelectedInfo();
+                this.updateUI();
+            }
 
-          if (!isUnlocked) {
-            innerHTML += `
-              <div style="color: #ff9800; font-size: 0.75rem; margin: 0.4rem 0;">Requires: ${building.requires}</div>
-              <button class="btn disabled" disabled>Locked</button>
-            `;
-          } else {
-            innerHTML += `
-              <button class="btn ${canAfford ? '' : 'disabled'}" onclick="game.buildBuilding('${name}')" ${!canAfford ? 'disabled' : ''}> Build </button>
-            `;
-          }
-          buildingDiv.innerHTML = innerHTML;
+            showUpgrades() {
+                const panel = document.getElementById('upgrade-panel');
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
 
-          // Tooltip
-          const tooltip = document.createElement('div');
-          tooltip.className = 'tooltip';
-          tooltip.textContent = building.description;
+            upgradePlanet(type) {
+                if (!this.selectedPlanet || this.selectedPlanet.type === 'unexplored') {
+                    this.showMessage('Select a discovered planet first!');
+                    return;
+                }
 
-          wrapper.appendChild(buildingDiv);
-          wrapper.appendChild(tooltip);
-          container.appendChild(wrapper);
-        });
-      }
+                const cost = (this.selectedPlanet.upgrades[type] + 1) * 25;
+                
+                if (this.materials < cost) {
+                    this.showMessage(`Not enough materials! Need ${cost} materials.`);
+                    return;
+                }
 
-      renderResearch() {
-        const container = document.getElementById('research-container');
-        container.innerHTML = '';
-        Object.entries(this.research).forEach(([name, tech]) => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'research-wrapper';
+                this.materials -= cost;
+                this.selectedPlanet.upgrades[type]++;
+                this.selectedPlanet.level++;
 
-          const researchDiv = document.createElement('div');
-          researchDiv.className = `research-item ${tech.completed ? 'completed' : ''} ${tech.researching ? 'researching' : ''}`;
+                // Update planet type based on highest upgrade
+                const upgrades = this.selectedPlanet.upgrades;
+                if (upgrades.mining > upgrades.research && upgrades.mining > upgrades.defense) {
+                    this.selectedPlanet.type = 'mining';
+                } else if (upgrades.research >= upgrades.mining && upgrades.research > upgrades.defense) {
+                    this.selectedPlanet.type = 'research';
+                } else if (upgrades.defense >= upgrades.mining && upgrades.defense >= upgrades.research) {
+                    this.selectedPlanet.type = 'defense';
+                }
 
-          const canResearch = this.resources.research >= tech.cost && !tech.completed && !tech.researching && !this.currentResearch;
+                // Increase resource generation
+                this.selectedPlanet.resources.energy += 5;
+                this.selectedPlanet.resources.materials += 10;
+                this.selectedPlanet.resources.research += 3;
 
-          let innerHTML = `
-            <h4>${name}</h4>
-            <p style="font-size: 0.9rem;">Cost: ${tech.cost} Research</p>
-          `;
+                this.showMessage(`Upgraded ${this.selectedPlanet.name}!`);
+                this.checkLevel();
+                this.updateSelectedInfo();
+                this.render();
+                this.updateUI();
+            }
 
-          if (tech.unlocks) {
-            innerHTML += `<p style="color: #4caf50; font-size: 0.85rem;">Unlocks: ${tech.unlocks.join(', ')}</p>`;
-          }
-          if (tech.effect) {
-            innerHTML += `<p style="color: #ff9800; font-size: 0.85rem;">Effect: ${tech.effect}</p>`;
-          }
-          if (tech.researching) {
-            innerHTML += `<div class="progress-bar"><div class="progress-fill" style="width: ${(tech.progress / tech.cost) * 100}%"></div></div>`;
-          }
-          if (!tech.completed && !tech.researching) {
-            innerHTML += `<button class="btn ${canResearch ? '' : 'disabled'}" onclick="game.startResearch('${name}')" ${!canResearch ? 'disabled' : ''}>Research</button>`;
-          }
-          if (tech.completed) {
-            innerHTML += '<p style="color: #4caf50; font-weight: bold; font-size: 0.9rem;">✓ Completed</p>';
-          }
-          researchDiv.innerHTML = innerHTML;
+            startGameLoop() {
+                setInterval(() => {
+                    this.gameTime++;
+                    
+                    // Generate resources from colonized planets
+                    this.planets.forEach(planet => {
+                        if (planet.type !== 'unexplored' && planet.upgrades.population > 0) {
+                            this.energy += planet.resources.energy;
+                            this.materials += planet.resources.materials;
+                            this.research += planet.resources.research;
+                        }
+                    });
 
-          // Tooltip
-          const tooltip = document.createElement('div');
-          tooltip.className = 'tooltip';
-          tooltip.textContent = tech.description;
+                    // Randomly generate new planets
+                    if (Math.random() < 0.02) {
+                        this.generatePlanets(1);
+                        this.render();
+                    }
 
-          wrapper.appendChild(researchDiv);
-          wrapper.appendChild(tooltip);
-          container.appendChild(wrapper);
-        });
-      }
+                    this.checkLevel();
+                    this.updateUI();
+                }, 1000);
+            }
 
-      canAffordBuilding(name) {
-        const cost = this.buildings[name].cost;
-        return Object.entries(cost).every(
-          ([resource, amount]) => Math.floor(this.resources[resource]) >= amount
-        );
-      }
+            checkLevel() {
+                const newLevel = Math.floor(this.research / 100) + 1;
+                if (newLevel > this.level) {
+                    this.level = newLevel;
+                    this.showMessage(`Level Up! Reached Level ${this.level}!`);
+                    this.checkAchievements();
+                }
+            }
 
-      buildBuilding(name) {
-        const building = this.buildings[name];
-        const isUnlocked = !building.requires || this.research[building.requires]?.completed;
-        if (!isUnlocked) {
-          this.showNotification(`${name} requires ${building.requires} research!`);
-          return;
-        }
-        if (!this.canAffordBuilding(name)) {
-          this.showNotification(`Not enough resources for ${name}!`);
-          return;
-        }
-        const cost = building.cost;
-        Object.entries(cost).forEach(([resource, amount]) => {
-          this.resources[resource] -= amount;
-        });
-        building.count++;
-        this.gameStats.totalBuildings++;
-        this.showNotification(`Built ${name}!`);
-        this.renderBuildings();
-        this.updateColonyLevel();
-        this.updateDisplay();
-      }
+            checkAchievements() {
+                const achievements = [
+                    { id: 'first_colony', condition: () => this.colonies >= 1, message: '🏆 First Colony!' },
+                    { id: 'explorer', condition: () => this.planets.filter(p => p.type !== 'unexplored').length >= 5, message: '🏆 Space Explorer!' },
+                    { id: 'researcher', condition: () => this.research >= 500, message: '🏆 Research Master!' },
+                    { id: 'empire_builder', condition: () => this.colonies >= 10, message: '🏆 Empire Builder!' },
+                    { id: 'level_10', condition: () => this.level >= 10, message: '🏆 Advanced Civilization!' }
+                ];
 
-      startResearch(name) {
-        if (this.currentResearch || this.research[name].completed || this.research[name].researching) return;
-        const tech = this.research[name];
-        if (this.resources.research < tech.cost) return;
-        tech.researching = true;
-        tech.progress = 0;
-        this.currentResearch = name;
-        this.showNotification(`Started researching ${name}!`);
-        this.renderResearch();
-        this.updateDisplay();
-      }
+                achievements.forEach(achievement => {
+                    if (!this.achievements.includes(achievement.id) && achievement.condition()) {
+                        this.achievements.push(achievement.id);
+                        this.showAchievement(achievement.message);
+                    }
+                });
+            }
 
-      formatCost(cost) {
-        return Object.entries(cost).map(([resource, amount]) => `${amount} ${resource}`).join(', ');
-      }
+            showMessage(message) {
+                // Simple alert for mobile compatibility
+                const messageEl = document.createElement('div');
+                messageEl.textContent = message;
+                messageEl.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0,0,0,0.9);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    z-index: 1000;
+                    font-weight: bold;
+                    border: 2px solid #4a9eff;
+                `;
+                document.body.appendChild(messageEl);
+                setTimeout(() => messageEl.remove(), 2000);
+            }
 
-      updateColonyLevel() {
-        const newLevel = Math.floor(this.gameStats.totalBuildings / 5) + 1;
-        if (newLevel > this.gameStats.colonyLevel) {
-          this.gameStats.colonyLevel = newLevel;
-          this.showNotification(`Colony Level Up! Now level ${newLevel}`);
-        }
-      }
+            showAchievement(message) {
+                const achievementEl = document.createElement('div');
+                achievementEl.className = 'achievement';
+                achievementEl.textContent = message;
+                document.body.appendChild(achievementEl);
+                setTimeout(() => achievementEl.remove(), 3000);
+            }
 
-      updateGameStats() {
-        const foodRatio = this.resources.food / Math.max(this.resources.population, 1);
-        const waterRatio = this.resources.water / Math.max(this.resources.population, 1);
-        this.gameStats.happiness = Math.max(
-          20,
-          Math.min(
-            100,
-            50 + (foodRatio * 10) + (waterRatio * 15) + (this.resources.energy > 0 ? 25 : -25)
-          )
-        );
-        this.gameStats.efficiency = Math.max(
-          25,
-          Math.min(
-            150,
-            this.gameStats.happiness + (this.resources.energy > 0 ? 0 : -50)
-          )
-        );
-      }
-
-      applyResearchEffects() {
-        this.productionMultipliers = {
-          energy: 1,
-          minerals: 1,
-          food: 1,
-          water: 1,
-          research: 1,
-          population: 1
-        };
-        if (this.research['Space Mining'].completed) {
-          this.productionMultipliers.minerals = 2;
-        }
-        if (this.research['Hydroponics Tech'].completed) {
-          this.productionMultipliers.food = 1.5;
-        }
-        if (this.research['Population Growth'].completed) {
-          this.productionMultipliers.population = 2;
-        }
-      }
-
-      gameLoop() {
-        const rates = this.calculateProductionRates();
-        Object.entries(rates).forEach(([resource, rate]) => {
-          if (resource === 'population') {
-            this.resources[resource] += rate / 60; // population per-minute → per-second
-          } else {
-            this.resources[resource] += rate / 6; // per-minute → per-second
-          }
-        });
-
-        // Clamp non-energy resources to ≥ 0
-        ['minerals', 'food', 'water', 'research', 'population'].forEach(r => {
-          if (this.resources[r] < 0) this.resources[r] = 0;
-        });
-
-        // Research progress (per second)
-        if (this.currentResearch) {
-          const tech = this.research[this.currentResearch];
-          tech.progress += rates.research / 6;
-          if (tech.progress >= tech.cost) {
-            tech.completed = true;
-            tech.researching = false;
-            tech.progress = tech.cost;
-            this.resources.research -= tech.cost;
-            this.showNotification(`Research completed: ${this.currentResearch}!`);
-            this.currentResearch = null;
-            this.applyResearchEffects();
-            this.renderBuildings();
-          }
+            updateUI() {
+                document.getElementById('energy').textContent = Math.floor(this.energy);
+                document.getElementById('research').textContent = Math.floor(this.research);
+                document.getElementById('materials').textContent = Math.floor(this.materials);
+                document.getElementById('colonies').textContent = this.colonies;
+                document.getElementById('level').textContent = this.level;
+            }
         }
 
-        // Advance day every 60 real seconds
-        this.gameStats.day += 1 / 60;
-        this.updateGameStats();
+        // Start the game when page loads
+        window.addEventListener('load', () => {
+            new Game();
+        });
 
-        // Update UI
-        this.renderBuildings();    // Ensure affordability updates
-        this.renderResearch();
-        this.updateDisplay();
-      }
+        // Prevent zoom on mobile
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        });
 
-      startGameLoop() {
-        setInterval(() => this.gameLoop(), 1000);
-      }
-
-      showNotification(message) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.classList.add('show');
-        setTimeout(() => {
-          notification.classList.remove('show');
-        }, 3000);
-      }
-    }
-
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      this.classList.add('active');
-      document.getElementById(tabName + '-tab').classList.add('active');
-    }
-
-    const game = new StellarColony();
-  </script>
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
 </body>
 </html>
