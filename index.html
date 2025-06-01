@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SimCity Builder</title>
+    <title>Stellar Colony</title>
     <style>
         * {
             margin: 0;
@@ -12,632 +12,732 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0f1c 0%, #1a1f3a 50%, #2d1b69 100%);
+            color: #e0e6ed;
             min-height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            border-bottom: 2px solid #4a90e2;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #4a90e2, #7b68ee, #ff6b9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(74, 144, 226, 0.5);
         }
 
         .game-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1rem;
+            padding: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .main-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .side-panel {
             display: flex;
-            height: 100vh;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        .sidebar {
-            width: 300px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 20px;
-            overflow-y: auto;
-            backdrop-filter: blur(10px);
-            border-right: 2px solid rgba(255, 255, 255, 0.1);
+        .panel {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
         }
 
-        .game-area {
-            flex: 1;
+        .panel:hover {
+            border-color: rgba(74, 144, 226, 0.5);
+            box-shadow: 0 12px 40px rgba(74, 144, 226, 0.1);
+        }
+
+        .panel h3 {
+            color: #4a90e2;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .resources {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+
+        .resource {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.8rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .city-grid {
+        .resource::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
             width: 100%;
             height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .resource:hover::before {
+            left: 100%;
+        }
+
+        .resource-name {
+            font-size: 0.9rem;
+            color: #b0b8c1;
+            margin-bottom: 0.3rem;
+        }
+
+        .resource-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+
+        .colony-view {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .colony-stats {
             display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            gap: 2px;
-            padding: 20px;
-            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
-        .grid-cell {
-            background: rgba(255, 255, 255, 0.3);
-            border: 2px dashed rgba(255, 255, 255, 0.5);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
             transition: all 0.3s ease;
-            position: relative;
-            min-height: 60px;
         }
 
-        .grid-cell:hover {
-            background: rgba(255, 255, 255, 0.5);
-            transform: scale(1.05);
-            border-color: #fff;
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(74, 144, 226, 0.5);
+            box-shadow: 0 15px 30px rgba(74, 144, 226, 0.1);
         }
 
-        .grid-cell.occupied {
-            border-style: solid;
-            cursor: default;
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4a90e2;
+            display: block;
         }
 
-        .grid-cell.occupied:hover {
-            transform: none;
+        .stat-label {
+            color: #b0b8c1;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .buildings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
         }
 
         .building {
-            width: 100%;
-            height: 100%;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
             position: relative;
             overflow: hidden;
+        }
+
+        .building:hover {
+            transform: translateY(-5px);
+            border-color: rgba(74, 144, 226, 0.5);
+            box-shadow: 0 15px 30px rgba(74, 144, 226, 0.2);
         }
 
         .building::before {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4a90e2, #7b68ee);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
 
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        .building:hover::before {
+            transform: scaleX(1);
         }
 
-        .house { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
-        .shop { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
-        .factory { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .park { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-        .school { background: linear-gradient(135deg, #f093fb, #f5576c); }
-        .hospital { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-
-        .stats {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
+        .building h4 {
+            color: #4a90e2;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
         }
 
-        .stat {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .stat-value {
+        .building-count {
+            font-size: 1.5rem;
             font-weight: bold;
-            color: #4CAF50;
+            color: #7b68ee;
+            margin: 0.5rem 0;
         }
 
-        .buildings-panel {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
+        .building-cost {
+            font-size: 0.8rem;
+            color: #b0b8c1;
+            margin-bottom: 0.8rem;
         }
 
-        .building-btn {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        .btn {
+            background: linear-gradient(45deg, #4a90e2, #7b68ee);
             color: white;
             border: none;
-            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 14px;
             font-weight: bold;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .building-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
         }
 
-        .building-btn:disabled {
-            background: #666;
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(74, 144, 226, 0.3);
+        }
+
+        .btn:disabled {
+            background: #555;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
 
-        .building-btn.selected {
-            background: linear-gradient(135deg, #4CAF50, #8BC34A);
-            box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+        .research-tree {
+            max-height: 400px;
+            overflow-y: auto;
         }
 
-        .game-title {
-            text-align: center;
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #4CAF50, #8BC34A);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .research-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .research-item:hover {
+            border-color: rgba(74, 144, 226, 0.5);
+        }
+
+        .research-item.completed {
+            border-color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .research-item.researching {
+            border-color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a90e2, #7b68ee);
+            transition: width 0.5s ease;
         }
 
         .notification {
             position: fixed;
-            top: 20px;
+            top: 100px;
             right: 20px;
-            background: linear-gradient(135deg, #4CAF50, #8BC34A);
-            color: white;
-            padding: 15px 20px;
+            background: rgba(74, 144, 226, 0.9);
+            padding: 1rem;
             border-radius: 10px;
+            color: white;
             font-weight: bold;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
+            transform: translateX(400px);
+            transition: transform 0.5s ease;
             z-index: 1000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
         .notification.show {
             transform: translateX(0);
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            transition: width 0.3s ease;
-            border-radius: 4px;
+        .pulsing {
+            animation: pulse 2s infinite;
         }
 
-        .actions-panel {
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            backdrop-filter: blur(10px);
-        }
-
-        .action-btn {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #ff9a9e, #fecfef);
-            color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
+            color: #b0b8c1;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
             transition: all 0.3s ease;
         }
 
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
+        .tab.active {
+            background: linear-gradient(45deg, #4a90e2, #7b68ee);
             color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 1000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
         }
 
-        .tooltip.show {
-            opacity: 1;
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #4a90e2, #7b68ee);
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>🚀 STELLAR COLONY 🌟</h1>
+    </div>
+
     <div class="game-container">
-        <div class="sidebar">
-            <h1 class="game-title">SimCity Builder</h1>
-            
-            <div class="stats">
-                <div class="stat">
-                    <span>💰 Money:</span>
-                    <span class="stat-value" id="money">1000</span>
-                </div>
-                <div class="stat">
-                    <span>👥 Population:</span>
-                    <span class="stat-value" id="population">0</span>
-                </div>
-                <div class="stat">
-                    <span>😊 Happiness:</span>
-                    <span class="stat-value" id="happiness">50</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="happiness-bar" style="width: 50%"></div>
-                </div>
-                <div class="stat">
-                    <span>🏭 Jobs:</span>
-                    <span class="stat-value"><span id="jobs">0</span>/<span id="max-jobs">0</span></span>
-                </div>
-                <div class="stat">
-                    <span>🎓 Education:</span>
-                    <span class="stat-value" id="education">0</span>
-                </div>
-                <div class="stat">
-                    <span>🏥 Healthcare:</span>
-                    <span class="stat-value" id="healthcare">0</span>
+        <div class="main-panel">
+            <div class="colony-view">
+                <h2>Colony Overview</h2>
+                <div class="colony-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="population">5</span>
+                        <div class="stat-label">Population</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="happiness">100</span>
+                        <div class="stat-label">Happiness %</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="efficiency">100</span>
+                        <div class="stat-label">Efficiency %</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="buildings-panel">
-                <h3 style="margin-bottom: 15px; color: #4CAF50;">Buildings</h3>
-                <button class="building-btn" data-building="house" data-cost="100">
-                    🏠 House - $100
-                </button>
-                <button class="building-btn" data-building="shop" data-cost="200">
-                    🏪 Shop - $200
-                </button>
-                <button class="building-btn" data-building="factory" data-cost="500">
-                    🏭 Factory - $500
-                </button>
-                <button class="building-btn" data-building="park" data-cost="150">
-                    🌳 Park - $150
-                </button>
-                <button class="building-btn" data-building="school" data-cost="800">
-                    🎓 School - $800
-                </button>
-                <button class="building-btn" data-building="hospital" data-cost="1200">
-                    🏥 Hospital - $1200
-                </button>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('buildings')">Buildings</button>
+                <button class="tab" onclick="switchTab('research')">Research</button>
             </div>
 
-            <div class="actions-panel">
-                <h3 style="margin-bottom: 15px; color: #ff9a9e;">Actions</h3>
-                <button class="action-btn" onclick="collectTaxes()">
-                    💸 Collect Taxes
-                </button>
-                <button class="action-btn" onclick="runCampaign()">
-                    📢 Happiness Campaign
-                </button>
-                <button class="action-btn" onclick="resetGame()">
-                    🔄 Reset Game
-                </button>
+            <div id="buildings-tab" class="tab-content active">
+                <h3>Colony Buildings</h3>
+                <div class="buildings" id="buildings-container"></div>
+            </div>
+
+            <div id="research-tab" class="tab-content">
+                <h3>Research Tree</h3>
+                <div class="research-tree" id="research-container"></div>
             </div>
         </div>
 
-        <div class="game-area">
-            <div class="city-grid" id="city-grid"></div>
+        <div class="side-panel">
+            <div class="panel">
+                <h3>Resources</h3>
+                <div class="resources" id="resources-container"></div>
+            </div>
+
+            <div class="panel">
+                <h3>Production Rate</h3>
+                <div id="production-rates"></div>
+            </div>
+
+            <div class="panel">
+                <h3>Colony Status</h3>
+                <div id="colony-status">
+                    <p>Day: <span id="day-counter">1</span></p>
+                    <p>Colony Level: <span id="colony-level">1</span></p>
+                    <p>Total Buildings: <span id="total-buildings">0</span></p>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="notification" id="notification"></div>
-    <div class="tooltip" id="tooltip"></div>
 
     <script>
-        class CityBuilder {
+        class StellarColony {
             constructor() {
-                this.gameState = {
-                    money: 1000,
-                    population: 0,
-                    happiness: 50,
-                    buildings: {},
-                    selectedBuilding: null,
-                    jobs: 0,
-                    maxJobs: 0,
-                    education: 0,
-                    healthcare: 0,
-                    taxCooldown: false,
-                    campaignCooldown: false
+                this.resources = {
+                    energy: 100,
+                    minerals: 50,
+                    population: 5,
+                    research: 0,
+                    food: 20,
+                    water: 30
                 };
 
-                this.buildingTypes = {
-                    house: { 
-                        cost: 100, 
-                        emoji: '🏠', 
-                        population: 4, 
-                        happiness: 2,
-                        income: 20,
-                        description: 'Houses provide population and steady income'
-                    },
-                    shop: { 
-                        cost: 200, 
-                        emoji: '🏪', 
-                        jobs: 2, 
-                        happiness: 1,
-                        income: 30,
-                        description: 'Shops provide jobs and generate income'
-                    },
-                    factory: { 
-                        cost: 500, 
-                        emoji: '🏭', 
-                        jobs: 8, 
-                        happiness: -2,
-                        income: 80,
-                        description: 'Factories provide many jobs but reduce happiness'
-                    },
-                    park: { 
-                        cost: 150, 
-                        emoji: '🌳', 
-                        happiness: 8,
-                        description: 'Parks significantly boost happiness'
-                    },
-                    school: { 
-                        cost: 800, 
-                        emoji: '🎓', 
-                        education: 10, 
-                        happiness: 3,
-                        description: 'Schools improve education and happiness'
-                    },
-                    hospital: { 
-                        cost: 1200, 
-                        emoji: '🏥', 
-                        healthcare: 15, 
-                        happiness: 5,
-                        description: 'Hospitals provide healthcare and boost happiness'
-                    }
+                this.buildings = {
+                    'Solar Panel': { count: 0, cost: { energy: 0, minerals: 10 }, production: { energy: 5 } },
+                    'Mining Station': { count: 0, cost: { energy: 15, minerals: 0 }, production: { minerals: 3 } },
+                    'Hydroponic Farm': { count: 0, cost: { energy: 20, minerals: 15 }, production: { food: 8 } },
+                    'Water Recycler': { count: 0, cost: { energy: 25, minerals: 20 }, production: { water: 6 } },
+                    'Residential Pod': { count: 0, cost: { energy: 30, minerals: 25, food: 10 }, production: { population: 2 } },
+                    'Research Lab': { count: 0, cost: { energy: 40, minerals: 30, water: 15 }, production: { research: 2 } },
+                    'Fusion Reactor': { count: 0, cost: { energy: 0, minerals: 100, research: 50 }, production: { energy: 25 }, requires: 'Advanced Energy' },
+                    'Quantum Computer': { count: 0, cost: { energy: 60, minerals: 80, research: 100 }, production: { research: 10 }, requires: 'Quantum Physics' },
+                    'Biodome': { count: 0, cost: { energy: 80, minerals: 60, water: 40, food: 20 }, production: { food: 20, population: 3 }, requires: 'Ecosystem Management' }
                 };
 
+                this.research = {
+                    'Advanced Energy': { cost: 25, completed: false, researching: false, progress: 0, unlocks: ['Fusion Reactor'] },
+                    'Quantum Physics': { cost: 75, completed: false, researching: false, progress: 0, unlocks: ['Quantum Computer'] },
+                    'Ecosystem Management': { cost: 50, completed: false, researching: false, progress: 0, unlocks: ['Biodome'] },
+                    'Space Mining': { cost: 40, completed: false, researching: false, progress: 0, effect: 'Double mineral production' },
+                    'Hydroponics Tech': { cost: 35, completed: false, researching: false, progress: 0, effect: 'Food production +50%' },
+                    'Population Growth': { cost: 60, completed: false, researching: false, progress: 0, effect: 'Population growth +100%' }
+                };
+
+                this.gameStats = {
+                    day: 1,
+                    happiness: 100,
+                    efficiency: 100,
+                    colonyLevel: 1,
+                    totalBuildings: 0
+                };
+
+                this.productionMultipliers = {
+                    energy: 1,
+                    minerals: 1,
+                    food: 1,
+                    water: 1,
+                    research: 1,
+                    population: 1
+                };
+
+                this.activeTab = 'buildings';
+                this.currentResearch = null;
+                
                 this.init();
             }
 
             init() {
-                this.createGrid();
-                this.bindEvents();
-                this.updateUI();
+                this.updateDisplay();
                 this.startGameLoop();
+                this.renderBuildings();
+                this.renderResearch();
             }
 
-            createGrid() {
-                const grid = document.getElementById('city-grid');
-                for (let i = 0; i < 96; i++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'grid-cell';
-                    cell.dataset.index = i;
-                    grid.appendChild(cell);
-                }
-            }
-
-            bindEvents() {
-                // Building selection
-                document.querySelectorAll('.building-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.building-btn').forEach(b => b.classList.remove('selected'));
-                        btn.classList.add('selected');
-                        this.gameState.selectedBuilding = btn.dataset.building;
-                    });
+            updateDisplay() {
+                // Update resources
+                const resourcesContainer = document.getElementById('resources-container');
+                resourcesContainer.innerHTML = '';
+                
+                Object.entries(this.resources).forEach(([resource, amount]) => {
+                    const resourceDiv = document.createElement('div');
+                    resourceDiv.className = 'resource';
+                    resourceDiv.innerHTML = `
+                        <div class="resource-name">${resource.charAt(0).toUpperCase() + resource.slice(1)}</div>
+                        <div class="resource-value">${Math.floor(amount)}</div>
+                    `;
+                    resourcesContainer.appendChild(resourceDiv);
                 });
 
-                // Grid cell clicks
-                document.querySelectorAll('.grid-cell').forEach(cell => {
-                    cell.addEventListener('click', (e) => {
-                        this.handleCellClick(parseInt(cell.dataset.index));
-                    });
-
-                    // Tooltip
-                    cell.addEventListener('mouseenter', (e) => {
-                        const index = parseInt(cell.dataset.index);
-                        if (this.gameState.buildings[index]) {
-                            this.showTooltip(e, this.gameState.buildings[index]);
-                        }
-                    });
-
-                    cell.addEventListener('mouseleave', () => {
-                        this.hideTooltip();
-                    });
-                });
-            }
-
-            handleCellClick(index) {
-                if (this.gameState.buildings[index]) {
-                    // Building already exists
-                    this.showNotification('Spot already occupied!');
-                    return;
-                }
-
-                if (!this.gameState.selectedBuilding) {
-                    this.showNotification('Select a building first!');
-                    return;
-                }
-
-                const buildingType = this.buildingTypes[this.gameState.selectedBuilding];
-                if (this.gameState.money < buildingType.cost) {
-                    this.showNotification('Not enough money!');
-                    return;
-                }
-
-                this.buildBuilding(index, this.gameState.selectedBuilding);
-            }
-
-            buildBuilding(index, type) {
-                const buildingType = this.buildingTypes[type];
+                // Update production rates
+                const productionContainer = document.getElementById('production-rates');
+                productionContainer.innerHTML = '';
                 
-                // Deduct cost
-                this.gameState.money -= buildingType.cost;
-                
-                // Add building to game state
-                this.gameState.buildings[index] = {
-                    type: type,
-                    ...buildingType
-                };
-
-                // Update population and other stats
-                if (buildingType.population) {
-                    this.gameState.population += buildingType.population;
-                }
-                if (buildingType.jobs) {
-                    this.gameState.maxJobs += buildingType.jobs;
-                    this.gameState.jobs = Math.min(this.gameState.jobs + buildingType.jobs, this.gameState.population);
-                }
-                if (buildingType.education) {
-                    this.gameState.education += buildingType.education;
-                }
-                if (buildingType.healthcare) {
-                    this.gameState.healthcare += buildingType.healthcare;
-                }
-
-                // Update visual
-                const cell = document.querySelector(`[data-index="${index}"]`);
-                cell.classList.add('occupied');
-                cell.innerHTML = `<div class="building ${type}">${buildingType.emoji}</div>`;
-
-                this.calculateHappiness();
-                this.updateUI();
-                this.showNotification(`${buildingType.emoji} Built successfully!`);
-            }
-
-            calculateHappiness() {
-                let happiness = 50; // Base happiness
-                
-                Object.values(this.gameState.buildings).forEach(building => {
-                    if (building.happiness) {
-                        happiness += building.happiness;
+                const productionRates = this.calculateProductionRates();
+                Object.entries(productionRates).forEach(([resource, rate]) => {
+                    if (rate !== 0) {
+                        const rateDiv = document.createElement('div');
+                        rateDiv.style.cssText = 'margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 8px;';
+                        rateDiv.innerHTML = `${resource}: <span style="color: ${rate > 0 ? '#4caf50' : '#f44336'};">${rate > 0 ? '+' : ''}${rate.toFixed(1)}/min</span>`;
+                        productionContainer.appendChild(rateDiv);
                     }
                 });
 
-                // Bonus for education and healthcare
-                happiness += Math.floor(this.gameState.education / 10);
-                happiness += Math.floor(this.gameState.healthcare / 15);
-
-                // Penalty for unemployment
-                const unemployment = this.gameState.population - this.gameState.jobs;
-                if (unemployment > 0) {
-                    happiness -= unemployment * 2;
-                }
-
-                this.gameState.happiness = Math.max(0, Math.min(100, happiness));
+                // Update colony stats
+                document.getElementById('population').textContent = Math.floor(this.resources.population);
+                document.getElementById('happiness').textContent = Math.floor(this.gameStats.happiness);
+                document.getElementById('efficiency').textContent = Math.floor(this.gameStats.efficiency);
+                document.getElementById('day-counter').textContent = this.gameStats.day;
+                document.getElementById('colony-level').textContent = this.gameStats.colonyLevel;
+                document.getElementById('total-buildings').textContent = this.gameStats.totalBuildings;
             }
 
-            collectTaxes() {
-                if (this.gameState.taxCooldown) {
-                    this.showNotification('Tax collection on cooldown!');
-                    return;
-                }
-
-                let totalIncome = 0;
-                Object.values(this.gameState.buildings).forEach(building => {
-                    if (building.income) {
-                        totalIncome += building.income;
+            calculateProductionRates() {
+                const rates = { energy: 0, minerals: 0, food: 0, water: 0, research: 0, population: 0 };
+                
+                Object.entries(this.buildings).forEach(([name, building]) => {
+                    if (building.count > 0 && building.production) {
+                        Object.entries(building.production).forEach(([resource, amount]) => {
+                            rates[resource] += amount * building.count * this.productionMultipliers[resource] * (this.gameStats.efficiency / 100);
+                        });
                     }
                 });
 
-                // Happiness multiplier
-                const happinessMultiplier = this.gameState.happiness / 100;
-                totalIncome = Math.floor(totalIncome * happinessMultiplier);
+                // Base consumption
+                rates.energy -= this.resources.population * 0.5;
+                rates.food -= this.resources.population * 0.3;
+                rates.water -= this.resources.population * 0.2;
 
-                this.gameState.money += totalIncome;
-                this.gameState.taxCooldown = true;
-                
-                setTimeout(() => {
-                    this.gameState.taxCooldown = false;
-                }, 10000);
-
-                this.updateUI();
-                this.showNotification(`Collected $${totalIncome} in taxes!`);
+                return rates;
             }
 
-            runCampaign() {
-                if (this.gameState.campaignCooldown) {
-                    this.showNotification('Campaign on cooldown!');
-                    return;
-                }
+            renderBuildings() {
+                const container = document.getElementById('buildings-container');
+                container.innerHTML = '';
 
-                if (this.gameState.money < 200) {
-                    this.showNotification('Need $200 for campaign!');
-                    return;
-                }
+                Object.entries(this.buildings).forEach(([name, building]) => {
+                    // Check if building is unlocked
+                    if (building.requires && !this.research[building.requires]?.completed) {
+                        return;
+                    }
 
-                this.gameState.money -= 200;
-                this.gameState.happiness = Math.min(100, this.gameState.happiness + 15);
-                this.gameState.campaignCooldown = true;
-
-                setTimeout(() => {
-                    this.gameState.campaignCooldown = false;
-                }, 15000);
-
-                this.updateUI();
-                this.showNotification('Happiness campaign successful! +15 happiness');
-            }
-
-            resetGame() {
-                if (confirm('Are you sure you want to reset the game?')) {
-                    this.gameState = {
-                        money: 1000,
-                        population: 0,
-                        happiness: 50,
-                        buildings: {},
-                        selectedBuilding: null,
-                        jobs: 0,
-                        maxJobs: 0,
-                        education: 0,
-                        healthcare: 0,
-                        taxCooldown: false,
-                        campaignCooldown: false
-                    };
-
-                    document.querySelectorAll('.grid-cell').forEach(cell => {
-                        cell.classList.remove('occupied');
-                        cell.innerHTML = '';
-                    });
-
-                    document.querySelectorAll('.building-btn').forEach(btn => {
-                        btn.classList.remove('selected');
-                    });
-
-                    this.updateUI();
-                    this.showNotification('Game reset!');
-                }
-            }
-
-            updateUI() {
-                document.getElementById('money').textContent = this.gameState.money;
-                document.getElementById('population').textContent = this.gameState.population;
-                document.getElementById('happiness').textContent = this.gameState.happiness;
-                document.getElementById('happiness-bar').style.width = this.gameState.happiness + '%';
-                document.getElementById('jobs').textContent = this.gameState.jobs;
-                document.getElementById('max-jobs').textContent = this.gameState.maxJobs;
-                document.getElementById('education').textContent = this.gameState.education;
-                document.getElementById('healthcare').textContent = this.gameState.healthcare;
-
-                // Update building buttons
-                document.querySelectorAll('.building-btn').forEach(btn => {
-                    const cost = parseInt(btn.dataset.cost);
-                    btn.disabled = this.gameState.money < cost;
+                    const buildingDiv = document.createElement('div');
+                    buildingDiv.className = 'building';
+                    
+                    const canAfford = this.canAffordBuilding(name);
+                    
+                    buildingDiv.innerHTML = `
+                        <h4>${name}</h4>
+                        <div class="building-count">${building.count}</div>
+                        <div class="building-cost">${this.formatCost(building.cost)}</div>
+                        <button class="btn ${canAfford ? '' : 'disabled'}" onclick="game.buildBuilding('${name}')" ${!canAfford ? 'disabled' : ''}>
+                            Build
+                        </button>
+                    `;
+                    
+                    container.appendChild(buildingDiv);
                 });
+            }
+
+            renderResearch() {
+                const container = document.getElementById('research-container');
+                container.innerHTML = '';
+
+                Object.entries(this.research).forEach(([name, tech]) => {
+                    const researchDiv = document.createElement('div');
+                    researchDiv.className = `research-item ${tech.completed ? 'completed' : ''} ${tech.researching ? 'researching' : ''}`;
+                    
+                    const canResearch = this.resources.research >= tech.cost && !tech.completed && !tech.researching && !this.currentResearch;
+                    
+                    researchDiv.innerHTML = `
+                        <h4>${name}</h4>
+                        <p>Cost: ${tech.cost} Research</p>
+                        ${tech.unlocks ? `<p style="color: #4caf50;">Unlocks: ${tech.unlocks.join(', ')}</p>` : ''}
+                        ${tech.effect ? `<p style="color: #ff9800;">Effect: ${tech.effect}</p>` : ''}
+                        ${tech.researching ? `<div class="progress-bar"><div class="progress-fill" style="width: ${(tech.progress / tech.cost) * 100}%"></div></div>` : ''}
+                        ${!tech.completed && !tech.researching ? `<button class="btn ${canResearch ? '' : 'disabled'}" onclick="game.startResearch('${name}')" ${!canResearch ? 'disabled' : ''}>Research</button>` : ''}
+                        ${tech.completed ? '<p style="color: #4caf50; font-weight: bold;">✓ Completed</p>' : ''}
+                    `;
+                    
+                    container.appendChild(researchDiv);
+                });
+            }
+
+            canAffordBuilding(name) {
+                const cost = this.buildings[name].cost;
+                return Object.entries(cost).every(([resource, amount]) => this.resources[resource] >= amount);
+            }
+
+            buildBuilding(name) {
+                if (!this.canAffordBuilding(name)) return;
+
+                const cost = this.buildings[name].cost;
+                Object.entries(cost).forEach(([resource, amount]) => {
+                    this.resources[resource] -= amount;
+                });
+
+                this.buildings[name].count++;
+                this.gameStats.totalBuildings++;
+                
+                this.showNotification(`Built ${name}!`);
+                this.updateDisplay();
+                this.renderBuildings();
+                this.updateColonyLevel();
+            }
+
+            startResearch(name) {
+                if (this.currentResearch || this.research[name].completed || this.resources.research < this.research[name].cost) return;
+
+                this.currentResearch = name;
+                this.research[name].researching = true;
+                this.resources.research -= this.research[name].cost;
+                
+                this.showNotification(`Started researching ${name}!`);
+                this.updateDisplay();
+                this.renderResearch();
+            }
+
+            formatCost(cost) {
+                return Object.entries(cost).map(([resource, amount]) => `${amount} ${resource}`).join(', ');
+            }
+
+            updateColonyLevel() {
+                const newLevel = Math.floor(this.gameStats.totalBuildings / 5) + 1;
+                if (newLevel > this.gameStats.colonyLevel) {
+                    this.gameStats.colonyLevel = newLevel;
+                    this.showNotification(`Colony Level Up! Now level ${newLevel}`);
+                }
+            }
+
+            updateGameStats() {
+                // Update happiness based on resources and population ratio
+                const foodRatio = this.resources.food / Math.max(this.resources.population, 1);
+                const waterRatio = this.resources.water / Math.max(this.resources.population, 1);
+                
+                this.gameStats.happiness = Math.max(20, Math.min(100, 
+                    50 + (foodRatio * 10) + (waterRatio * 15) + (this.resources.energy > 0 ? 25 : -25)
+                ));
+
+                // Update efficiency based on happiness and energy
+                this.gameStats.efficiency = Math.max(25, Math.min(150, 
+                    this.gameStats.happiness + (this.resources.energy > 0 ? 0 : -50)
+                ));
+            }
+
+            applyResearchEffects() {
+                this.productionMultipliers = { energy: 1, minerals: 1, food: 1, water: 1, research: 1, population: 1 };
+
+                if (this.research['Space Mining'].completed) {
+                    this.productionMultipliers.minerals = 2;
+                }
+                if (this.research['Hydroponics Tech'].completed) {
+                    this.productionMultipliers.food = 1.5;
+                }
+                if (this.research['Population Growth'].completed) {
+                    this.productionMultipliers.population = 2;
+                }
+            }
+
+            gameLoop() {
+                // Apply production
+                const rates = this.calculateProductionRates();
+                Object.entries(rates).forEach(([resource, rate]) => {
+                    if (resource === 'population') {
+                        // Population grows more slowly
+                        this.resources[resource] += rate / 60; // Per minute to per second, then slower
+                    } else {
+                        this.resources[resource] += rate / 6; // Convert per minute to per 10 seconds
+                    }
+                });
+
+                // Ensure resources don't go negative (except energy which can)
+                Object.keys(this.resources).forEach(resource => {
+                    if (resource !== 'energy' && this.resources[resource] < 0) {
+                        this.resources[resource] = 0;
+                    }
+                });
+
+                // Update research progress
+                if (this.currentResearch) {
+                    const tech = this.research[this.currentResearch];
+                    tech.progress += rates.research / 6; // Research progress
+                    
+                    if (tech.progress >= tech.cost) {
+                        tech.completed = true;
+                        tech.researching = false;
+                        tech.progress = tech.cost;
+                        this.currentResearch = null;
+                        this.showNotification(`Research completed: ${this.currentResearch || 'Unknown'}!`);
+                        this.applyResearchEffects();
+                        this.renderBuildings();
+                    }
+                }
+
+                // Update day counter every 60 seconds of real time
+                this.gameStats.day += 1/360; // Rough day progression
+
+                this.updateGameStats();
+                this.updateDisplay();
+                this.renderResearch();
+            }
+
+            startGameLoop() {
+                setInterval(() => this.gameLoop(), 1000); // Every second
             }
 
             showNotification(message) {
@@ -649,74 +749,20 @@
                     notification.classList.remove('show');
                 }, 3000);
             }
-
-            showTooltip(e, building) {
-                const tooltip = document.getElementById('tooltip');
-                tooltip.textContent = building.description || `${building.emoji} ${building.type}`;
-                tooltip.style.left = e.pageX + 10 + 'px';
-                tooltip.style.top = e.pageY + 10 + 'px';
-                tooltip.classList.add('show');
-            }
-
-            hideTooltip() {
-                document.getElementById('tooltip').classList.remove('show');
-            }
-
-            startGameLoop() {
-                setInterval(() => {
-                    // Passive income from happiness
-                    if (this.gameState.happiness > 70) {
-                        this.gameState.money += Math.floor(this.gameState.population / 10);
-                    }
-
-                    // Random events
-                    if (Math.random() < 0.01) {
-                        this.triggerRandomEvent();
-                    }
-
-                    this.updateUI();
-                }, 5000);
-            }
-
-            triggerRandomEvent() {
-                const events = [
-                    { message: '🎉 Festival in town! +10 happiness', happiness: 10 },
-                    { message: '💰 Business boom! +$500', money: 500 },
-                    { message: '🌧️ Bad weather... -5 happiness', happiness: -5 },
-                    { message: '👨‍💼 New residents moving in!', population: 2 }
-                ];
-
-                const event = events[Math.floor(Math.random() * events.length)];
-                
-                if (event.happiness) {
-                    this.gameState.happiness = Math.max(0, Math.min(100, this.gameState.happiness + event.happiness));
-                }
-                if (event.money) {
-                    this.gameState.money += event.money;
-                }
-                if (event.population) {
-                    this.gameState.population += event.population;
-                }
-
-                this.showNotification(event.message);
-            }
         }
 
-        // Global functions for buttons
-        function collectTaxes() {
-            game.collectTaxes();
+        function switchTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
         }
 
-        function runCampaign() {
-            game.runCampaign();
-        }
-
-        function resetGame() {
-            game.resetGame();
-        }
-
-        // Initialize game
-        const game = new CityBuilder();
+        // Initialize the game
+        const game = new StellarColony();
     </script>
 </body>
 </html>
