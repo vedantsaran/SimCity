@@ -576,7 +576,9 @@
 
       canAffordBuilding(name) {
         const cost = this.buildings[name].cost;
-        return Object.entries(cost).every(([resource, amount]) => this.resources[resource] >= amount);
+        return Object.entries(cost).every(
+          ([resource, amount]) => Math.floor(this.resources[resource]) >= amount
+        );
       }
 
       buildBuilding(name) {
