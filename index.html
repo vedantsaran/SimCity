@@ -780,7 +780,8 @@
                     renderPreview();
                     checkAndClearLines();
 
-                    if (checkGameOverForRemaining()) {
+                    // Only check remaining if placements left
+                    if (placedCount < 3 && checkGameOverForRemaining()) {
                         endGame();
                         return;
                     }
@@ -927,7 +928,8 @@
                     renderPreview();
                     checkAndClearLines();
 
-                    if (checkGameOverForRemaining()) {
+                    // Only check remaining if placements left
+                    if (placedCount < 3 && checkGameOverForRemaining()) {
                         endGame();
                         return;
                     }
