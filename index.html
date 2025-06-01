@@ -4,136 +4,216 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Scale Clone - Browser Edition</title>
+  <title>Scale Clone - Browser Game</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: #111;
+      background: linear-gradient(135deg, #0c0c0c, #1a1a2e);
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      font-family: 'Arial', sans-serif;
     }
     #gameCanvas {
-      background: #222;
-      border: 2px solid #444;
+      background: #000;
+      border: 3px solid #333;
+      border-radius: 8px;
       display: block;
-      touch-action: none; /* prevent default touch scrolling */
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      touch-action: none;
+    }
+    .game-over, .level-complete {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      border: 2px solid #0ff;
+      display: none;
+      z-index: 10;
+    }
+    .game-over h2, .level-complete h2 {
+      margin: 0 0 15px 0;
+      color: #ff6b6b;
+    }
+    .level-complete h2 {
+      color: #51cf66;
+    }
+    button {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <div id="gameOver" class="game-over">
+    <h2>Game Over!</h2>
+    <p>Final Level: <span id="finalLevel"></span></p>
+    <button onclick="restartGame()">Restart Game</button>
+  </div>
+  <div id="levelComplete" class="level-complete">
+    <h2>Level Complete!</h2>
+    <p>Preparing next level...</p>
+  </div>
 
-  <!-- Clipper.js via CDN for polygon clipping -->
-  <script src="https://unpkg.com/js-clipper@6.4.2/clipper.js"></script>
   <script>
-    // ==== GLOBAL GAME STATE ====
+    // -------------------------------------------------------------------
+    // ClipperLib: Minimalistic polygon-clipping stub (difference only)
+    // -------------------------------------------------------------------
+    const ClipperLib = {
+      PolyType: { ptSubject: 0, ptClip: 1 },
+      ClipType: { ctDifference: 3 },
+      PolyFillType: { pftNonZero: 1 },
+      Clipper: function() {
+        this.subjPaths = [];
+        this.clipPaths = [];
+        this.AddPaths = function(paths, polyType, closed) {
+          if (polyType === ClipperLib.PolyType.ptSubject) {
+            this.subjPaths = paths;
+          } else {
+            this.clipPaths = paths;
+          }
+        };
+        this.Execute = function(clipType, solution) {
+          if (clipType === ClipperLib.ClipType.ctDifference) {
+            const result = this.performDifference(this.subjPaths[0], this.clipPaths[0]);
+            solution.length = 0;
+            if (result.length > 0) {
+              for (let poly of result) {
+                solution.push(poly);
+              }
+            }
+          }
+          return true;
+        };
+        this.performDifference = function(subject, clip) {
+          const intersections = this.findIntersections(subject, clip);
+          if (intersections.length === 0) return [subject];
+          return this.splitPolygonByLine(subject, clip);
+        };
+        this.getEdges = function(poly) {
+          const edges = [];
+          for (let i = 0; i < poly.length; i++) {
+            edges.push({ a: poly[i], b: poly[(i + 1) % poly.length] });
+          }
+          return edges;
+        };
+        this.lineIntersection = function(p1, p2, p3, p4) {
+          const denom = (p1.X - p2.X)*(p3.Y - p4.Y) - (p1.Y - p2.Y)*(p3.X - p4.X);
+          if (Math.abs(denom) < 1e-10) return null;
+          const t = ((p1.X - p3.X)*(p3.Y - p4.Y) - (p1.Y - p3.Y)*(p3.X - p4.X)) / denom;
+          const u = -((p1.X - p2.X)*(p1.Y - p3.Y) - (p1.Y - p2.Y)*(p1.X - p3.X)) / denom;
+          if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+            return { X: Math.round(p1.X + t*(p2.X - p1.X)), Y: Math.round(p1.Y + t*(p2.Y - p1.Y)) };
+          }
+          return null;
+        };
+        this.findIntersections = function(poly, rect) {
+          const inters = [];
+          const rectEdges = this.getEdges(rect);
+          for (let i = 0; i < poly.length; i++) {
+            const edge1 = { a: poly[i], b: poly[(i + 1) % poly.length] };
+            for (let edge2 of rectEdges) {
+              const ip = this.lineIntersection(edge1.a, edge1.b, edge2.a, edge2.b);
+              if (ip) inters.push(ip);
+            }
+          }
+          return inters;
+        };
+        this.splitPolygonByLine = function(poly, cutRect) {
+          // Simplified splitting: separate vertices by distance sign
+          const lineA = cutRect[0], lineC = cutRect[2];
+          const side1 = [], side2 = [];
+          for (let v of poly) {
+            const d = this.pointToLineDistance(v, lineA, lineC);
+            if (d > 0) side1.push(v);
+            else side2.push(v);
+          }
+          const result = [];
+          if (side1.length >= 3) result.push(side1);
+          if (side2.length >= 3) result.push(side2);
+          return result.length ? result : [poly];
+        };
+        this.pointToLineDistance = function(pt, ls, le) {
+          const A = le.Y - ls.Y, B = ls.X - le.X, C = le.X*ls.Y - ls.X*le.Y;
+          return A*pt.X + B*pt.Y + C;
+        };
+      },
+      Paths: function() { return []; }
+    };
+
+    // -------------------------------------------------------------------
+    // Global Game Variables & State
+    // -------------------------------------------------------------------
+    let canvas, ctx;
+    let lastTimestamp = 0;
+    let gameState = 'playing'; // 'playing', 'gameOver', 'levelComplete', 'scaling'
+
     const GAME = {
       width: 800,
       height: 600,
-      canvas: null,
-      ctx: null,
-      lastTimestamp: 0,
-      playfield: [],        // current polygon (array of {x,y})
-      balls: [],            // array of {x,y,vx,vy,radius}
-      slice: null,          // {start:{x,y}, end:{x,y}}
-      isCutting: false,
-      isAnimating: false,
+      playfield: null,
+      balls: [],
+      slice: null,
       level: 0,
       lives: 3,
-      targetPercent: 70,    // percentage to cut this level
-      initialArea: 1,
-      remainingArea: 1,
+      targetPercent: 70,
+      remainingArea: 1.0,
+      initialArea: 0,
+      isCutting: false,
+      animationData: null
     };
 
-    // ==== UTILITY FUNCTIONS ====
-    function polygonArea(poly) {
-      let area = 0;
-      for (let i = 0; i < poly.length; i++) {
-        const a = poly[i];
-        const b = poly[(i + 1) % poly.length];
-        area += a.x * b.y - b.x * a.y;
-      }
-      return Math.abs(area) / 2;
-    }
-
-    function toClipper(subjectPolygons) {
-      // convert [[{x,y},...],...] → [[{X,Y},...],...], scaled by 1000
-      return subjectPolygons.map(poly =>
+    // -------------------------------------------------------------------
+    // Utility & Geometry Functions
+    // -------------------------------------------------------------------
+    function toClipper(polygons) {
+      return polygons.map(poly =>
         poly.map(pt => ({ X: Math.round(pt.x * 1000), Y: Math.round(pt.y * 1000) }))
       );
     }
 
     function fromClipper(clipperPolygons) {
-      // convert [[{X,Y},...],...] → [[{x,y},...],...]
       return clipperPolygons.map(poly =>
         poly.map(pt => ({ x: pt.X / 1000, y: pt.Y / 1000 }))
       );
+    }
+
+    function polygonArea(poly) {
+      let area = 0;
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i], b = poly[(i + 1) % poly.length];
+        area += a.x * b.y - b.x * a.y;
+      }
+      return Math.abs(area) / 2;
     }
 
     function keepLargest(polygons) {
       let maxArea = -Infinity, idx = 0;
       for (let i = 0; i < polygons.length; i++) {
         const a = polygonArea(polygons[i]);
-        if (a > maxArea) {
-          maxArea = a;
-          idx = i;
-        }
+        if (a > maxArea) { maxArea = a; idx = i; }
       }
       return polygons[idx];
-    }
-
-    function getEdges(polygon) {
-      const edges = [];
-      for (let i = 0; i < polygon.length; i++) {
-        const a = polygon[i];
-        const b = polygon[(i + 1) % polygon.length];
-        edges.push({ a, b });
-      }
-      return edges;
-    }
-
-    function reflectBall(ball, edge) {
-      const { a, b } = edge;
-      const ex = b.x - a.x;
-      const ey = b.y - a.y;
-      const len = Math.hypot(ex, ey);
-      if (len === 0) return;
-      const ux = ex / len;
-      const uy = ey / len;
-      const nx = -uy, ny = ux;
-      const dot = ball.vx * nx + ball.vy * ny;
-      ball.vx = ball.vx - 2 * dot * nx;
-      ball.vy = ball.vy - 2 * dot * ny;
-    }
-
-    function circleSegmentCollision(ball, edge) {
-      const { a, b } = edge;
-      const vx = b.x - a.x, vy = b.y - a.y;
-      const wx = ball.x - a.x, wy = ball.y - a.y;
-      const proj = (wx * vx + wy * vy) / (vx * vx + vy * vy);
-      const t = Math.max(0, Math.min(1, proj));
-      const closestX = a.x + t * vx, closestY = a.y + t * vy;
-      const dx = ball.x - closestX, dy = ball.y - closestY;
-      return (dx * dx + dy * dy) <= ball.radius * ball.radius;
-    }
-
-    function reflectBallIfEdgeCollision(ball, polygon) {
-      const edges = getEdges(polygon);
-      for (const edge of edges) {
-        if (circleSegmentCollision(ball, edge)) {
-          reflectBall(ball, edge);
-          // move ball slightly out along new velocity direction
-          const norm = Math.hypot(ball.vx, ball.vy);
-          if (norm > 0) {
-            ball.x += (ball.vx / norm) * ball.radius * 0.1;
-            ball.y += (ball.vy / norm) * ball.radius * 0.1;
-          }
-        }
-      }
     }
 
     function pointInPolygon(pt, poly) {
@@ -148,13 +228,8 @@
       return inside;
     }
 
-    function onSegment(p, q, r) {
-      return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
-             q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
-    }
-
     function orient(a, b, c) {
-      return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+      return (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x);
     }
 
     function segmentsIntersect(p1, p2, p3, p4) {
@@ -162,12 +237,6 @@
       const o2 = orient(p1, p2, p4);
       const o3 = orient(p3, p4, p1);
       const o4 = orient(p3, p4, p2);
-
-      if (o1 === 0 && onSegment(p1, p3, p2)) return true;
-      if (o2 === 0 && onSegment(p1, p4, p2)) return true;
-      if (o3 === 0 && onSegment(p3, p1, p4)) return true;
-      if (o4 === 0 && onSegment(p3, p2, p4)) return true;
-
       if ((o1 > 0 && o2 < 0 || o1 < 0 && o2 > 0) &&
           (o3 > 0 && o4 < 0 || o3 < 0 && o4 > 0)) {
         return true;
@@ -178,33 +247,117 @@
     function lineIntersectsPolygon(a, b, poly) {
       if (pointInPolygon(a, poly) || pointInPolygon(b, poly)) return true;
       for (let i = 0; i < poly.length; i++) {
-        const c = poly[i];
-        const d = poly[(i + 1) % poly.length];
+        const c = poly[i], d = poly[(i + 1) % poly.length];
         if (segmentsIntersect(a, b, c, d)) return true;
       }
       return false;
     }
 
-    function getCanvasCoords(evt) {
-      const rect = GAME.canvas.getBoundingClientRect();
-      const scaleX = GAME.canvas.width / rect.width;
-      const scaleY = GAME.canvas.height / rect.height;
-      let clientX, clientY;
-      if (evt.touches && evt.touches.length > 0) {
-        clientX = evt.touches[0].clientX;
-        clientY = evt.touches[0].clientY;
-      } else {
-        clientX = evt.clientX;
-        clientY = evt.clientY;
-      }
-      const x = (clientX - rect.left) * scaleX;
-      const y = (clientY - rect.top) * scaleY;
-      return { x, y };
+    function circleSegmentCollision(ball, edge) {
+      const { a, b } = edge;
+      const vx = b.x - a.x, vy = b.y - a.y;
+      const wx = ball.x - a.x, wy = ball.y - a.y;
+      const dot = wx * vx + wy * vy, len = vx * vx + vy * vy;
+      const proj = Math.max(0, Math.min(1, dot / len));
+      const closestX = a.x + proj * vx, closestY = a.y + proj * vy;
+      const dx = ball.x - closestX, dy = ball.y - closestY;
+      return (dx*dx + dy*dy) <= ball.radius * ball.radius;
     }
 
-    // ==== POLYGON CLIPPING ====
+    function reflectBall(ball, edge) {
+      const { a, b } = edge;
+      const ex = b.x - a.x, ey = b.y - a.y;
+      const len = Math.hypot(ex, ey);
+      if (len === 0) return;
+      const ux = ex / len, uy = ey / len;
+      const nx = -uy, ny = ux;
+      const dot = ball.vx * nx + ball.vy * ny;
+      ball.vx = ball.vx - 2 * dot * nx;
+      ball.vy = ball.vy - 2 * dot * ny;
+      // Nudge out to avoid sticking
+      ball.x += nx * 2;
+      ball.y += ny * 2;
+    }
+
+    function getEdges(polygon) {
+      const edges = [];
+      for (let i = 0; i < polygon.length; i++) {
+        edges.push({ a: polygon[i], b: polygon[(i + 1) % polygon.length] });
+      }
+      return edges;
+    }
+
+    // Generate a random convex‐like polygon for the playfield
+    function generateRandomPolygon() {
+      const centerX = GAME.width / 2;
+      const centerY = GAME.height / 2;
+      const maxRadius = Math.min(GAME.width, GAME.height) / 2 - 60;
+      const vertexCount = 6 + Math.min(GAME.level, 4); // up to 10 vertices
+      const angles = [];
+      for (let i = 0; i < vertexCount; i++) {
+        // even spacing + small random jitter
+        const baseAngle = (Math.PI * 2 / vertexCount) * i;
+        const jitter = (Math.random() - 0.5) * (Math.PI / vertexCount) * 0.4;
+        angles.push(baseAngle + jitter);
+      }
+      angles.sort((a, b) => a - b);
+      const poly = [];
+      for (let ang of angles) {
+        const radialFactor = 0.7 + 0.3 * Math.random();
+        const r = maxRadius * radialFactor;
+        const x = centerX + Math.cos(ang) * r;
+        const y = centerY + Math.sin(ang) * r;
+        poly.push({ x, y });
+      }
+      return poly;
+    }
+
+    // -------------------------------------------------------------------
+    // Core Game Logic: Setup, Update, Rendering, Input, Level Progression
+    // -------------------------------------------------------------------
+    function setupLevel(levelIndex) {
+      GAME.level = levelIndex;
+      GAME.playfield = generateRandomPolygon();
+      GAME.initialArea = polygonArea(GAME.playfield);
+      GAME.remainingArea = 1.0;
+      GAME.targetPercent = Math.min(90, 70 + levelIndex * 2);
+      GAME.balls = [];
+      // Generate balls
+      const ballCount = Math.min(5, 1 + Math.floor(levelIndex / 2));
+      for (let i = 0; i < ballCount; i++) {
+        const radius = 8 + Math.random() * 4;
+        // Place inside canvas, but near center
+        const margin = 80;
+        const x = margin + Math.random() * (GAME.width - 2 * margin);
+        const y = margin + Math.random() * (GAME.height - 2 * margin);
+        const speed = 80 + levelIndex * 15 + Math.random() * 40;
+        const angle = Math.random() * Math.PI * 2;
+        GAME.balls.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius,
+          color: `hsl(${Math.random() * 360}, 70%, 60%)`
+        });
+      }
+    }
+
+    function updateBalls(delta) {
+      for (let ball of GAME.balls) {
+        ball.x += ball.vx * delta;
+        ball.y += ball.vy * delta;
+        const edges = getEdges(GAME.playfield);
+        for (let edge of edges) {
+          if (circleSegmentCollision(ball, edge)) {
+            reflectBall(ball, edge);
+            break;
+          }
+        }
+      }
+    }
+
     function cutPolygon(playfield, sliceLine) {
-      const thickness = 2; // px
+      const thickness = 3;
       const dx = sliceLine[1].x - sliceLine[0].x;
       const dy = sliceLine[1].y - sliceLine[0].y;
       const len = Math.hypot(dx, dy);
@@ -223,171 +376,148 @@
       cpr.AddPaths(subj, ClipperLib.PolyType.ptSubject, true);
       cpr.AddPaths(clip, ClipperLib.PolyType.ptClip, true);
       const solution = new ClipperLib.Paths();
-      cpr.Execute(
-        ClipperLib.ClipType.ctDifference,
-        solution,
-        ClipperLib.PolyFillType.pftNonZero,
-        ClipperLib.PolyFillType.pftNonZero
-      );
+      cpr.Execute(ClipperLib.ClipType.ctDifference, solution);
       if (solution.length === 0) return [];
       return fromClipper(solution);
     }
 
-    // ==== LEVEL MANAGEMENT ====
-    function setupLevel(i) {
-      GAME.level = i;
-      GAME.lives = 3;
-      GAME.playfield = [
-        { x: 0, y: 0 },
-        { x: GAME.width, y: 0 },
-        { x: GAME.width, y: GAME.height },
-        { x: 0, y: GAME.height }
-      ];
-      GAME.initialArea = polygonArea(GAME.playfield);
-      GAME.remainingArea = 1;
-      GAME.targetPercent = Math.min(90, 70 + i * 2);
-
-      // Initialize balls
-      GAME.balls = [];
-      const ballCount = 1 + Math.floor(i / 2);
-      for (let b = 0; b < ballCount; b++) {
-        const radius = 10;
-        const x = radius + Math.random() * (GAME.width - 2 * radius);
-        const y = radius + Math.random() * (GAME.height - 2 * radius);
-        const speed = 100 + i * 10;
-        const angle = Math.random() * Math.PI * 2;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        GAME.balls.push({ x, y, vx, vy, radius });
-      }
-    }
-
-    function nextLevel() {
-      GAME.isAnimating = false;
-      setupLevel(GAME.level + 1);
-      // Reset lastTimestamp for smooth animation
-      GAME.lastTimestamp = performance.now();
-    }
-
-    function gameOver() {
-      alert("Game Over! Restarting from Level 1.");
-      setupLevel(0);
-      GAME.lastTimestamp = performance.now();
-    }
-
-    function loseLife() {
-      GAME.lives--;
-      if (GAME.lives <= 0) {
-        GAME.isCutting = false;
-        GAME.slice = null;
-        gameOver();
+    function attemptSlice(start, end) {
+      if (!lineIntersectsPolygon(start, end, GAME.playfield)) return;
+      const resultPolys = cutPolygon(GAME.playfield, [start, end]);
+      if (resultPolys.length === 0) return;
+      const newPlay = keepLargest(resultPolys);
+      const newArea = polygonArea(newPlay);
+      GAME.remainingArea = newArea / GAME.initialArea;
+      GAME.playfield = newPlay;
+      const cutPct = (1 - GAME.remainingArea) * 100;
+      if (cutPct >= GAME.targetPercent) {
+        onLevelComplete();
       }
     }
 
     function onLevelComplete() {
-      GAME.isAnimating = true;
+      gameState = 'scaling';
+      document.getElementById('levelComplete').style.display = 'block';
       const pf = GAME.playfield;
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const p of pf) {
+      for (let p of pf) {
         minX = Math.min(minX, p.x);
         maxX = Math.max(maxX, p.x);
         minY = Math.min(minY, p.y);
         maxY = Math.max(maxY, p.y);
       }
       const boxW = maxX - minX, boxH = maxY - minY;
-      const scaleX = GAME.width / boxW;
-      const scaleY = GAME.height / boxH;
+      const scaleX = (GAME.width - 100) / boxW;
+      const scaleY = (GAME.height - 100) / boxH;
       const finalScale = Math.min(scaleX, scaleY);
-      const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
+      const centerX = (minX + maxX) / 2, centerY = (minY + maxY) / 2;
       const tx = GAME.width / 2 - centerX * finalScale;
       const ty = GAME.height / 2 - centerY * finalScale;
-
-      const duration = 0.5; // seconds
-      let startTime = null;
-
-      function scaleAnimationStep(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const t = (timestamp - startTime) / 1000;
-        const elapsed = Math.min(duration, t);
-        const frac = elapsed / duration;
-
-        const curScale = 1 + (finalScale - 1) * frac;
-        const curTx = tx * frac;
-        const curTy = ty * frac;
-
-        GAME.ctx.clearRect(0, 0, GAME.width, GAME.height);
-        GAME.ctx.save();
-        GAME.ctx.setTransform(curScale, 0, 0, curScale, curTx, curTy);
-
-        // Draw scaled playfield
-        GAME.ctx.fillStyle = "#222";
-        GAME.ctx.strokeStyle = "#888";
-        GAME.ctx.lineWidth = 2 / curScale;
-        GAME.ctx.beginPath();
-        GAME.ctx.moveTo(pf[0].x, pf[0].y);
-        for (let i = 1; i < pf.length; i++) {
-          GAME.ctx.lineTo(pf[i].x, pf[i].y);
-        }
-        GAME.ctx.closePath();
-        GAME.ctx.fill();
-        GAME.ctx.stroke();
-
-        // Draw balls inside (scaled)
-        for (const ball of GAME.balls) {
-          GAME.ctx.beginPath();
-          GAME.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-          GAME.ctx.fillStyle = "#f06";
-          GAME.ctx.fill();
-          GAME.ctx.strokeStyle = "#fff";
-          GAME.ctx.lineWidth = 1 / curScale;
-          GAME.ctx.stroke();
-        }
-
-        GAME.ctx.restore();
-
-        if (elapsed < duration) {
-          requestAnimationFrame(scaleAnimationStep);
-        } else {
-          nextLevel();
-        }
-      }
-
-      requestAnimationFrame(scaleAnimationStep);
+      GAME.animationData = {
+        startTime: null,
+        duration: 1.0,
+        startScale: 1,
+        finalScale: finalScale,
+        startTx: 0,
+        startTy: 0,
+        tx,
+        ty
+      };
+      // Wait 2 seconds to show the overlay, then advance
+      setTimeout(() => {
+        document.getElementById('levelComplete').style.display = 'none';
+        setupLevel(GAME.level + 1);
+        gameState = 'playing';
+        GAME.animationData = null;
+      }, 2000);
     }
 
-    // ==== GAME LOOP ====
-    function update(delta) {
-      if (GAME.isAnimating) return;
-
-      // Move and bounce balls
-      for (const ball of GAME.balls) {
-        ball.x += ball.vx * delta;
-        ball.y += ball.vy * delta;
-        reflectBallIfEdgeCollision(ball, GAME.playfield);
-      }
-
-      // If slicing, check for ball-slice collisions
-      if (GAME.isCutting && GAME.slice) {
-        for (const ball of GAME.balls) {
-          if (circleSegmentCollision(ball, { a: GAME.slice.start, b: GAME.slice.end })) {
-            loseLife();
-            GAME.isCutting = false;
-            GAME.slice = null;
-            break;
-          }
-        }
+    function loseLife() {
+      GAME.lives--;
+      if (GAME.lives <= 0) {
+        gameState = 'gameOver';
+        document.getElementById('finalLevel').textContent = GAME.level + 1;
+        document.getElementById('gameOver').style.display = 'block';
       }
     }
 
+    function restartGame() {
+      GAME.lives = 3;
+      gameState = 'playing';
+      document.getElementById('gameOver').style.display = 'none';
+      setupLevel(0);
+    }
+
+    // -------------------------------------------------------------------
+    // Input Handling
+    // -------------------------------------------------------------------
+    function getCanvasCoords(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let clientX, clientY;
+      if (evt.touches && evt.touches.length) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+      } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+      }
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function onPointerDown(evt) {
+      if (gameState !== 'playing') return;
+      const { x, y } = getCanvasCoords(evt);
+      GAME.isCutting = true;
+      GAME.slice = { start: { x, y }, end: { x, y } };
+      evt.preventDefault();
+    }
+
+    function onPointerMove(evt) {
+      if (!GAME.isCutting || gameState !== 'playing') return;
+      const { x, y } = getCanvasCoords(evt);
+      GAME.slice.end.x = x;
+      GAME.slice.end.y = y;
+      evt.preventDefault();
+    }
+
+    function onPointerUp(evt) {
+      if (!GAME.isCutting || gameState !== 'playing') return;
+      const { x, y } = getCanvasCoords(evt);
+      GAME.slice.end.x = x;
+      GAME.slice.end.y = y;
+      GAME.isCutting = false;
+      attemptSlice(GAME.slice.start, GAME.slice.end);
+      GAME.slice = null;
+      evt.preventDefault();
+    }
+
+    // -------------------------------------------------------------------
+    // Rendering
+    // -------------------------------------------------------------------
     function render() {
-      if (GAME.isAnimating) return;
-      const ctx = GAME.ctx;
       ctx.clearRect(0, 0, GAME.width, GAME.height);
 
-      // Draw playfield
-      ctx.fillStyle = "#222";
-      ctx.strokeStyle = "#888";
+      // Starfield background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      for (let i = 0; i < 50; i++) {
+        const x = (Date.now() * 0.01 + i * 127) % GAME.width;
+        const y = (Date.now() * 0.007 + i * 433) % GAME.height;
+        ctx.fillRect(x, y, 1, 1);
+      }
+
+      if (gameState === 'scaling' && GAME.animationData) {
+        renderScalingAnimation();
+        return;
+      }
+
+      // Draw playfield polygon
+      ctx.fillStyle = 'rgba(0, 50, 100, 0.3)';
+      ctx.strokeStyle = '#00ffff';
       ctx.lineWidth = 2;
       ctx.beginPath();
       const pf = GAME.playfield;
@@ -399,117 +529,193 @@
       ctx.fill();
       ctx.stroke();
 
-      // Draw balls
-      for (const ball of GAME.balls) {
+      // Draw balls with glow
+      for (let ball of GAME.balls) {
+        ctx.save();
+        ctx.shadowColor = ball.color;
+        ctx.shadowBlur = 15;
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#f06";
+        ctx.fillStyle = ball.color;
         ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.restore();
       }
 
-      // Draw slice line if active
+      // Draw active slice
       if (GAME.isCutting && GAME.slice) {
-        ctx.strokeStyle = "#0f0";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ff0080';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#ff0080';
+        ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.moveTo(GAME.slice.start.x, GAME.slice.start.y);
         ctx.lineTo(GAME.slice.end.x, GAME.slice.end.y);
         ctx.stroke();
+        ctx.shadowBlur = 0;
       }
 
       drawUI();
     }
 
-    function loop(timestamp) {
-      if (!GAME.lastTimestamp) GAME.lastTimestamp = timestamp;
-      const delta = (timestamp - GAME.lastTimestamp) / 1000;
-      GAME.lastTimestamp = timestamp;
+    function renderScalingAnimation() {
+      const anim = GAME.animationData;
+      const now = performance.now();
+      if (!anim.startTime) anim.startTime = now;
+      const t = (now - anim.startTime) / 1000;
+      const frac = Math.min(1, t / anim.duration);
+      const eased = 1 - Math.pow(1 - frac, 3);
 
+      const curScale = anim.startScale + (anim.finalScale - anim.startScale) * eased;
+      const curTx = anim.startTx + (anim.tx - anim.startTx) * eased;
+      const curTy = anim.startTy + (anim.ty - anim.startTy) * eased;
+
+      ctx.save();
+      ctx.setTransform(curScale, 0, 0, curScale, curTx, curTy);
+
+      // Playfield scaled
+      ctx.fillStyle = `rgba(0, 255, 255, ${0.2 + 0.3 * frac})`;
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 3 / curScale;
+      ctx.beginPath();
+      const pf = GAME.playfield;
+      ctx.moveTo(pf[0].x, pf[0].y);
+      for (let i = 1; i < pf.length; i++) {
+        ctx.lineTo(pf[i].x, pf[i].y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Balls scaled
+      for (let ball of GAME.balls) {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = ball.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2 / curScale;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawUI() {
+      ctx.font = 'bold 20px Arial';
+      ctx.fillStyle = '#00ffff';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+
+      // Lives
+      const livesText = `Lives: ${GAME.lives}`;
+      ctx.strokeText(livesText, 20, 35);
+      ctx.fillText(livesText, 20, 35);
+
+      // Level
+      const levelText = `Level: ${GAME.level + 1}`;
+      ctx.strokeText(levelText, 20, 65);
+      ctx.fillText(levelText, 20, 65);
+
+      // Percentage
+      const pct = Math.round((1 - GAME.remainingArea) * 100);
+      const pctText = `${pct}% / ${GAME.targetPercent}%`;
+      const pctWidth = ctx.measureText(pctText).width;
+      ctx.strokeText(pctText, GAME.width - pctWidth - 20, 35);
+      ctx.fillText(pctText, GAME.width - pctWidth - 20, 35);
+
+      // Progress bar
+      const barWidth = 200, barHeight = 20;
+      const barX = GAME.width - barWidth - 20, barY = 45;
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(barX, barY, barWidth, barHeight);
+      const progressWidth = (pct / GAME.targetPercent) * barWidth;
+      const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+      gradient.addColorStop(0, '#ff6b6b');
+      gradient.addColorStop(0.5, '#feca57');
+      gradient.addColorStop(1, '#48dbfb');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(barX, barY, Math.min(progressWidth, barWidth), barHeight);
+    }
+
+    // -------------------------------------------------------------------
+    // Main Loop
+    // -------------------------------------------------------------------
+    function update(delta) {
+      if (gameState !== 'playing') return;
+      updateBalls(delta);
+      // Check ball-slice collision
+      if (GAME.isCutting && GAME.slice) {
+        for (let ball of GAME.balls) {
+          if (circleSegmentCollision(ball, { a: GAME.slice.start, b: GAME.slice.end })) {
+            loseLife();
+            GAME.isCutting = false;
+            GAME.slice = null;
+            break;
+          }
+        }
+      }
+    }
+
+    function loop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
       update(delta);
       render();
       requestAnimationFrame(loop);
     }
 
-    // ==== INPUT HANDLERS ====
-    function onPointerDown(evt) {
-      if (GAME.isAnimating) return;
-      const { x, y } = getCanvasCoords(evt);
-      GAME.isCutting = true;
-      GAME.slice = { start: { x, y }, end: { x, y } };
-      evt.preventDefault();
-    }
-
-    function onPointerMove(evt) {
-      if (!GAME.isCutting || GAME.isAnimating) return;
-      const { x, y } = getCanvasCoords(evt);
-      GAME.slice.end.x = x;
-      GAME.slice.end.y = y;
-      evt.preventDefault();
-    }
-
-    function onPointerUp(evt) {
-      if (!GAME.isCutting || GAME.isAnimating) return;
-      const { x, y } = getCanvasCoords(evt);
-      GAME.slice.end.x = x;
-      GAME.slice.end.y = y;
-      GAME.isCutting = false;
-
-      attemptSlice(GAME.slice.start, GAME.slice.end);
-      GAME.slice = null;
-      evt.preventDefault();
-    }
-
-    function attemptSlice(start, end) {
-      if (!lineIntersectsPolygon(start, end, GAME.playfield)) return;
-      const resultPolys = cutPolygon(GAME.playfield, [start, end]);
-      if (resultPolys.length === 0) return;
-      const newPlay = keepLargest(resultPolys);
-      const newArea = polygonArea(newPlay);
-      GAME.remainingArea = newArea / GAME.initialArea;
-      GAME.playfield = newPlay;
-
-      const cutPct = (1 - GAME.remainingArea) * 100;
-      if (cutPct >= GAME.targetPercent) {
-        onLevelComplete();
-      }
-    }
-
-    // ==== UI DRAW ====
-    function drawUI() {
-      const ctx = GAME.ctx;
-      ctx.font = "20px Arial";
-      ctx.fillStyle = "#fff";
-      ctx.fillText("Lives: " + GAME.lives, 20, 30);
-      const pct = Math.round((1 - GAME.remainingArea) * 100);
-      ctx.fillText(pct + "% cut", GAME.width - 100, 30);
-    }
-
-    // ==== INITIALIZATION ====
+    // -------------------------------------------------------------------
+    // Initialization
+    // -------------------------------------------------------------------
     function init() {
-      GAME.canvas = document.getElementById("gameCanvas");
-      GAME.ctx = GAME.canvas.getContext("2d");
+      canvas = document.getElementById('gameCanvas');
+      ctx = canvas.getContext('2d');
+      canvas.width = GAME.width;
+      canvas.height = GAME.height;
 
-      GAME.canvas.width = GAME.width;
-      GAME.canvas.height = GAME.height;
+      // Responsive sizing
+      function resizeCanvas() {
+        const aspectRatio = GAME.width / GAME.height;
+        const windowRatio = window.innerWidth / window.innerHeight;
+        if (windowRatio > aspectRatio) {
+          canvas.style.height = '90vh';
+          canvas.style.width = (90 * aspectRatio) + 'vh';
+        } else {
+          canvas.style.width = '90vw';
+          canvas.style.height = (90 / aspectRatio) + 'vw';
+        }
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
       setupLevel(0);
 
-      GAME.canvas.addEventListener("mousedown", onPointerDown);
-      GAME.canvas.addEventListener("mousemove", onPointerMove);
-      GAME.canvas.addEventListener("mouseup", onPointerUp);
-      GAME.canvas.addEventListener("mouseleave", onPointerUp);
+      // Mouse events
+      canvas.addEventListener('mousedown', onPointerDown);
+      canvas.addEventListener('mousemove', onPointerMove);
+      canvas.addEventListener('mouseup', onPointerUp);
+      canvas.addEventListener('mouseleave', onPointerUp);
 
-      GAME.canvas.addEventListener("touchstart", onPointerDown);
-      GAME.canvas.addEventListener("touchmove", onPointerMove);
-      GAME.canvas.addEventListener("touchend", onPointerUp);
+      // Touch events
+      canvas.addEventListener('touchstart', (e) => {
+        onPointerDown(e);
+      }, { passive: false });
+      canvas.addEventListener('touchmove', (e) => {
+        onPointerMove(e);
+      }, { passive: false });
+      canvas.addEventListener('touchend', (e) => {
+        onPointerUp(e);
+      }, { passive: false });
 
       requestAnimationFrame(loop);
     }
 
-    window.addEventListener("load", init);
+    window.addEventListener('load', init);
   </script>
 </body>
 </html>
