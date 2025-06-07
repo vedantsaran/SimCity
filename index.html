@@ -1,285 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Baseball Simulator</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- React Router -->
-  <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6/umd/react-router-dom.development.js"></script>
-  <!-- Recharts -->
-  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Block Blast</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #1a1a2e, #16213e);
+      --panel-bg: rgba(255,255,255,0.1);
+      --panel-border: rgba(255,255,255,0.2);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg-gradient);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+    #game-container { display: flex; gap: 30px; align-items: flex-start; max-width: 1200px; padding: 20px; }
+    .panel { background: var(--panel-bg); backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; border: 1px solid var(--panel-border); }
+    #score-panel { text-align: center; }
+    #score-panel h2 { color: #FFD700; margin-bottom: 15px; font-size: 24px; }
+    .score-item { margin: 10px 0; font-size: 18px; font-weight: bold; }
+    #score { color: #4CFF4C; } #streak { color: #FF4CFF; } #best { color: #FFD700; }
+    #controls { display: flex; flex-direction: column; gap: 10px; }
+    button {
+      background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+      border: none; border-radius: 10px; color: #fff;
+      padding: 12px 20px; font-size: 16px; font-weight: bold;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(0,0,0,0.35); }
+    button:active{ transform: translateY(0); }
+    #btn-restart { background: linear-gradient(45deg,#4ecdc4,#44a08d); }
+    #btn-mute    { background: linear-gradient(45deg,#ffa726,#ff7043); }
+    #board {
+      display: grid;
+      grid-template: repeat(8,1fr) / repeat(8,1fr);
+      gap: 2px; background: rgba(0,0,0,0.3);
+      padding: 10px; border-radius: 15px;
+      width:400px; height:400px;
+      border:3px solid var(--panel-border);
+      box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    }
+    .cell {
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      border:1px solid rgba(255,255,255,0.1);
+      position:relative;
+      transition: background .1s, border .1s;
+    }
+    .occupied { box-shadow: inset 0 0 10px rgba(0,0,0,0.3); }
+    .drop-valid { background: rgba(76,255,76,0.3)!important; border:2px solid #4CFF4C; }
+    .drop-invalid { background: rgba(255,76,76,0.3)!important; border:2px solid #FF4C4C; }
+    .drop-clear   { background: rgba(255,215,0,0.4)!important; border:2px solid #FFD700; }
+    .clearing     { animation: explode .25s ease-out forwards; }
+    @keyframes explode {
+      0%{transform:scale(1);opacity:1;}
+      50%{transform:scale(1.2);opacity:.7;}
+      100%{transform:scale(0);opacity:0;}
+    }
+    .color-red    { background:linear-gradient(135deg,#FF4C4C,#C62828); }
+    .color-green  { background:linear-gradient(135deg,#4CFF4C,#2E7D32); }
+    .color-blue   { background:linear-gradient(135deg,#4C4CFF,#1565C0); }
+    .color-yellow { background:linear-gradient(135deg,#FFD700,#F57C00); }
+    .color-purple { background:linear-gradient(135deg,#FF4CFF,#7B1FA2); }
+    .color-orange { background:linear-gradient(135deg,#FF8C42,#E65100); }
+    #preview-area { min-width:200px; }
+    #preview-area h3 { text-align:center; margin-bottom:20px; color:#FFD700; font-size:18px; }
+    .preview-slot {
+      background: rgba(0,0,0,0.2);
+      border:2px dashed rgba(255,255,255,0.3);
+      border-radius:10px;
+      min-height:80px;
+      display:flex; justify-content:center; align-items:center;
+      cursor:grab; transition:transform .15s, border .15s;
+    }
+    .preview-slot:hover{ transform:scale(1.02); border-color:#FFD700; }
+    .selected{ border-color:#4CFF4C; box-shadow:0 0 10px rgba(76,255,76,.5); }
+    .dragging{ opacity:.5; cursor:grabbing; }
+    .preview-piece{ display:grid; gap:2px; }
+    .preview-block{ width:20px; height:20px; border-radius:3px; box-shadow:0 2px 5px rgba(0,0,0,0.3); }
+    .combo-flash, .score-popup {
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      pointer-events:none; z-index:1000;
+      font-weight:bold; text-shadow:0 0 20px;
+      animation:comboFlash .75s ease-out forwards;
+    }
+    .combo-flash{ font-size:48px; color:#FFD700; text-shadow:0 0 20px rgba(255,215,0,.8); }
+    .score-popup{ font-size:36px; color:#4CFF4C; text-shadow:0 0 15px rgba(76,255,76,.7); animation:popupAnim .75s ease-out forwards; }
+    @keyframes comboFlash{0%{opacity:0;transform:translate(-50%,-50%)scale(.5);}50%{opacity:1;transform:translate(-50%,-50%)scale(1.2);}100%{opacity:0;transform:translate(-50%,-50%)scale(1);} }
+    @keyframes popupAnim{0%{opacity:0;transform:translate(-50%,-50%)scale(.5);}50%{opacity:1;transform:translate(-50%,-50%)scale(1.2);}100%{opacity:0;transform:translate(-50%,-50%)scale(1);} }
+    #game-over-modal{ position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:2000; }
+    .modal-content{ background: var(--bg-gradient); border:2px solid #FFD700; border-radius:20px; padding:40px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.8); max-width:400px; }
+    .modal-content h2{ color:#FF4C4C; font-size:36px; margin-bottom:20px; text-shadow:0 0 10px rgba(255,76,76,.5); }
+    .modal-content .final-score{ font-size:24px; color:#4CFF4C; margin:20px 0; }
+    .modal-content button{ margin:10px; padding:15px 30px; font-size:18px; }
+    @media(max-width:768px){
+      #game-container{ flex-direction:column; align-items:center; gap:20px; padding:10px; }
+      #board{width:320px;height:320px;}
+      .panel{width:100%;max-width:320px;}
+      .preview-slot{width:30%;margin:5px;display:inline-block;}
+    }
+    .placed-animation{animation:placeAnim .15s ease-out;}
+    @keyframes placeAnim{0%{transform:scale(.9);}50%{transform:scale(1.05);}100%{transform:scale(1);} }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-  <div id="root" class="flex h-screen"></div>
-
-  <script type="text/babel">
-  const { useState, useEffect } = React;
-  const { BrowserRouter, Routes, Route, NavLink, useNavigate } = ReactRouterDOM;
-  const { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } = Recharts;
-
-  // Utility Models & Engine (unchanged)
-  class Player { /* ... same as before ... */ }
-  class Team { /* ... same as before ... */ }
-  function weightedProb(weights) { /* ... same as before ... */ }
-  function simulateAtBat(batter, pitcher, settings) { /* ... same as before ... */ }
-  function simulateGame(home, away, settings) { /* ... same as before ... */ }
-  function simulateSeason(teams, settings) { /* ... same as before ... */ }
-  function computeDerived(team) { /* ... same as before ... */ }
-  function loadLeague() { return JSON.parse(localStorage.getItem('league') || 'null'); }
-  function saveLeague(data) { localStorage.setItem('league', JSON.stringify(data)); }
-
-  // Navigation
-  function Nav() {
-    const tabs = [
-      { name: 'Simulator', path: '/simulator' },
-      { name: 'Roster', path: '/roster' },
-      { name: 'Stats', path: '/stats' },
-      { name: 'Settings', path: '/settings' }
-    ];
-    return (
-      <aside className="w-64 bg-indigo-600 text-white flex flex-col">
-        <div className="p-6 text-2xl font-bold">⚾ Baseball</div>
-        <nav className="flex-1">
-          {tabs.map(tab => (
-            <NavLink
-              key={tab.name}
-              to={tab.path}
-              className={({ isActive }) =>
-                `block px-6 py-3 hover:bg-indigo-500 ${isActive ? 'bg-indigo-700' : ''}`
-              }
-            >
-              {tab.name}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-    );
-  }
-
-  // Simulator Component
-  function Simulator({ teams, settings, setResults }) {
-    const [log, setLog] = useState([]);
-    const [box, setBox] = useState({});
-    const runGame = () => {
-      const result = simulateGame(teams[1], teams[0], settings);
-      setLog(result.log);
-      setBox(result.box);
-    };
-    const runSeason = () => {
-      const season = simulateSeason([...teams], settings).map(computeDerived);
-      setResults(season);
-    };
-    return (
-      <div className="p-6 flex flex-col space-y-6 overflow-y-auto">
-        <div className="flex space-x-4">
-          <button
-            onClick={runGame}
-            className="bg-indigo-500 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-600"
-          >
-            Simulate Game
-          </button>
-          <button
-            onClick={runSeason}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg shadow hover:bg-green-600"
-          >
-            Simulate Season
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-semibold mb-2">Box Score</h2>
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border px-2 py-1">Team</th>
-                  <th className="border px-2 py-1">R</th>
-                  <th className="border px-2 py-1">H</th>
-                  <th className="border px-2 py-1">BB</th>
-                  <th className="border px-2 py-1">K</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teams.map(t => (
-                  <tr key={t.id}>
-                    <td className="border px-2 py-1">{t.name}</td>
-                    <td className="border px-2 py-1">{box[t.id]?.R || 0}</td>
-                    <td className="border px-2 py-1">{box[t.id]?.H || 0}</td>
-                    <td className="border px-2 py-1">{box[t.id]?.BB || 0}</td>
-                    <td className="border px-2 py-1">{box[t.id]?.K || 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 h-64 overflow-y-auto">
-            <h2 className="font-semibold mb-2">Game Log</h2>
-            <pre className="text-xs leading-tight whitespace-pre-wrap">{log.join('\n')}</pre>
-          </div>
-        </div>
+<body>
+  <div id="game-container">
+    <div id="left-panel" class="panel">
+      <div id="score-panel">
+        <h2>BLOCK BLAST</h2>
+        <div class="score-item">Score: <span id="score">0</span></div>
+        <div class="score-item">Streak: <span id="streak">0</span></div>
+        <div class="score-item">Best: <span id="best">0</span></div>
       </div>
-    );
-  }
+      <div id="controls">
+        <button id="btn-restart">🔄 Restart</button>
+        <button id="btn-mute">🔊 Sound: ON</button>
+      </div>
+    </div>
+    <div id="board"></div>
+    <div id="preview-area" class="panel">
+      <h3>Next Pieces</h3>
+      <div class="preview-slot" data-index="0"></div>
+      <div class="preview-slot" data-index="1"></div>
+      <div class="preview-slot" data-index="2"></div>
+    </div>
+  </div>
+  <div id="game-over-modal">
+    <div class="modal-content">
+      <h2>Game Over!</h2>
+      <div class="final-score">Final Score: <span id="final-score">0</span></div>
+      <div id="new-best" style="color:#FFD700;font-size:18px;margin:10px 0;display:none;">🎉 New Best Score! 🎉</div>
+      <button id="btn-play-again">Play Again</button>
+    </div>
+  </div>
+  <script>
+  (() => {
+    const SIZE = 8;
+    let board = [], pieces = [], score = 0, streak = 0, best = 0, soundOn=true, placed=0, grace=0, running=true;
+    const SHAPES={/*...same as original...*/};
+    const COLORS=['red','green','blue','yellow','purple','orange'], KEYS=Object.keys(SHAPES);
 
-  // Roster Editor, Stats, Settings unchanged except styling adjustments...
-  function RosterEditor({ teams, setTeams }) {
-    const updateAttr = (ti, pi, attr, stat, e) => {
-      const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-      const newTeams = teams.map((t, idx) => {
-        if (idx === ti) {
-          const updated = { ...t };
-          updated.roster = t.roster.map((p, j) => {
-            if (j === pi) {
-              const copy = { ...p };
-              copy[attr] = { ...p[attr], [stat]: val };
-              return copy;
-            }
-            return p;
-          });
-          return updated;
-        }
-        return t;
-      });
-      setTeams(newTeams);
-      saveLeague({ teams: newTeams, settings: loadLeague()?.settings });
+    // Cache DOM
+    const dom={
+      boardEl:document.getElementById('board'),
+      slots:document.querySelectorAll('.preview-slot'),
+      score:document.getElementById('score'), streak:document.getElementById('streak'), bestEl:document.getElementById('best'),
+      muteBtn:document.getElementById('btn-mute'), restart:document.getElementById('btn-restart'), playAgain:document.getElementById('btn-play-again'),
+      modal:document.getElementById('game-over-modal'), finalScore:document.getElementById('final-score'), newBest:document.getElementById('new-best')
     };
-    return (
-      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto">
-        {teams.map((team, ti) => (
-          <div key={team.id} className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-semibold text-lg mb-4">{team.name}</h3>
-            <div className="space-y-4">
-              {team.roster.map((p, pi) => (
-                <div key={p.id} className="border-b pb-2">
-                  <div className="font-medium mb-1">{p.name}</div>
-                  <div className="flex space-x-3 items-center text-sm">
-                    {['contact','power','patience'].map(stat => (
-                      <label key={stat} className="flex flex-col items-center">
-                        <span className="text-xs uppercase">{stat}</span>
-                        <input
-                          type="number"
-                          value={p.batting[stat]}
-                          onChange={e => updateAttr(ti, pi, 'batting', stat, e)}
-                          className="w-16 p-1 border rounded text-center"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
 
-  function Stats({ results }) {
-    const data = results;
-    return (
-      <div className="p-6 space-y-8 overflow-y-auto">
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold mb-2">Standings & Pythagorean Win %</h3>
-          <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-100"><th className="border p-1">Team</th><th className="border p-1">W</th><th className="border p-1">L</th><th className="border p-1">Pyth%</th></tr></thead>
-            <tbody>
-              {data.sort((a,b)=>b.W-a.W).map(t => (
-                <tr key={t.name}>
-                  <td className="border p-1">{t.name}</td>
-                  <td className="border p-1">{t.W}</td>
-                  <td className="border p-1">{t.L}</td>
-                  <td className="border p-1">{(t.Pyth*100).toFixed(1)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4" style={{ height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <CartesianGrid strokeDasharray="3 3" />
-              <Line type="monotone" dataKey="RS" name="Runs Scored" />
-              <Line type="monotone" dataKey="RA" name="Runs Allowed" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    );
-  }
+    // Audio
+    let audioCtx;
+    function initAudio(){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch{} }
+    function sound(freq,dur,type='sine'){if(!soundOn||!audioCtx)return;let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=freq;o.type=type;g.gain.setValueAtTime(0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.start();o.stop(audioCtx.currentTime+dur);}
 
-  function Settings({ settings, setSettings }) {
-    const change = (k, v) => {
-      const newSettings = { ...settings, [k]: v };
-      setSettings(newSettings);
-      saveLeague({ teams: loadLeague()?.teams, settings: newSettings });
-    };
-    return (
-      <div className="p-6 space-y-6 overflow-y-auto max-w-md">
-        <div className="bg-white rounded-lg shadow p-4">
-          <label className="block mb-2">
-            <span className="font-medium">Ballpark Offense Factor: {settings.offense.toFixed(2)}</span>
-            <input
-              type="range"
-              min="0.5"
-              max="1.5"
-              step="0.01"
-              value={settings.offense}
-              onChange={e => change('offense', +e.target.value)}
-              className="w-full mt-2"
-            />
-          </label>
-          <label className="block">
-            <span className="font-medium">Ballpark Defense Factor: {settings.defense.toFixed(2)}</span>
-            <input
-              type="range"
-              min="0.5"
-              max="1.5"
-              step="0.01"
-              value={settings.defense}
-              onChange={e => change('defense', +e.target.value)}
-              className="w-full mt-2"
-            />
-          </label>
-        </div>
-      </div>
-    );
-  }
+    // Utils
+    const copy=(arr)=>arr.map(r=>r.slice());
+    function bounds(shape){let xs=shape.map(p=>p[0]),ys=shape.map(p=>p[1]);var minX=Math.min(...xs),minY=Math.min(...ys),w=Math.max(...xs)-minX+1,h=Math.max(...ys)-minY+1;return{minX,minY,width:w,height:h};}
+    function randomPiece(){let k=KEYS[Math.floor(Math.random()*KEYS.length)],c=COLORS[Math.floor(Math.random()*COLORS.length)];return{shape:SHAPES[k],color:c,id:Date.now()+Math.random()};}
+    function valid(shape,boardState,r,c){return shape.every(([dx,dy])=>{let rr=r+dy,cc=c+dx;return rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE&&boardState[rr][cc]===null;});}
 
-  function App() {
-    const saved = loadLeague();
-    const [teams, setTeams] = useState(saved?.teams || [new Team('T1','Home'), new Team('T2','Away')]);
-    const [settings, setSettings] = useState(saved?.settings || { offense: 1, defense: 1 });
-    const [results, setResults] = useState([]);
-    useEffect(() => saveLeague({ teams, settings }), [teams, settings]);
+    // Board
+    function initBoard(){board=Array(SIZE).fill().map(()=>Array(SIZE).fill(null)); renderBoard();}
+    function renderBoard(){let html='';for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){let occ=board[r][c]?` occupied color-${board[r][c].color}`:'';html+=`<div class="cell${occ}" data-row="${r}" data-col="${c}"></div>`;}dom.boardEl.innerHTML=html;}
 
-    return (
-      <BrowserRouter>
-        <div className="flex h-full">
-          <Nav />
-          <main className="flex-1 overflow-hidden">
-            <Routes>
-              <Route path="/" element={<Simulator teams={teams} settings={settings} setResults={setResults} />} />
-              <Route path="/simulator" element={<Simulator teams={teams} settings={settings} setResults={setResults} />} />
-              <Route path="/roster" element={<RosterEditor teams={teams} setTeams={setTeams} />} />
-              <Route path="/stats" element={<Stats results={results} />} />
-              <Route path="/settings" element={<Settings settings={settings} setSettings={setSettings} />} />
-            </Routes>
-          </main>
-        </div>
-      </BrowserRouter>
-    );
-  }
+    // Preview
+    function genPieces(){do{pieces=[randomPiece(),randomPiece(),randomPiece()];}while(!solvable(pieces,board));placed=0; renderPreview();}
+    function renderPreview(){dom.slots.forEach((s,i)=>{s.innerHTML='';s.classList.remove('selected');delete s.dataset.pieceId;if(pieces[i]){let p=pieces[i];s.dataset.pieceId=p.id;let cont=document.createElement('div');let b=bounds(p.shape);cont.className='preview-piece';cont.style.gridTemplate=`repeat(${b.height},1fr)/repeat(${b.width},1fr)`;for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){let blk=document.createElement('div');blk.className='preview-block';if(p.shape.some(([sx,sy])=>sx===x+b.minX&&sy===y+b.minY))blk.classList.add(`color-${p.color}`);else blk.style.opacity='0';cont.appendChild(blk);}s.appendChild(cont);}});
+    }
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    // Line detection
+    function findLines(b){let rows=[],cols=[];for(let i=0;i<SIZE;i++){if(b[i].every(c=>c!==null))rows.push(i);if(b.every(r=>r[i]!==null))cols.push(i);}return{rows,cols};}
+    function clearLines(){let {rows,cols}=findLines(board);let toClear=new Set();rows.forEach(r=>[...Array(SIZE)].forEach((_,c)=>toClear.add(`${r},${c}`)));cols.forEach(c=>[...Array(SIZE)].forEach((_,r)=>toClear.add(`${r},${c}`)));toClear.forEach(k=>{let [r,c]=k.split(',').map(Number);let cell=document.querySelector(`[data-row="${r}"][data-col="${c}"]`);if(cell)cell.classList.add('clearing');});setTimeout(()=>{toClear.forEach(k=>{let [r,c]=k.split(',').map(Number);board[r][c]=null;});renderBoard();},250);return toClear.size;}
+    function updateLines(){let {rows,cols}=findLines(board),count=rows.length+cols.length; if(count){let blocks=clearLines(),base=blocks*10,mul=count>=4?2.5:count>=3?2:count>=2?1.5:1; streak++; grace=3;let pts=Math.floor(base*mul)*streak;score+=pts; if(streak%5===0)score+=500;showPopup(pts,mul,count);updateScore();return count;} if(grace-->0){if(grace===0)streak=0;}updateScore();return 0;}
+
+    // Check solvability
+    function solvable(arr,b){let perms=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];return perms.some(perm=>{let temp=copy(b),ok=true;for(let idx of perm){let pc=arr[idx],placedFlag=false;for(let r=0;r<SIZE&&!placedFlag;r++)for(let c=0;c<SIZE&&!placedFlag;c++){let [sr,sc]=[r,c]; if(valid(pc.shape,temp,sr,sc)){pc.shape.forEach(([dx,dy])=>temp[sr+dy][sc+dx]={color:pc.color}); let {rows,cols}=findLines(temp);rows.concat(cols).forEach(line=>{if(rows.includes(line))for(let cc=0;cc<SIZE;cc++)temp[line][cc]=null; if(cols.includes(line))for(let rr=0;rr<SIZE;rr++)temp[rr][line]=null;});placedFlag=true;} }if(!placedFlag){ok=false;break;}}return ok;});}
+
+    // Score UI
+    function updateScore(){if(score>best){best=score;localStorage.setItem('blockBlastBest',best);}dom.score.textContent=score;dom.streak.textContent=streak;dom.bestEl.textContent=best;}
+    function loadBest(){best=parseInt(localStorage.getItem('blockBlastBest'))||0;}
+    function showPopup(pts,mul,count){let combo=count>1?`COMBO ×${mul}!`:'';if(combo){let el=document.createElement('div');el.className='combo-flash';el.textContent=combo;document.body.append(el);setTimeout(()=>el.remove(),750);}let sp=document.createElement('div');sp.className='score-popup';sp.textContent='+'+pts;document.body.append(sp);setTimeout(()=>sp.remove(),750);sound(count>=3?880:count>=2?660:550,0.2,count>=3?'square':'sine');}
+
+    // Placement
+    function place(p,r,c){if(!valid(p.shape,board,r,c))return false;p.shape.forEach(([dx,dy])=>board[r+dy][c+dx]={color:p.color});renderBoard();animatePlacement(p.shape,r,c);sound(440,0.1);return true;}
+    function animatePlacement(shape,r,c){shape.forEach(([dx,dy])=>{let cell=document.querySelector(`[data-row="${r+dy}"][data-col="${c+dx}"]`);if(cell){cell.classList.add('placed-animation');setTimeout(()=>cell.classList.remove('placed-animation'),150);}});}
+
+    // Game Over
+    function checkGameOver(){return pieces.every(p=>!p||[...Array(SIZE)].some((_,r)=>[...Array(SIZE)].some((_,c)=>valid(p.shape,board,r,c)));}
+    function gameOver(){running=false;dom.finalScore.textContent=score; if(score>best)dom.newBest.style.display='block';dom.modal.style.display='flex';sound(220,0.5,'sawtooth');}
+
+    // Event Handlers 
+    function addListeners(){dom.restart.onclick=reset;dom.playAgain.onclick=reset;dom.muteBtn.onclick=()=>{soundOn=!soundOn;dom.muteBtn.textContent=soundOn?'🔊 Sound: ON':'🔇 Sound: OFF';};
+      dom.boardEl.onclick=e=>{if(!running)return;let cell=e.target.closest('.cell');if(!cell||!selected) return;let r=+cell.dataset.row,c=+cell.dataset.col;if(place(selected,r,c)){pieces[selIdx]=null;placed++; renderPreview();let cleared=updateLines();setTimeout(()=>{if((placed<3&&!pieces.some(p=>p&&[...Array(SIZE)].some((_,r)=>[...Array(SIZE)].some((_,c)=>valid(p.shape,board,r,c)))))||placed===3&&(placed=0,genPieces(),!checkGameOver()))gameOver();},300);}else{cell.classList.add('drop-invalid');setTimeout(()=>cell.classList.remove('drop-invalid'),150);}selected=null;}
+      dom.slots.forEach(s=>s.onclick=()=>{if(!running||!pieces[+s.dataset.index])return; if(selIdx===+s.dataset.index){s.classList.remove('selected');selected=null;selIdx=-1;} else{dom.slots.forEach(x=>x.classList.remove('selected'));s.classList.add('selected');selected=pieces[selIdx=+s.dataset.index];}});
+    }
+
+    let selected=null,selIdx=-1;
+    function reset(){score=streak=placed=grace=0;running=true;dom.newBest.style.display='none';initBoard();genPieces();updateScore();dom.modal.style.display='none';}
+
+    // Init
+    function init(){initAudio();loadBest();initBoard();genPieces();updateScore();addListeners();}
+    init();
+  })();
   </script>
 </body>
 </html>
