@@ -1,1 +1,1 @@
-A simple and lightweight browser baseball simulator.
+A lightweight recreation of the game Block Blast in browser
